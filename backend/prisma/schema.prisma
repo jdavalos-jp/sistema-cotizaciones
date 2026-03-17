@@ -1,0 +1,272 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+model Usuario {
+  idUsuario           BigInt       @id @default(autoincrement()) @map("id_usuario")
+  nombre              String       @db.VarChar(100)
+  apellido            String?      @db.VarChar(100)
+  email               String       @unique @db.VarChar(150)
+  telefono            String?      @db.VarChar(30)
+  passwordHash        String       @map("password_hash")
+  rol                 String?      @default("admin") @db.VarChar(50)
+  estado              String?      @default("activo") @db.VarChar(20)
+  fechaCreacion       DateTime?    @default(now()) @map("fecha_creacion") @db.Timestamp(6)
+  cotizacionesCreadas Cotizacion[]
+
+  @@map("usuarios")
+}
+
+model Institucion {
+  idInstitucion   BigInt    @id @default(autoincrement()) @map("id_institucion")
+  nombre          String    @db.VarChar(200)
+  tipoInstitucion String?   @map("tipo_institucion") @db.VarChar(100)
+  direccion       String?
+  telefono        String?   @db.VarChar(30)
+  email           String?   @db.VarChar(150)
+  estado          String?   @default("activo") @db.VarChar(20)
+  clientes        Cliente[]
+
+  @@map("instituciones")
+}
+
+model Cliente {
+  idCliente      BigInt       @id @default(autoincrement()) @map("id_cliente")
+  nombreCompleto String       @map("nombre_completo") @db.VarChar(200)
+  telefono       String?      @db.VarChar(30)
+  email          String?      @db.VarChar(150)
+  ciudad         String?      @db.VarChar(100)
+  cargo          String?      @db.VarChar(150)
+  idInstitucion  BigInt?      @map("id_institucion")
+  direccion      String?
+  observaciones  String?
+  fechaCreacion  DateTime?    @default(now()) @map("fecha_creacion") @db.Timestamp(6)
+  institucion    Institucion? @relation(fields: [idInstitucion], references: [idInstitucion], onUpdate: NoAction, map: "fk_clientes_institucion")
+  cotizaciones   Cotizacion[]
+
+  @@index([idInstitucion], map: "idx_clientes_institucion")
+  @@map("clientes")
+}
+
+model Categoria {
+  idCategoria   BigInt         @id @default(autoincrement()) @map("id_categoria")
+  nombre        String         @db.VarChar(150)
+  descripcion   String?
+  estado        String?        @default("activo") @db.VarChar(20)
+  productos     Producto[]
+  servicios     Servicio[]
+  subcategorias Subcategoria[]
+
+  @@map("categorias")
+}
+
+model Subcategoria {
+  idSubcategoria BigInt     @id @default(autoincrement()) @map("id_subcategoria")
+  idCategoria    BigInt     @map("id_categoria")
+  nombre         String     @db.VarChar(150)
+  descripcion    String?
+  productos      Producto[]
+  servicios      Servicio[]
+  categoria      Categoria  @relation(fields: [idCategoria], references: [idCategoria], onDelete: Cascade, onUpdate: NoAction, map: "fk_subcategorias_categoria")
+
+  @@index([idCategoria], map: "idx_subcategorias_categoria")
+  @@map("subcategorias")
+}
+
+model Producto {
+  idProducto     BigInt               @id @default(autoincrement()) @map("id_producto")
+  idCategoria    BigInt?              @map("id_categoria")
+  idSubcategoria BigInt?              @map("id_subcategoria")
+  nombre         String               @db.VarChar(200)
+  descripcion    String?
+  precioBase     Decimal              @default(0) @map("precio_base") @db.Decimal(12, 2)
+  sku            String?              @db.VarChar(100)
+  estado         String?              @default("activo") @db.VarChar(20)
+  cotizaciones   CotizacionProducto[]
+  componentes    ProductoComponente[]
+  imagenes       ProductoImagen[]
+  categoria      Categoria?           @relation(fields: [idCategoria], references: [idCategoria], onUpdate: NoAction, map: "fk_productos_categoria")
+  subcategoria   Subcategoria?        @relation(fields: [idSubcategoria], references: [idSubcategoria], onUpdate: NoAction, map: "fk_productos_subcategoria")
+
+  @@index([idCategoria], map: "idx_productos_categoria")
+  @@index([idSubcategoria], map: "idx_productos_subcategoria")
+  @@index([nombre], map: "idx_productos_nombre")
+  @@map("productos")
+}
+
+model ProductoImagen {
+  idImagen      BigInt    @id @default(autoincrement()) @map("id_imagen")
+  idProducto    BigInt    @map("id_producto")
+  urlImagen     String    @map("url_imagen")
+  orden         Int?      @default(1)
+  principal     Boolean?  @default(false)
+  fechaCreacion DateTime? @default(now()) @map("fecha_creacion") @db.Timestamp(6)
+  producto      Producto  @relation(fields: [idProducto], references: [idProducto], onDelete: Cascade, onUpdate: NoAction, map: "fk_producto_imagenes_producto")
+
+  @@index([idProducto], map: "idx_producto_imagenes_producto")
+  @@map("producto_imagenes")
+}
+
+model Componente {
+  idComponente BigInt                 @id @default(autoincrement()) @map("id_componente")
+  nombre       String                 @db.VarChar(200)
+  descripcion  String?
+  precioBase   Decimal                @default(0) @map("precio_base") @db.Decimal(12, 2)
+  sku          String?                @db.VarChar(100)
+  estado       String?                @default("activo") @db.VarChar(20)
+  cotizaciones CotizacionComponente[]
+  productos    ProductoComponente[]
+
+  @@map("componentes")
+}
+
+model ProductoComponente {
+  idProductoComponente BigInt     @id @default(autoincrement()) @map("id_producto_componente")
+  idProducto           BigInt     @map("id_producto")
+  idComponente         BigInt     @map("id_componente")
+  cantidad             Int        @default(1)
+  precioReferencial    Decimal?   @default(0) @map("precio_referencial") @db.Decimal(12, 2)
+  observaciones        String?
+  componente           Componente @relation(fields: [idComponente], references: [idComponente], onUpdate: NoAction, map: "fk_producto_componentes_componente")
+  producto             Producto   @relation(fields: [idProducto], references: [idProducto], onDelete: Cascade, onUpdate: NoAction, map: "fk_producto_componentes_producto")
+
+  @@index([idProducto], map: "idx_producto_componentes_producto")
+  @@index([idComponente], map: "idx_producto_componentes_componente")
+  @@map("producto_componentes")
+}
+
+model Servicio {
+  idServicio     BigInt               @id @default(autoincrement()) @map("id_servicio")
+  idCategoria    BigInt?              @map("id_categoria")
+  idSubcategoria BigInt?              @map("id_subcategoria")
+  nombre         String               @db.VarChar(200)
+  descripcion    String?
+  precioBase     Decimal              @default(0) @map("precio_base") @db.Decimal(12, 2)
+  estado         String?              @default("activo") @db.VarChar(20)
+  cotizaciones   CotizacionServicio[]
+  imagenes       ServicioImagen[]
+  categoria      Categoria?           @relation(fields: [idCategoria], references: [idCategoria], onUpdate: NoAction, map: "fk_servicios_categoria")
+  subcategoria   Subcategoria?        @relation(fields: [idSubcategoria], references: [idSubcategoria], onUpdate: NoAction, map: "fk_servicios_subcategoria")
+
+  @@index([idCategoria], map: "idx_servicios_categoria")
+  @@index([idSubcategoria], map: "idx_servicios_subcategoria")
+  @@index([nombre], map: "idx_servicios_nombre")
+  @@map("servicios")
+}
+
+model ServicioImagen {
+  idImagen      BigInt    @id @default(autoincrement()) @map("id_imagen")
+  idServicio    BigInt    @map("id_servicio")
+  urlImagen     String    @map("url_imagen")
+  orden         Int?      @default(1)
+  principal     Boolean?  @default(false)
+  fechaCreacion DateTime? @default(now()) @map("fecha_creacion") @db.Timestamp(6)
+  servicio      Servicio  @relation(fields: [idServicio], references: [idServicio], onDelete: Cascade, onUpdate: NoAction, map: "fk_servicio_imagenes_servicio")
+
+  @@index([idServicio], map: "idx_servicio_imagenes_servicio")
+  @@map("servicio_imagenes")
+}
+
+model Cotizacion {
+  idCotizacion        BigInt                 @id @default(autoincrement()) @map("id_cotizacion")
+  numeroCotizacion    String                 @unique @map("numero_cotizacion") @db.VarChar(50)
+  idCliente           BigInt                 @map("id_cliente")
+  fechaEmision        DateTime               @default(dbgenerated("CURRENT_DATE")) @map("fecha_emision") @db.Date
+  fechaValidez        DateTime?              @map("fecha_validez") @db.Date
+  estado              String?                @default("borrador") @db.VarChar(50)
+  subtotal            Decimal?               @default(0) @db.Decimal(12, 2)
+  descuento           Decimal?               @default(0) @db.Decimal(12, 2)
+  impuestos           Decimal?               @default(0) @db.Decimal(12, 2)
+  total               Decimal?               @default(0) @db.Decimal(12, 2)
+  moneda              String?                @default("Bs") @db.VarChar(10)
+  observaciones       String?
+  terminosCondiciones String?                @map("terminos_condiciones")
+  idUsuarioCreador    BigInt?                @map("id_usuario_creador")
+  fechaCreacion       DateTime?              @default(now()) @map("fecha_creacion") @db.Timestamp(6)
+  componentes         CotizacionComponente[]
+  productos           CotizacionProducto[]
+  servicios           CotizacionServicio[]
+  cliente             Cliente                @relation(fields: [idCliente], references: [idCliente], onUpdate: NoAction, map: "fk_cotizaciones_cliente")
+  usuarioCreador      Usuario?               @relation(fields: [idUsuarioCreador], references: [idUsuario], onUpdate: NoAction, map: "fk_cotizaciones_usuario")
+
+  @@index([idCliente], map: "idx_cotizaciones_cliente")
+  @@index([idUsuarioCreador], map: "idx_cotizaciones_usuario")
+  @@index([fechaEmision], map: "idx_cotizaciones_fecha")
+  @@map("cotizaciones")
+}
+
+model CotizacionProducto {
+  idDetalleProducto BigInt     @id @default(autoincrement()) @map("id_detalle_producto")
+  idCotizacion      BigInt     @map("id_cotizacion")
+  idProducto        BigInt     @map("id_producto")
+  nombreItem        String     @map("nombre_item") @db.VarChar(200)
+  descripcionItem   String?    @map("descripcion_item")
+  cantidad          Int        @default(1)
+  precioUnitario    Decimal    @default(0) @map("precio_unitario") @db.Decimal(12, 2)
+  descuento         Decimal?   @default(0) @db.Decimal(12, 2)
+  subtotal          Decimal?   @default(0) @db.Decimal(12, 2)
+  ordenVisual       Int?       @default(1) @map("orden_visual")
+  observaciones     String?
+  cotizacion        Cotizacion @relation(fields: [idCotizacion], references: [idCotizacion], onDelete: Cascade, onUpdate: NoAction, map: "fk_cotizacion_productos_cotizacion")
+  producto          Producto   @relation(fields: [idProducto], references: [idProducto], onUpdate: NoAction, map: "fk_cotizacion_productos_producto")
+
+  @@index([idCotizacion], map: "idx_cotizacion_productos_cotizacion")
+  @@index([idProducto], map: "idx_cotizacion_productos_producto")
+  @@map("cotizacion_productos")
+}
+
+model CotizacionServicio {
+  idDetalleServicio BigInt     @id @default(autoincrement()) @map("id_detalle_servicio")
+  idCotizacion      BigInt     @map("id_cotizacion")
+  idServicio        BigInt     @map("id_servicio")
+  nombreItem        String     @map("nombre_item") @db.VarChar(200)
+  descripcionItem   String?    @map("descripcion_item")
+  cantidad          Int        @default(1)
+  precioUnitario    Decimal    @default(0) @map("precio_unitario") @db.Decimal(12, 2)
+  descuento         Decimal?   @default(0) @db.Decimal(12, 2)
+  subtotal          Decimal?   @default(0) @db.Decimal(12, 2)
+  ordenVisual       Int?       @default(1) @map("orden_visual")
+  observaciones     String?
+  cotizacion        Cotizacion @relation(fields: [idCotizacion], references: [idCotizacion], onDelete: Cascade, onUpdate: NoAction, map: "fk_cotizacion_servicios_cotizacion")
+  servicio          Servicio   @relation(fields: [idServicio], references: [idServicio], onUpdate: NoAction, map: "fk_cotizacion_servicios_servicio")
+
+  @@index([idCotizacion], map: "idx_cotizacion_servicios_cotizacion")
+  @@index([idServicio], map: "idx_cotizacion_servicios_servicio")
+  @@map("cotizacion_servicios")
+}
+
+model CotizacionComponente {
+  idDetalleComponente BigInt     @id @default(autoincrement()) @map("id_detalle_componente")
+  idCotizacion        BigInt     @map("id_cotizacion")
+  idComponente        BigInt     @map("id_componente")
+  nombreItem          String     @map("nombre_item") @db.VarChar(200)
+  descripcionItem     String?    @map("descripcion_item")
+  cantidad            Int        @default(1)
+  precioUnitario      Decimal    @default(0) @map("precio_unitario") @db.Decimal(12, 2)
+  descuento           Decimal?   @default(0) @db.Decimal(12, 2)
+  subtotal            Decimal?   @default(0) @db.Decimal(12, 2)
+  ordenVisual         Int?       @default(1) @map("orden_visual")
+  observaciones       String?
+  componente          Componente @relation(fields: [idComponente], references: [idComponente], onUpdate: NoAction, map: "fk_cotizacion_componentes_componente")
+  cotizacion          Cotizacion @relation(fields: [idCotizacion], references: [idCotizacion], onDelete: Cascade, onUpdate: NoAction, map: "fk_cotizacion_componentes_cotizacion")
+
+  @@index([idCotizacion], map: "idx_cotizacion_componentes_cotizacion")
+  @@index([idComponente], map: "idx_cotizacion_componentes_componente")
+  @@map("cotizacion_componentes")
+}
+
+model SolicitudCotizacionWeb {
+  idSolicitud   BigInt    @id @default(autoincrement()) @map("id_solicitud")
+  nombre        String    @db.VarChar(200)
+  telefono      String?   @db.VarChar(30)
+  correo        String?   @db.VarChar(150)
+  asunto        String?   @db.VarChar(250)
+  fechaCreacion DateTime? @default(now()) @map("fecha_creacion") @db.Timestamp(6)
+
+  @@index([fechaCreacion], map: "idx_solicitudes_cotizacion_web_fecha")
+  @@map("solicitudes_cotizacion_web")
+}
