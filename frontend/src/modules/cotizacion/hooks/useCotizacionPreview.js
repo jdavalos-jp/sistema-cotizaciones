@@ -33,7 +33,7 @@ export function useCotizacionPreview({ idCliente, moneda, cart }) {
           { idCliente: idCliente ? String(idCliente) : null, moneda, productos, componentes },
           { signal: controller.signal },
         )
-        setData(preview)
+        setData(preview.data)
       } catch (err) {
         if (controller.signal.aborted) return
         message.error(String(err?.message || err))

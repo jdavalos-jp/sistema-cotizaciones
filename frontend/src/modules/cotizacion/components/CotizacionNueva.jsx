@@ -2,7 +2,7 @@ import React, { useState } from 'react'
 import { Button, Space, Typography, message, Card, Row, Col, Divider } from 'antd'
 import { CheckCircleOutlined, PlusOutlined } from '@ant-design/icons'
 
-import { ClienteDatosSection, FechaValidacionSection, AgregarProductosSection, ProductosSeleccionadosTable, ClienteDatosSeleccionado, ModalNuevoCliente } from './sections'
+import { ClienteDatosSection, FechaValidacionSection, AgregarProductosSection, ProductosSeleccionadosTable, ModalNuevoCliente } from './sections'
 
 import { useCatalogSearch } from '../hooks/useCatalogSearch'
 import { useClientesSearch } from '../hooks/useClientesSearch'
@@ -30,7 +30,6 @@ function downloadBlob(blob, filename) {
 export default function CotizacionNueva() {
 	const [idCliente, setIdCliente] = useState(null)
 	const [clienteLabel, setClienteLabel] = useState('')
-	const [clienteData, setClienteData] = useState(null)
 	const [fechaInicio, setFechaInicio] = useState(null)
 	const [fechaFin, setFechaFin] = useState(null)
 	const [moneda] = useState('Bs')
@@ -53,21 +52,6 @@ export default function CotizacionNueva() {
 
 	function onSetCantidad(tipo, id, cantidad) {
 		cart.setCantidad(tipo, String(id), cantidad)
-	}
-
-	// Obtener datos del cliente cuando se selecciona
-	async function handleClienteSelect(clienteId, clienteName) {
-		setIdCliente(clienteId)
-		setClienteLabel(clienteName)
-		// Aquí iría la llamada a tu API para obtener datos completos del cliente
-		// Por ahora, simulamos datos
-		setClienteData({
-			nombre: clienteName,
-			correo: 'correo@ejemplo.com',
-			telefono: '+ 591 XX XXX XXXX',
-			direccion: 'Dirección del cliente',
-			observaciones: 'Observaciones si las hay'
-		})
 	}
 
 	async function handleGenerarCotizacion() {
@@ -157,14 +141,6 @@ export default function CotizacionNueva() {
 					setClienteLabel={setClienteLabel}
 					onNewCliente={() => setModalNuevoClienteVisible(true)}
 				/>
-
-				{/* Mostrar datos del cliente seleccionado */}
-				{idCliente && (
-					<ClienteDatosSeleccionado
-						clienteLabel={clienteLabel}
-						clienteData={clienteData}
-					/>
-				)}
 
 				{/* Sección 2: Fechas de Validación */}
 				<FechaValidacionSection

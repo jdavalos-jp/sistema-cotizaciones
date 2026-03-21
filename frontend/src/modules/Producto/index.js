@@ -24,4 +24,4 @@ export {
   deleteProducto,
   addImagenToProducto,
   deleteImagenFromProducto,
-} from './services/api/productosApi'
+} //from './services/api/productosApi'

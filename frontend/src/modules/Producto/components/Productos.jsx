@@ -12,7 +12,7 @@ import {
 import ProductoForm from './ProductoForm'
 import { useProductosList } from '../hooks/useProductosManager'
 import { useCategoriesAndSubcategories } from '../hooks/useCategoriesAndSubcategories'
-import * as productosApi from '../services/api/productosApi'
+//import * as productosApi from '../services/api/productosApi'
 import './Productos.css'
 
 function Productos() {

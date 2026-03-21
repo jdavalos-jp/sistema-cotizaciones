@@ -11,7 +11,7 @@ message,
 import { CloseOutlined, DollarOutlined, InfoCircleOutlined, UploadOutlined } from '@ant-design/icons'
 import { useCategoriesAndSubcategories } from '../hooks/useCategoriesAndSubcategories'
 import { useProducto } from '../hooks/useProductosManager'
-import * as productosApi from '../services/api/productosApi'
+//import * as productosApi from '../services/api/productosApi'
 import { supabase } from '../../../lib/supabaseClient'
 
 const { Title, Text } = Typography

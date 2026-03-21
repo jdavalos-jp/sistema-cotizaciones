@@ -61,6 +61,34 @@ function addDays(dateValue, days) {
   }
 }
 
+function calcularDiasHabiles(hasta) {
+  try {
+    const hoy = new Date();
+    hoy.setHours(0, 0, 0, 0);
+    
+    const fechaHasta = hasta instanceof Date ? new Date(hasta) : new Date(hasta);
+    fechaHasta.setHours(0, 0, 0, 0);
+    
+    if (isNaN(fechaHasta.getTime())) return 0;
+    
+    let diasHabiles = 0;
+    const actual = new Date(hoy);
+    
+    while (actual <= fechaHasta) {
+      const dayOfWeek = actual.getDay();
+      // 1 = Lunes, 5 = Viernes, 0 = Domingo, 6 = Sábado
+      if (dayOfWeek !== 0 && dayOfWeek !== 6) {
+        diasHabiles++;
+      }
+      actual.setDate(actual.getDate() + 1);
+    }
+    
+    return diasHabiles;
+  } catch {
+    return 0;
+  }
+}
+
 function resolveCompanyLogoPath() {
   const fromEnv = (process.env.COMPANY_LOGO_PATH || '').trim();
   if (fromEnv) {
@@ -323,8 +351,8 @@ function drawRow(doc, row, cols, { moneda, zebra, index } = {}) {
     if (c.key === 'item') continue;
 
     let text = '';
-    if (c.key === 'tipo') text = safeText(row.tipo);
     if (c.key === 'sku') text = safeText(row.sku || '-');
+    if (c.key === 'dias') text = safeText(row.diasHabiles || '-');
     if (c.key === 'cant') text = safeText(row.cantidad);
     if (c.key === 'unit') text = formatMoney(row.unitario, moneda);
     if (c.key === 'total') text = formatMoney(row.total, moneda);
@@ -422,37 +450,40 @@ function buildCotizacionPdf(cotizacion) {
 
     const cols = [
       { key: 'item', title: 'Ítem', x: tableLeft + 0, w: Math.floor(tableWidth * 0.42), align: 'left' },
-      { key: 'tipo', title: 'Tipo', x: tableLeft + Math.floor(tableWidth * 0.42), w: Math.floor(tableWidth * 0.10), align: 'left' },
-      { key: 'sku', title: 'SKU', x: tableLeft + Math.floor(tableWidth * 0.52), w: Math.floor(tableWidth * 0.14), align: 'left' },
-      { key: 'cant', title: 'Cant.', x: tableLeft + Math.floor(tableWidth * 0.66), w: Math.floor(tableWidth * 0.08), align: 'right' },
-      { key: 'unit', title: 'P. Unit', x: tableLeft + Math.floor(tableWidth * 0.74), w: Math.floor(tableWidth * 0.13), align: 'right' },
-      { key: 'total', title: 'Total', x: tableLeft + Math.floor(tableWidth * 0.87), w: Math.floor(tableWidth * 0.13), align: 'right' },
+      { key: 'sku', title: 'SKU', x: tableLeft + Math.floor(tableWidth * 0.42), w: Math.floor(tableWidth * 0.18), align: 'left' },
+      { key: 'dias', title: 'Entrega de Días Hábiles', x: tableLeft + Math.floor(tableWidth * 0.60), w: Math.floor(tableWidth * 0.14), align: 'center' },
+      { key: 'cant', title: 'Cant.', x: tableLeft + Math.floor(tableWidth * 0.74), w: Math.floor(tableWidth * 0.08), align: 'right' },
+      { key: 'unit', title: 'P. Unit', x: tableLeft + Math.floor(tableWidth * 0.82), w: Math.floor(tableWidth * 0.09), align: 'right' },
+      { key: 'total', title: 'Total', x: tableLeft + Math.floor(tableWidth * 0.91), w: Math.floor(tableWidth * 0.09), align: 'right' },
     ];
+
+    const validez = cotizacion.fechaValidez || addDays(cotizacion.fechaEmision, 7);
+    const diasHabiles = calcularDiasHabiles(validez);
 
     const items = [
       ...(cotizacion.productos ?? [])
         .slice()
         .sort((a, b) => Number(a.ordenVisual ?? 0) - Number(b.ordenVisual ?? 0))
         .map((p) => ({
-          tipo: 'PROD',
           sku: p?.producto?.sku ?? null,
           item: p.nombreItem,
           descripcion: joinNonEmpty([p.descripcionItem, formatIncludedComponents(p?.producto)]),
           cantidad: p.cantidad,
           unitario: p.precioUnitario,
           total: p.subtotal,
+          diasHabiles: diasHabiles,
         })),
       ...(cotizacion.componentes ?? [])
         .slice()
         .sort((a, b) => Number(a.ordenVisual ?? 0) - Number(b.ordenVisual ?? 0))
         .map((c) => ({
-          tipo: 'COMP',
           sku: c?.componente?.sku ?? null,
           item: c.nombreItem,
           descripcion: c.descripcionItem,
           cantidad: c.cantidad,
           unitario: c.precioUnitario,
           total: c.subtotal,
+          diasHabiles: diasHabiles,
         })),
     ];
 
