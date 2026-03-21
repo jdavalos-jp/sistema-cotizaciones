@@ -84,6 +84,7 @@ model Producto {
   nombre         String               @db.VarChar(200)
   descripcion    String?
   precioBase     Decimal              @default(0) @map("precio_base") @db.Decimal(12, 2)
+  cantidad       Int                  @default(1)
   sku            String?              @db.VarChar(100)
   estado         String?              @default("activo") @db.VarChar(20)
   cotizaciones   CotizacionProducto[]

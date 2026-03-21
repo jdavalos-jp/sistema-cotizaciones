@@ -1,0 +1,6 @@
+export { default as ClienteDatosSection } from './ClienteDatosSection'
+export { default as ClienteDatosSeleccionado } from './ClienteDatosSeleccionado'
+export { default as ModalNuevoCliente } from './ModalNuevoCliente'
+export { default as FechaValidacionSection } from './FechaValidacionSection'
+export { default as AgregarProductosSection } from './AgregarProductosSection'
+export { default as ProductosSeleccionadosTable } from './ProductosSeleccionadosTable'

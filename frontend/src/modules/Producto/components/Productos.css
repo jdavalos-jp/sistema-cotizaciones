@@ -1,0 +1,394 @@
+/* ================================================
+   PRODUCTOS PAGE - ESTILOS PROFESIONALES  
+   ================================================ */
+
+.productos-page-container {
+  padding: 24px;
+  background: #f5f5f5;
+  min-height: 100vh;
+  animation: pageLoad 0.3s ease-out;
+}
+
+@keyframes pageLoad {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+/* ============ PAGE HEADER ============ */
+.page-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  margin-bottom: 32px;
+  gap: 20px;
+}
+
+.page-title {
+  margin: 0;
+  font-size: 32px;
+  font-weight: 700;
+  color: #000000;
+  letter-spacing: -0.5px;
+}
+
+.page-subtitle {
+  margin: 8px 0 0 0;
+  font-size: 14px;
+  color: #666666;
+  font-weight: 400;
+}
+
+.btn-nuevo-producto {
+  border-radius: 6px;
+  font-weight: 600;
+  height: 40px;
+  padding: 0 24px;
+  box-shadow: 0 2px 6px rgba(24, 144, 255, 0.2);
+  white-space: nowrap;
+}
+
+.btn-nuevo-producto:hover {
+  box-shadow: 0 4px 12px rgba(24, 144, 255, 0.3);
+  transform: translateY(-2px);
+  transition: all 0.3s ease;
+}
+
+/* ============ FILTERS CARD ============ */
+.filters-card {
+  margin-bottom: 24px;
+  border-radius: 8px;
+  border: 1px solid #f0f0f0;
+  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.04);
+}
+
+.filters-card .ant-card-head {
+  background: #fafafa;
+  border-bottom: 1px solid #f0f0f0;
+  padding: 16px 24px;
+}
+
+.filters-card .ant-card-head-title {
+  font-weight: 600;
+  color: #000000;
+  font-size: 14px;
+}
+
+.filters-card .ant-card-body {
+  padding: 20px 24px;
+}
+
+.filters-card .ant-input-affix-wrapper,
+.filters-card .ant-select-selector {
+  border-radius: 6px;
+  border: 1px solid #d9d9d9;
+  transition: all 0.3s ease;
+}
+
+.filters-card .ant-input-affix-wrapper:hover,
+.filters-card .ant-select-selector:hover {
+  border-color: #1890ff;
+}
+
+/* ============ PRODUCTS CARD ============ */
+.products-card {
+  border-radius: 8px;
+  border: 1px solid #f0f0f0;
+  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.04);
+}
+
+.products-card .ant-card-head {
+  background: #fafafa;
+  border-bottom: 1px solid #f0f0f0;
+  padding: 16px 24px;
+}
+
+.products-card .ant-card-head-title {
+  font-weight: 600;
+  color: #000000;
+  font-size: 14px;
+}
+
+.products-card .ant-card-body {
+  padding: 0;
+}
+
+/* ============ ERROR MESSAGE ============ */
+.error-message {
+  padding: 16px 24px;
+  background: #fff2f0;
+  border: 1px solid #ffccc7;
+  border-radius: 6px;
+  margin-bottom: 16px;
+}
+
+.error-message p {
+  margin: 0;
+  color: #ff4d4f;
+  font-weight: 500;
+}
+
+/* ============ TABLA ============ */
+.productos-table {
+  width: 100%;
+}
+
+.productos-table .ant-table {
+  background: #ffffff;
+}
+
+.productos-table .ant-table-thead {
+  background: #fafafa;
+}
+
+.productos-table .ant-table-thead > tr > th {
+  background: #fafafa;
+  border-bottom: 2px solid #f0f0f0;
+  font-weight: 600;
+  color: #222222;
+  font-size: 13px;
+  padding: 12px 16px;
+}
+
+.productos-table .ant-table-tbody > tr {
+  transition: background-color 0.2s ease;
+}
+
+.productos-table .ant-table-tbody > tr:hover {
+  background: #fafafa;
+}
+
+.productos-table .ant-table-tbody > tr > td {
+  padding: 16px;
+  border-bottom: 1px solid #f0f0f0;
+  font-size: 13px;
+}
+
+.productos-table .ant-table-pagination {
+  margin: 16px;
+  padding: 12px 0;
+  border-top: 1px solid #f0f0f0;
+}
+
+.productos-table .ant-pagination-item {
+  border-radius: 4px;
+}
+
+.productos-table .ant-pagination-item-active {
+  background-color: #1890ff;
+  border-color: #1890ff;
+}
+
+/* ============ BOTONES DE ACCIONES ============ */
+.productos-table .ant-btn-text {
+  transition: all 0.2s ease;
+}
+
+.productos-table .ant-btn-text:hover {
+  color: #1890ff;
+  transform: scale(1.1);
+}
+
+.productos-table .ant-btn-text-danger:hover {
+  color: #ff4d4f;
+}
+
+/* ============ TAGS ============ */
+.productos-table .ant-tag {
+  border-radius: 4px;
+  padding: 4px 12px;
+  font-size: 12px;
+  font-weight: 500;
+}
+
+/* ============ EMPTY STATE ============ */
+.ant-empty-description {
+  font-size: 14px;
+  color: #8c8c8c;
+}
+
+.ant-empty {
+  padding: 40px 0;
+}
+
+/* ============ MODAL ============ */
+.ant-modal-header {
+  border-bottom: 1px solid #f0f0f0;
+  padding: 16px 24px;
+}
+
+.ant-modal-title {
+  font-size: 18px;
+  font-weight: 600;
+  color: #000000;
+}
+
+.ant-modal-body {
+  padding: 0;
+}
+
+.ant-modal-close {
+  color: #8c8c8c;
+}
+
+.ant-modal-close:hover {
+  color: #000000;
+}
+
+/* ============ DRAWER ============ */
+.ant-drawer-header {
+  padding: 16px 24px;
+  border-bottom: 1px solid #f0f0f0;
+}
+
+.ant-drawer-title {
+  font-size: 18px;
+  font-weight: 600;
+  color: #000000;
+}
+
+.ant-drawer-body {
+  padding: 24px;
+  background: #fafafa;
+}
+
+/* ============ TOOLTIPS ============ */
+.ant-tooltip-inner {
+  background: #262626;
+  border-radius: 4px;
+  padding: 8px 12px;
+  font-size: 12px;
+  font-weight: 500;
+}
+
+/* ============ RESPONSIVE ============ */
+@media (max-width: 992px) {
+  .page-header {
+    flex-direction: column-reverse;
+    align-items: stretch;
+  }
+
+  .btn-nuevo-producto {
+    width: 100%;
+  }
+
+  .productos-page-container {
+    padding: 16px;
+  }
+}
+
+@media (max-width: 768px) {
+  .page-title {
+    font-size: 24px;
+  }
+
+  .page-subtitle {
+    font-size: 13px;
+  }
+
+  .productos-table .ant-table-thead > tr > th {
+    padding: 8px 12px;
+    font-size: 12px;
+  }
+
+  .productos-table .ant-table-tbody > tr > td {
+    padding: 12px 8px;
+    font-size: 12px;
+  }
+
+  .filters-card .ant-col {
+    margin-bottom: 8px;
+  }
+}
+
+@media (max-width: 576px) {
+  .productos-page-container {
+    padding: 12px;
+  }
+
+  .page-title {
+    font-size: 20px;
+  }
+
+  .filters-card .ant-row {
+    flex-direction: column;
+  }
+
+  .filters-card .ant-row > .ant-col {
+    width: 100%;
+  }
+
+  .productos-table .ant-table {
+    font-size: 12px;
+  }
+}
+
+/* ============ DARK MODE SUPPORT ============ */
+@media (prefers-color-scheme: dark) {
+  .productos-page-container {
+    background: #141414;
+  }
+
+  .page-title {
+    color: #ffffff;
+  }
+
+  .page-subtitle {
+    color: #ffffffa6;
+  }
+
+  .filters-card,
+  .products-card {
+    background: #1f1f1f;
+    border-color: #262626;
+  }
+
+  .filters-card .ant-card-head,
+  .products-card .ant-card-head {
+    background: #262626;
+    border-color: #262626;
+  }
+
+  .filters-card .ant-card-head-title,
+  .products-card .ant-card-head-title {
+    color: #ffffff;
+  }
+
+  .productos-table .ant-table-thead {
+    background: #262626;
+  }
+
+  .productos-table .ant-table-thead > tr > th {
+    background: #262626;
+    border-color: #262626;
+    color: #ffffff;
+  }
+
+  .productos-table .ant-table {
+    background: #1f1f1f;
+  }
+
+  .productos-table .ant-table-tbody > tr:hover {
+    background: #262626;
+  }
+
+  .error-message {
+    background: #2f1515;
+    border-color: #58181c;
+  }
+}
+
+/* ============ TRANSICIONES SUAVES ============ */
+* {
+  transition: background-color 0.2s ease, border-color 0.2s ease, color 0.2s ease;
+}
+
+.ant-btn,
+.ant-input,
+.ant-select,
+.ant-table {
+  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+}

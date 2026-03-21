@@ -513,17 +513,18 @@ function buildCotizacionPdf(cotizacion) {
 
     // Condiciones mínimas (MVP)
     ensureSpace(doc, 70, { meta, onNewPage: redrawOnNewPage });
-    doc.font('Helvetica-Bold').fontSize(10).fillColor('#111827').text('Términos y condiciones', left, doc.y);
+    doc.font('Helvetica-Bold').fontSize(10).fillColor('#111827').text('INFORMACION DE PAGO', left, doc.y);
     doc.moveDown(0.2);
     doc
       .font('Helvetica')
       .fontSize(9)
       .fillColor('#374151')
       .text(
-        '• Vigencia: 7 días.\n• Precios sujetos a disponibilidad.\n• Entrega y forma de pago a coordinar.',
+        '• Banco de credito.\n• Jorge Davalos Crespo.\n• Nº Cuenta: 3015040742318',
         { width: right - left },
+       
       );
-
+      
     // Renderizar footers en todas las páginas
     const range = doc.bufferedPageRange(); // { start, count }
     meta.totalPages = range.count;

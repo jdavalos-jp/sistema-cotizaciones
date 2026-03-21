@@ -12,26 +12,26 @@ export function useCotizacionCart() {
   const setCantidad = useCallback((tipo, id, cantidad) => {
     const safe = Math.max(1, Number(cantidad) || 1)
     setCart((prev) =>
-      prev.map((x) => (x.tipo === tipo && x.id === id ? { ...x, cantidad: safe } : x)),
+      prev.map((x) => (x.tipo === tipo && String(x.id) === String(id) ? { ...x, cantidad: safe } : x)),
     )
   }, [])
 
   const addItem = useCallback((item) => {
     setCart((prev) => {
-      const exists = prev.some((x) => x.tipo === item.tipo && x.id === item.id)
+      const exists = prev.some((x) => x.tipo === item.tipo && String(x.id) === String(item.id))
       if (exists) return prev
-      return [...prev, { ...item, cantidad: item.cantidad ?? 1 }]
+      return [...prev, { id: item.id, tipo: item.tipo, cantidad: item.cantidad ?? 1 }]
     })
   }, [])
 
   const removeItem = useCallback((tipo, id) => {
-    setCart((prev) => prev.filter((x) => !(x.tipo === tipo && x.id === id)))
+    setCart((prev) => prev.filter((x) => !(x.tipo === tipo && String(x.id) === String(id))))
   }, [])
 
   const clear = useCallback(() => setCart([]), [])
 
   const setSelectionFromList = useCallback((tipo, selectedIds, list) => {
-    const selectedSet = new Set(selectedIds)
+    const selectedSet = new Set(selectedIds.map(String))
 
     setCart((prev) => {
       const kept = prev.filter((x) => x.tipo !== tipo || selectedSet.has(String(x.id)))
@@ -39,7 +39,7 @@ export function useCotizacionCart() {
 
       const toAdd = list
         .filter((x) => selectedSet.has(String(x.id)) && !existingIds.has(String(x.id)))
-        .map((x) => ({ ...x, tipo, cantidad: 1 }))
+        .map((x) => ({ id: String(x.id), tipo, cantidad: 1 }))
 
       return [...kept, ...toAdd]
     })
