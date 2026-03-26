@@ -3,18 +3,22 @@ import { Card, InputNumber, Row, Col, Typography, Space } from 'antd';
 import { CalendarOutlined } from '@ant-design/icons';
 import dayjs from 'dayjs';
 
-function FechaValidacionSection({ diasValidez, setDiasValidez, diasEntrega, setDiasEntrega }) {
-  // Fecha de inicio (hoy)
+function FechaValidacionSection({ diasValidez, setDiasValidez, diasEntrega, setDiasEntrega, fechaEmision: fechaEmisionProp }) {
+  // Fecha de inicio: usar fechaEmision si viene (edición) o hoy (nueva)
   const fechaInicio = useMemo(() => {
+    if (fechaEmisionProp) {
+      const d = new Date(fechaEmisionProp);
+      if (!isNaN(d.getTime())) return d.toISOString().split('T')[0];
+    }
     return new Date().toISOString().split('T')[0]; // YYYY-MM-DD
-  }, []);
+  }, [fechaEmisionProp]);
 
   // Fecha de validez calculada automáticamente
   const fechaValidez = useMemo(() => {
-    const hoy = new Date();
-    hoy.setDate(hoy.getDate() + (diasValidez || 0));
-    return hoy.toISOString().split('T')[0];
-  }, [diasValidez]);
+    const base = new Date(fechaInicio + 'T00:00:00');
+    base.setDate(base.getDate() + (diasValidez || 0));
+    return base.toISOString().split('T')[0];
+  }, [diasValidez, fechaInicio]);
 
   return (
     <Card

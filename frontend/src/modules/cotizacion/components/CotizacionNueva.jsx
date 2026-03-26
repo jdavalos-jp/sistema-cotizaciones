@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
-import { Button, Space, Typography, message, Card, Row, Col, Divider } from 'antd';
-import { CheckCircleOutlined, PlusOutlined } from '@ant-design/icons';
+import { Button, Space, Typography, message, Card, Row, Col, Divider, InputNumber, Input } from 'antd';
+import { CheckCircleOutlined, PlusOutlined, FileTextOutlined } from '@ant-design/icons';
 
 import { 
   ClienteDatosSection, 
@@ -16,23 +16,7 @@ import { useCotizacionCart } from '../hooks/useCotizacionCart';
 import { useCotizacionPreview } from '../hooks/useCotizacionPreview';
 
 import { fetchProductos, fetchComponentes } from '../services/api/catalogoApi';
-import { generarPdfCotizacion } from '../services/api/cotizacionesApi';
-
-// Helpers para descargar PDF
-function toArrayBufferBlob(arrayBuffer) {
-  return new Blob([arrayBuffer], { type: 'application/pdf' });
-}
-
-function downloadBlob(blob, filename) {
-  const url = URL.createObjectURL(blob);
-  const a = document.createElement('a');
-  a.href = url;
-  a.download = filename;
-  document.body.appendChild(a);
-  a.click();
-  a.remove();
-  URL.revokeObjectURL(url);
-}
+import { createAndDownloadPdf } from '../services/api/cotizacionesApi';
 
 function CotizacionNueva() {
   const [idCliente, setIdCliente] = useState(null);
@@ -40,6 +24,9 @@ function CotizacionNueva() {
   const [diasValidez, setDiasValidez] = useState(10);
   const [diasEntrega, setDiasEntrega] = useState(5);
   const [moneda] = useState('Bs');
+  const [observaciones, setObservaciones] = useState('');
+  const [descuento, setDescuento] = useState(0);
+  const [impuestos, setImpuestos] = useState(0);
   const [loadingSubmit, setLoadingSubmit] = useState(false);
   const [showSuccess, setShowSuccess] = useState(false);
   const [modalNuevoClienteVisible, setModalNuevoClienteVisible] = useState(false);
@@ -91,6 +78,7 @@ function CotizacionNueva() {
         idCliente: String(idCliente),
         moneda,
         diasEntrega,
+        observaciones: observaciones || null,
         ...(fechaValidezStr && { fechaValidez: fechaValidezStr }),
         productos: cart.cart
           .filter((x) => x.tipo === 'producto')
@@ -112,9 +100,15 @@ function CotizacionNueva() {
           })),
       };
 
-      const pdfArrayBuffer = await generarPdfCotizacion(payload);
-      const blob = toArrayBufferBlob(pdfArrayBuffer);
-      downloadBlob(blob, 'cotizacion.pdf');
+      const pdfBlob = await createAndDownloadPdf(payload);
+      const url = URL.createObjectURL(pdfBlob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `cotizacion-${payload.idCliente}.pdf`;
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
+      URL.revokeObjectURL(url);
 
       message.success('¡Cotización creada exitosamente!');
       setShowSuccess(true);
@@ -125,6 +119,9 @@ function CotizacionNueva() {
         setClienteLabel('');
         setDiasValidez(10);
         setDiasEntrega(5);
+        setObservaciones('');
+        setDescuento(0);
+        setImpuestos(0);
         setShowSuccess(false);
       }, 3000);
     } catch (err) {
@@ -186,6 +183,74 @@ function CotizacionNueva() {
           onSetNombre={onSetNombre}
           onSetDescripcion={onSetDescripcion}
         />
+
+        {/* Resumen y Totales */}
+        <Card
+          title={
+            <Space>
+              <FileTextOutlined />
+              <span>Resumen y Totales</span>
+            </Space>
+          }
+        >
+          <Row gutter={[24, 16]}>
+            <Col xs={24} md={12}>
+              <Typography.Text type="secondary">Observaciones</Typography.Text>
+              <Input.TextArea
+                value={observaciones}
+                onChange={(e) => setObservaciones(e.target.value)}
+                rows={4}
+                placeholder="Notas u observaciones adicionales..."
+                style={{ marginTop: 8 }}
+              />
+            </Col>
+            <Col xs={24} md={12}>
+              <div style={{ display: 'grid', gap: '16px' }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                  <Typography.Text>Subtotal:</Typography.Text>
+                  <Typography.Text strong style={{ fontSize: '15px' }}>
+                    {(preview.data?.totales?.subtotal || 0).toLocaleString('es-BO')} {moneda}
+                  </Typography.Text>
+                </div>
+
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                  <Typography.Text>Descuento:</Typography.Text>
+                  <InputNumber
+                    value={descuento}
+                    onChange={(val) => setDescuento(val || 0)}
+                    min={0}
+                    step={1}
+                    precision={0}
+                    style={{ width: 140 }}
+                    addonAfter={moneda}
+                  />
+                </div>
+
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                  <Typography.Text>Impuestos:</Typography.Text>
+                  <InputNumber
+                    value={impuestos}
+                    onChange={(val) => setImpuestos(val || 0)}
+                    min={0}
+                    step={1}
+                    precision={0}
+                    style={{ width: 140 }}
+                    addonAfter={moneda}
+                  />
+                </div>
+
+                <Divider style={{ margin: '4px 0' }} />
+
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                  <Typography.Text strong style={{ fontSize: '18px' }}>TOTAL:</Typography.Text>
+                  <Typography.Text strong style={{ fontSize: '18px', color: '#389e0d' }}>
+                    {((preview.data?.totales?.subtotal || 0) - Number(descuento) + Number(impuestos)).toLocaleString('es-BO')} {moneda}
+                  </Typography.Text>
+                </div>
+              </div>
+            </Col>
+          </Row>
+        </Card>
 
         <Divider style={{ margin: '8px 0' }} />
 

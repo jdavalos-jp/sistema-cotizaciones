@@ -6,7 +6,7 @@ import { fetchClientes } from '../services/api/clientesApi'
 
 export function useClientesSearch() {
   const [search, setSearch] = useState('')
-  const debounced = useDebouncedValue(search, 0)
+  const debounced = useDebouncedValue(search, 300) // Usar 300ms default
 
   const [loading, setLoading] = useState(false)
   const [items, setItems] = useState([])

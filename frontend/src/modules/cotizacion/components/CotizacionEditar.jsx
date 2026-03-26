@@ -1,12 +1,17 @@
 import React, { useState, useMemo, useEffect } from 'react'
-import { Button, Space, Typography, message, Card, Row, Col, Divider, Spin, Alert, Table } from 'antd'
-import { SaveOutlined, DeleteOutlined } from '@ant-design/icons'
+import { Button, Space, Typography, message, Card, Row, Col, Divider, Spin, Alert, InputNumber, Input } from 'antd'
+import { SaveOutlined, UserOutlined, FileTextOutlined } from '@ant-design/icons'
 
-import { AgregarProductosSection } from './sections'
+import {
+  FechaValidacionSection,
+  AgregarProductosSection,
+  ProductosSeleccionadosTable,
+} from './sections'
+
 import { useCotizacionEdit } from '../hooks/useCotizacionEdit'
 import { useCotizacionPreview } from '../hooks/useCotizacionPreview'
 
-const { Title } = Typography
+const { Title, Text } = Typography
 
 export default function CotizacionEditar({ idCotizacion, onSuccess, onCancel }) {
   const {
@@ -20,20 +25,33 @@ export default function CotizacionEditar({ idCotizacion, onSuccess, onCancel }) 
     handleSave,
   } = useCotizacionEdit(idCotizacion)
 
+  // --- Estado local para campos editables ---
   const [observaciones, setObservaciones] = useState('')
   const [descuento, setDescuento] = useState(0)
   const [impuestos, setImpuestos] = useState(0)
+  const [diasValidez, setDiasValidez] = useState(10)
+  const [diasEntrega, setDiasEntrega] = useState(5)
 
-  // Cargar valores iniciales cuando cargue la cotización
+  // --- Cargar valores iniciales al recibir la cotización ---
   useEffect(() => {
-    if (cotizacion) {
-      setObservaciones(cotizacion.observaciones || '')
-      setDescuento(cotizacion.descuento || 0)
-      setImpuestos(cotizacion.impuestos || 0)
+    if (!cotizacion) return
+
+    setObservaciones(cotizacion.observaciones || '')
+    setDescuento(cotizacion.descuento || 0)
+    setImpuestos(cotizacion.impuestos || 0)
+    setDiasEntrega(cotizacion.diasEntrega || 5)
+
+    // Calcular diasValidez a partir de las fechas
+    if (cotizacion.fechaEmision && cotizacion.fechaValidez) {
+      const emision = new Date(cotizacion.fechaEmision)
+      const validez = new Date(cotizacion.fechaValidez)
+      const diffMs = validez.getTime() - emision.getTime()
+      const diffDays = Math.round(diffMs / (1000 * 60 * 60 * 24))
+      setDiasValidez(diffDays > 0 ? diffDays : 10)
     }
   }, [cotizacion])
 
-  // Hacer preview con los datos del carrito
+  // --- Preview para calcular líneas y totales ---
   const preview = useCotizacionPreview({
     idCliente: cotizacion?.idCliente,
     moneda: cotizacion?.moneda || 'Bs',
@@ -41,91 +59,69 @@ export default function CotizacionEditar({ idCotizacion, onSuccess, onCancel }) 
   })
 
   const lineas = preview.data?.lineas ?? []
-  const total = preview.data?.totales?.total ?? 0
 
-  // Columnas para la tabla de productos
-  const columns = [
-    {
-      title: 'PRODUCTO',
-      dataIndex: 'nombre',
-      key: 'nombre',
-      render: (text) => <span>{text}</span>,
-    },
-    {
-      title: `PRECIO`,
-      dataIndex: 'precioUnitario',
-      key: 'precioUnitario',
-      align: 'right',
-      width: 120,
-      render: (price, record) => (
-        <input
-          type="number"
-          min="0"
-          step="0.01"
-          value={Number(price || 0)}
-          onChange={(e) =>
-            cart.setPrecioUnitario(record.tipo, String(record.id), Math.max(0, Number(e.target.value) || 0))
-          }
-          style={{
-            width: '100%',
-            textAlign: 'right',
-            padding: '4px',
-            border: '1px solid #d9d9d9',
-            borderRadius: '4px',
-          }}
-        />
-      ),
-    },
-    {
-      title: 'CANTIDAD',
-      dataIndex: 'cantidad',
-      key: 'cantidad',
-      align: 'center',
-      width: 80,
-      render: (cantidad, record) => (
-        <input
-          type="number"
-          min="1"
-          value={cantidad}
-          onChange={(e) =>
-            cart.setCantidad(record.tipo, String(record.id), Math.max(1, Number(e.target.value) || 1))
-          }
-          style={{
-            width: '100%',
-            textAlign: 'center',
-            padding: '4px',
-            border: '1px solid #d9d9d9',
-            borderRadius: '4px',
-          }}
-        />
-      ),
-    },
-    {
-      title: 'SUBTOTAL',
-      dataIndex: 'totalLinea',
-      key: 'totalLinea',
-      align: 'right',
-      width: 100,
-      render: (total) => (
-        <span style={{ fontWeight: 600 }}>{Number(total || 0).toFixed(2)}</span>
-      ),
-    },
-    {
-      title: 'ACCIÓN',
-      key: 'action',
-      align: 'center',
-      width: 70,
-      render: (_, record) => (
-        <Button
-          type="text"
-          danger
-          size="small"
-          icon={<DeleteOutlined />}
-          onClick={() => cart.removeItem(record.tipo, String(record.id))}
-        />
-      ),
-    },
-  ]
+  // Mergear ediciones del carrito (nombre/descripción personalizados)
+  const lineasConEdiciones = useMemo(() => {
+    return lineas.map((linea) => {
+      const cartItem = cart.cart.find(
+        (x) => x.tipo === linea.tipo && String(x.id) === String(linea.id)
+      )
+      if (cartItem) {
+        return {
+          ...linea,
+          nombre: cartItem.nombre ?? linea.nombre,
+          descripcion: cartItem.descripcion ?? linea.descripcion,
+        }
+      }
+      return linea
+    })
+  }, [lineas, cart.cart])
+
+  // Fallback: mostrar items del carrito directamente si el preview aún no está disponible
+  // Esto asegura que los productos existentes se muestren inmediatamente al cargar editar cotización
+  const lineasFallback = useMemo(() => {
+    // Si el preview tiene los mismos items que el carrito, usar el preview enriquecido
+    if (
+      lineasConEdiciones.length > 0 &&
+      lineasConEdiciones.length === cart.cart.length &&
+      lineasConEdiciones.every((linea) =>
+        cart.cart.some((item) => String(item.id) === String(linea.id) && item.tipo === linea.tipo)
+      )
+    ) {
+      return lineasConEdiciones
+    }
+
+    // Si no, construir una vista simple del carrito que aún no ha sido procesada por el preview
+    // Esto evita perder items cuando se agregan productos nuevos mientras el preview se calcula
+    console.log(
+      '[CotizacionEditar] Fallback activado. Preview:',
+      lineasConEdiciones.length,
+      'Carrito:',
+      cart.cart.length
+    )
+    return cart.cart.map((item) => ({
+      tipo: item.tipo,
+      id: item.id,
+      nombre: item.nombre,
+      descripcion: item.descripcion,
+      cantidad: item.cantidad,
+      precioUnitario: item.precioUnitario || 0,
+      totalLinea: (item.precioUnitario || 0) * item.cantidad,
+    }))
+  }, [lineasConEdiciones, cart.cart])
+
+  const moneda = cotizacion?.moneda || 'Bs'
+  const subtotal = preview.data?.totales?.subtotal ?? (
+    lineasFallback.reduce((sum, l) => sum + (l.totalLinea || 0), 0)
+  )
+  const totalFinal = subtotal - Number(descuento) + Number(impuestos)
+
+  // --- Handlers ---
+  const onRemove = (tipo, id) => cart.removeItem(tipo, String(id))
+  const onSetCantidad = (tipo, id, cantidad) => cart.setCantidad(tipo, String(id), cantidad)
+  const onSetPrecio = (tipo, id, precio) => cart.setPrecioUnitario(tipo, String(id), precio)
+  const onSetNombre = (tipo, id, nombre) => cart.setNombre(tipo, String(id), nombre)
+  const onSetDescripcion = (tipo, id, descripcion) => cart.setDescripcion(tipo, String(id), descripcion)
 
   async function handleGuardarCambios() {
     if (!cart.cart.length) {
@@ -141,8 +137,8 @@ export default function CotizacionEditar({ idCotizacion, onSuccess, onCancel }) 
             idProducto: String(x.id),
             cantidad: Math.max(1, Number(x.cantidad) || 1),
             ...(x.precioUnitario !== undefined && { precioUnitario: x.precioUnitario }),
-            ...(x.nombre !== undefined && { nombre: x.nombre }),
-            ...(x.descripcion !== undefined && { descripcion: x.descripcion }),
+            ...(x.nombre && { nombre: x.nombre }),
+            ...(x.descripcion && { descripcion: x.descripcion }),
           })),
         componentes: cart.cart
           .filter((x) => x.tipo === 'componente')
@@ -150,26 +146,45 @@ export default function CotizacionEditar({ idCotizacion, onSuccess, onCancel }) 
             idComponente: String(x.id),
             cantidad: Math.max(1, Number(x.cantidad) || 1),
             ...(x.precioUnitario !== undefined && { precioUnitario: x.precioUnitario }),
-            ...(x.nombre !== undefined && { nombre: x.nombre }),
-            ...(x.descripcion !== undefined && { descripcion: x.descripcion }),
+            ...(x.nombre && { nombre: x.nombre }),
+            ...(x.descripcion && { descripcion: x.descripcion }),
           })),
-        moneda: cotizacion?.moneda || 'Bs',
+        moneda,
         observaciones: observaciones || null,
         descuento: Number(descuento) || 0,
         impuestos: Number(impuestos) || 0,
+        diasValidez,
+        diasEntrega,
       }
 
+      console.log(
+        '[CotizacionEditar] Guardando cambios. Carrito:',
+        cart.cart.length,
+        'Productos:',
+        payload.productos.length,
+        'Componentes:',
+        payload.componentes.length,
+        'Payload:',
+        JSON.stringify(payload, null, 2)
+      )
+
       await handleSave(payload)
-      if (onSuccess) {
-        onSuccess()
-      }
+      if (onSuccess) onSuccess()
     } catch (err) {
-      // Error ya mostrado
+      // Error ya manejado por el hook
     }
   }
 
+  // --- Estados de carga/error ---
   if (loading) {
-    return <Spin size="large" description="Cargando cotización..." />
+    return (
+      <div style={{ textAlign: 'center', padding: '60px 20px' }}>
+        <Spin size="large" />
+        <div style={{ marginTop: 16 }}>
+          <Text type="secondary">Cargando cotización...</Text>
+        </div>
+      </div>
+    )
   }
 
   if (error) {
@@ -181,139 +196,196 @@ export default function CotizacionEditar({ idCotizacion, onSuccess, onCancel }) 
   }
 
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
-      {/* Encabezado */}
-      <Card>
-        <Row gutter={16}>
-          <Col span={8}>
-            <div>
-              <span style={{ opacity: 0.65 }}>Cliente</span>
-              <div>
-                <span style={{ fontWeight: 600 }}>{cotizacion.cliente?.nombreCompleto}</span>
-              </div>
-            </div>
-          </Col>
-          <Col span={8}>
-            <div>
-              <span style={{ opacity: 0.65 }}>Cotización #</span>
-              <div>
-                <span style={{ fontWeight: 600 }}>{cotizacion.numeroCotizacion}</span>
-              </div>
-            </div>
-          </Col>
-          <Col span={8}>
-            <div>
-              <span style={{ opacity: 0.65 }}>Estado</span>
-              <div>
-                <span style={{ fontWeight: 600 }}>{cotizacion.estado}</span>
-              </div>
-            </div>
-          </Col>
-        </Row>
-      </Card>
+    <div>
+      <Space direction="vertical" size={24} style={{ width: '100%' }}>
+        {/* Encabezado */}
+        <div>
+          <Title level={3} style={{ marginTop: 0, marginBottom: 0 }}>
+            Editar Cotización #{cotizacion.numeroCotizacion}
+          </Title>
+          <Text type="secondary">
+            Modifica los datos de la cotización
+          </Text>
+        </div>
 
-      {/* Mensaje si no es editable */}
-      {cotizacion.estado !== 'borrador' && cotizacion.estado !== 'pendiente' && (
-        <Alert
-          message="Nota"
-          description={`Esta cotización está en estado "${cotizacion.estado}" y puede no ser editable.`}
-          type="info"
-          showIcon
-        />
-      )}
-
-      {/* Agregar productos */}
-      <AgregarProductosSection productos={productos} componentes={componentes} cart={cart} />
-
-      {/* Tabla de productos */}
-      <Card title={<Title level={5}>Productos y Componentes ({lineas.length})</Title>}>
-        {lineas.length === 0 ? (
-          <Alert message="Sin productos. Agrega productos usando el formulario arriba." type="info" showIcon />
-        ) : (
-          <Table
-            columns={columns}
-            rowKey={(record) => `${record.tipo}-${record.id}`}
-            dataSource={lineas}
-            pagination={false}
-            bordered
-            size="small"
+        {/* Alerta si no es editable */}
+        {cotizacion.estado !== 'borrador' && cotizacion.estado !== 'pendiente' && (
+          <Alert
+            message="Nota"
+            description={`Esta cotización está en estado "${cotizacion.estado}" y puede no ser editable.`}
+            type="info"
+            showIcon
           />
         )}
-      </Card>
 
-      {/* Resumen y totales */}
-      <Card title="Resumen y Totales">
-        <Row gutter={16}>
-          <Col span={12}>
-            <div style={{ marginBottom: '12px' }}>
-              <label>Observaciones:</label>
-              <textarea
+        {/* Sección Cliente (Solo lectura) */}
+        <Card
+          title={
+            <Space>
+              <UserOutlined />
+              <span>Cliente</span>
+            </Space>
+          }
+        >
+          <Row gutter={[16, 16]}>
+            <Col xs={24} sm={12}>
+              <Text type="secondary" style={{ fontSize: '12px' }}>Nombre</Text>
+              <div style={{ fontSize: '16px', fontWeight: 500, marginTop: 4 }}>
+                {cotizacion.cliente?.nombreCompleto || '-'}
+              </div>
+            </Col>
+            <Col xs={24} sm={12}>
+              <Text type="secondary" style={{ fontSize: '12px' }}>Correo</Text>
+              <div style={{ fontSize: '16px', fontWeight: 500, marginTop: 4 }}>
+                {cotizacion.cliente?.email || '-'}
+              </div>
+            </Col>
+            <Col xs={24} sm={12}>
+              <Text type="secondary" style={{ fontSize: '12px' }}>Teléfono</Text>
+              <div style={{ fontSize: '16px', fontWeight: 500, marginTop: 4 }}>
+                {cotizacion.cliente?.telefono || '-'}
+              </div>
+            </Col>
+            {cotizacion.cliente?.ciudad && (
+              <Col xs={24} sm={12}>
+                <Text type="secondary" style={{ fontSize: '12px' }}>Ciudad</Text>
+                <div style={{ fontSize: '16px', fontWeight: 500, marginTop: 4 }}>
+                  {cotizacion.cliente.ciudad}
+                </div>
+              </Col>
+            )}
+            {cotizacion.cliente?.institucion && (
+              <Col xs={24} sm={12}>
+                <Text type="secondary" style={{ fontSize: '12px' }}>Razón Social</Text>
+                <div style={{ fontSize: '16px', fontWeight: 500, marginTop: 4 }}>
+                  {cotizacion.cliente.institucion}
+                </div>
+              </Col>
+            )}
+          </Row>
+        </Card>
+
+        {/* Fechas y Entrega */}
+        <FechaValidacionSection
+          diasValidez={diasValidez}
+          setDiasValidez={setDiasValidez}
+          diasEntrega={diasEntrega}
+          setDiasEntrega={setDiasEntrega}
+          fechaEmision={cotizacion.fechaEmision}
+        />
+
+        {/* Agregar Productos */}
+        <AgregarProductosSection
+          productos={productos}
+          componentes={componentes}
+          cart={cart}
+        />
+
+        {/* Tabla de Productos Seleccionados */}
+        <ProductosSeleccionadosTable
+          lineas={lineasFallback}
+          moneda={moneda}
+          onRemove={onRemove}
+          onSetCantidad={onSetCantidad}
+          onSetPrecio={onSetPrecio}
+          onSetNombre={onSetNombre}
+          onSetDescripcion={onSetDescripcion}
+        />
+
+        {/* Resumen y Totales */}
+        <Card
+          title={
+            <Space>
+              <FileTextOutlined />
+              <span>Resumen y Totales</span>
+            </Space>
+          }
+        >
+          <Row gutter={[24, 16]}>
+            <Col xs={24} md={12}>
+              <Text type="secondary">Observaciones</Text>
+              <Input.TextArea
                 value={observaciones}
                 onChange={(e) => setObservaciones(e.target.value)}
-                style={{
-                  width: '100%',
-                  minHeight: '80px',
-                  padding: '8px',
-                  border: '1px solid #d9d9d9',
-                  borderRadius: '4px',
-                  fontFamily: 'monospace',
-                }}
+                rows={4}
+                placeholder="Notas u observaciones adicionales..."
+                style={{ marginTop: 8 }}
               />
-            </div>
+            </Col>
+            <Col xs={24} md={12}>
+              <div style={{ display: 'grid', gap: '16px' }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                  <Text>Subtotal:</Text>
+                  <Text strong style={{ fontSize: '15px' }}>
+                    {subtotal.toLocaleString('es-BO')} {moneda}
+                  </Text>
+                </div>
+
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                  <Text>Descuento:</Text>
+                  <InputNumber
+                    value={descuento}
+                    onChange={(val) => setDescuento(val || 0)}
+                    min={0}
+                    step={1}
+                    precision={0}
+                    style={{ width: 140 }}
+                    addonAfter={moneda}
+                  />
+                </div>
+
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                  <Text>Impuestos:</Text>
+                  <InputNumber
+                    value={impuestos}
+                    onChange={(val) => setImpuestos(val || 0)}
+                    min={0}
+                    step={1}
+                    precision={0}
+                    style={{ width: 140 }}
+                    addonAfter={moneda}
+                  />
+                </div>
+
+                <Divider style={{ margin: '4px 0' }} />
+
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                  <Text strong style={{ fontSize: '18px' }}>TOTAL:</Text>
+                  <Text strong style={{ fontSize: '18px', color: '#389e0d' }}>
+                    {totalFinal.toLocaleString('es-BO')} {moneda}
+                  </Text>
+                </div>
+              </div>
+            </Col>
+          </Row>
+        </Card>
+
+        {/* Botones de acción */}
+        <Divider style={{ margin: '8px 0' }} />
+
+        <Row justify="space-between" align="middle">
+          <Col>
+            <Text type="secondary">{cart.cart.length} producto(s) en cotización</Text>
           </Col>
-          <Col span={12}>
-            <div style={{ display: 'grid', gap: '12px', gridAutoRows: 'auto' }}>
-              <div style={{ display: 'flex', justifyContent: 'space-between' }}>
-                <span>Subtotal:</span>
-                <strong>{(preview.data?.totales?.subtotal || 0).toFixed(2)} {cotizacion?.moneda}</strong>
-              </div>
-
-              <div style={{ display: 'flex', justifyContent: 'space-between' }}>
-                <label htmlFor="descuento">Descuento:</label>
-                <input
-                  id="descuento"
-                  type="number"
-                  min="0"
-                  step="0.01"
-                  value={descuento}
-                  onChange={(e) => setDescuento(Number(e.target.value))}
-                  style={{ width: '120px', textAlign: 'right', padding: '4px' }}
-                />
-              </div>
-
-              <div style={{ display: 'flex', justifyContent: 'space-between' }}>
-                <label htmlFor="impuestos">Impuestos:</label>
-                <input
-                  id="impuestos"
-                  type="number"
-                  min="0"
-                  step="0.01"
-                  value={impuestos}
-                  onChange={(e) => setImpuestos(Number(e.target.value))}
-                  style={{ width: '120px', textAlign: 'right', padding: '4px' }}
-                />
-              </div>
-
-              <Divider style={{ margin: '8px 0' }} />
-
-              <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '16px', fontWeight: 'bold' }}>
-                <span>TOTAL:</span>
-                <span>{(total - Number(descuento) + Number(impuestos)).toFixed(2)} {cotizacion?.moneda}</span>
-              </div>
-            </div>
+          <Col>
+            <Space>
+              <Button onClick={onCancel} size="large">
+                Cancelar
+              </Button>
+              <Button
+                type="primary"
+                size="large"
+                loading={saving}
+                icon={<SaveOutlined />}
+                onClick={handleGuardarCambios}
+                disabled={!cart.cart.length}
+              >
+                Guardar Cambios
+              </Button>
+            </Space>
           </Col>
         </Row>
-      </Card>
-
-      {/* Botones de acción */}
-      <div style={{ display: 'flex', gap: '8px', justifyContent: 'flex-end' }}>
-        <Button onClick={onCancel} size="large">
-          Cancelar
-        </Button>
-        <Button type="primary" size="large" loading={saving} icon={<SaveOutlined />} onClick={handleGuardarCambios}>
-          Guardar Cambios
-        </Button>
-      </div>
+      </Space>
     </div>
   )
 }

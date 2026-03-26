@@ -1,128 +1,115 @@
-import { useEffect, useState, useCallback, useRef } from 'react'
+import { useEffect, useState, useCallback } from 'react'
 import { message } from 'antd'
 import { getCotizacion, updateCotizacion } from '../services/api/cotizacionesApi'
 import { useCatalogSearch } from './useCatalogSearch'
 import { useCotizacionCart } from './useCotizacionCart'
+import { useClientesSearch } from './useClientesSearch'
 import { fetchProductos, fetchComponentes } from '../services/api/catalogoApi'
 
 /**
- * Hook para manejar la edición de cotizaciones existentes
- * Carga datos de la cotización y permite modificar productos/componentes/precios
+ * Hook para manejar la edición de cotizaciones existentes.
+ * - Carrito sin localStorage (persistent: false) para no interferir con CotizacionNueva.
+ * - Restauración atómica vía setItems (una sola mutación de estado).
  */
 export function useCotizacionEdit(idCotizacion) {
   const [cotizacion, setCotizacion] = useState(null)
-  const [loading, setLoading] = useState(false)
+  const [loading, setLoading] = useState(true)
   const [saving, setSaving] = useState(false)
   const [error, setError] = useState(null)
-  const [carritoCargado, setCarritoCargado] = useState(false)
-  const cotizacionDataRef = useRef(null)
 
-  // Reutilizar hooks existentes para búsqueda de catálogos
+  // Hooks de catálogo
   const productos = useCatalogSearch(fetchProductos)
   const componentes = useCatalogSearch(fetchComponentes)
-  const cart = useCotizacionCart()
+  const clientes = useClientesSearch()
 
-  // Efecto 1: Cargar datos de la cotización
+  // Carrito SIN localStorage — datos vienen del backend, no de sesión previa
+  const cart = useCotizacionCart({ persistent: false })
+
+  // Efecto: cargar cotización + restaurar carrito de forma atómica
   useEffect(() => {
     if (!idCotizacion) return
 
     const controller = new AbortController()
 
-    const loadCotizacion = async () => {
+    async function load() {
       setLoading(true)
       setError(null)
-      setCarritoCargado(false)
-      
-      // IMPORTANTE: Limpiar carrito cuando se carga una nueva cotización
       cart.clear()
-      
-      try {
-        const data = await getCotizacion(idCotizacion, { signal: controller.signal })
-        setCotizacion(data)
-        cotizacionDataRef.current = data
 
-        // Trigger búsquedas vacías para cargar todos los catálogos
+      try {
+        const response = await getCotizacion(idCotizacion, { signal: controller.signal })
+        if (controller.signal.aborted) return
+
+        // La respuesta tiene estructura { ok: true, data: cotizacion }
+        const data = response.data
+
+        // Construir todos los items con precio incluido
+        const productosArray = data.productos ?? []
+        const componentesArray = data.componentes ?? []
+
+        console.log(
+          `[useCotizacionEdit] Cotización ${idCotizacion} cargada:`,
+          { productos: productosArray.length, componentes: componentesArray.length }
+        )
+
+        const items = [
+          ...productosArray.map((p) => {
+            // Verificar que tienen los campos necesarios
+            if (!p.idProducto || !p.nombreItem) {
+              console.warn('[useCotizacionEdit] Producto sin idProducto o nombreItem:', p)
+            }
+            return {
+              tipo: 'producto',
+              id: String(p.idProducto),
+              nombre: p.nombreItem || 'Producto sin nombre',
+              descripcion: p.descripcionItem || '',
+              cantidad: Number(p.cantidad) || 1,
+              precioUnitario: Number(p.precioUnitario) || 0,
+            }
+          }),
+          ...componentesArray.map((c) => {
+            // Verificar que tienen los campos necesarios
+            if (!c.idComponente || !c.nombreItem) {
+              console.warn('[useCotizacionEdit] Componente sin idComponente o nombreItem:', c)
+            }
+            return {
+              tipo: 'componente',
+              id: String(c.idComponente),
+              nombre: c.nombreItem || 'Componente sin nombre',
+              descripcion: c.descripcionItem || '',
+              cantidad: Number(c.cantidad) || 1,
+              precioUnitario: Number(c.precioUnitario) || 0,
+            }
+          }),
+        ]
+
+        console.log('[useCotizacionEdit] Items mapeados:', items.length)
+
+        // Una sola mutación atómica — no hay race conditions
+        console.log('[useCotizacionEdit] Antes de setItems. Items:', JSON.stringify(items, null, 2))
+        cart.setItems(items)
+        console.log('[useCotizacionEdit] Después de setItems. Cart.cart:', cart.cart.length)
+
+        setCotizacion(data)
+
+        // Cargar catálogos para poder agregar más productos
         productos.setSearch('')
         componentes.setSearch('')
       } catch (err) {
-        // Ignorar errores de abort
         if (controller.signal.aborted) return
-        
-        const errorMsg = String(err?.message || err)
-        setError(errorMsg)
-        message.error(errorMsg)
+        const msg = String(err?.message || err)
+        console.error('[useCotizacionEdit] Error cargando cotización:', msg)
+        setError(msg)
+        message.error(msg)
       } finally {
-        setLoading(false)
+        if (!controller.signal.aborted) setLoading(false)
       }
     }
 
-    loadCotizacion()
-    
-    // Cleanup: cancelar petición si el componente se desmonta o cambia idCotizacion
+    load()
     return () => controller.abort()
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [idCotizacion])
-
-  // Efecto 2: Restaurar carrito DESPUÉS de que cotizacion esté cargada
-  useEffect(() => {
-    if (!cotizacion || carritoCargado) return
-
-    try {
-      // Limpiar primero para evitar duplicados
-      cart.clear()
-
-      // Restaurar productos
-      if (cotizacion.productos && cotizacion.productos.length > 0) {
-        cotizacion.productos.forEach((p) => {
-          cart.addItem({
-            tipo: 'producto',
-            id: p.idProducto,
-            nombre: p.nombreItem,
-            cantidad: p.cantidad,
-          })
-        })
-      }
-
-      // Restaurar componentes
-      if (cotizacion.componentes && cotizacion.componentes.length > 0) {
-        cotizacion.componentes.forEach((c) => {
-          cart.addItem({
-            tipo: 'componente',
-            id: c.idComponente,
-            nombre: c.nombreItem,
-            cantidad: c.cantidad,
-          })
-        })
-      }
-
-      setCarritoCargado(true)
-    } catch (err) {
-      console.error('Error restaurando carrito:', err)
-      setCarritoCargado(true)
-    }
-  }, [cotizacion, carritoCargado])
-
-  // Efecto 3: Actualizar precios unitarios una vez que los items estén en el carrito
-  useEffect(() => {
-    if (!cotizacion || !carritoCargado || !cart.cart || cart.cart.length === 0) return
-
-    try {
-      // Actualizar precios de productos
-      if (cotizacion.productos && cotizacion.productos.length > 0) {
-        cotizacion.productos.forEach((p) => {
-          cart.setPrecioUnitario('producto', String(p.idProducto), p.precioUnitario)
-        })
-      }
-
-      // Actualizar precios de componentes
-      if (cotizacion.componentes && cotizacion.componentes.length > 0) {
-        cotizacion.componentes.forEach((c) => {
-          cart.setPrecioUnitario('componente', String(c.idComponente), c.precioUnitario)
-        })
-      }
-    } catch (err) {
-      console.error('Error actualizando precios:', err)
-    }
-  }, [cotizacion, carritoCargado])
 
   // Guardar cambios
   const handleSave = useCallback(
@@ -131,7 +118,7 @@ export function useCotizacionEdit(idCotizacion) {
 
       setSaving(true)
       try {
-        const updated = await updateCotizacion(idCotizacion, {
+        const response = await updateCotizacion(idCotizacion, {
           productos: payload.productos,
           componentes: payload.componentes,
           moneda: payload.moneda,
@@ -142,12 +129,14 @@ export function useCotizacionEdit(idCotizacion) {
           diasEntrega: payload.diasEntrega,
         })
 
+        // La respuesta tiene estructura { ok: true, data: cotizacion }
+        const updated = response.data
         setCotizacion(updated)
         message.success('Cotización actualizada exitosamente')
         return updated
       } catch (err) {
-        const errorMsg = String(err?.message || err)
-        message.error(errorMsg)
+        const msg = String(err?.message || err)
+        message.error(msg)
         throw err
       } finally {
         setSaving(false)
@@ -163,6 +152,7 @@ export function useCotizacionEdit(idCotizacion) {
     error,
     productos,
     componentes,
+    clientes,
     cart,
     handleSave,
   }

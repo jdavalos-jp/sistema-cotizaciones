@@ -1,5 +1,5 @@
 import React, { useMemo } from 'react';
-import { Card, Table, Button, Space, Typography, Empty, Row, Col, Statistic } from 'antd';
+import { Card, Table, Button, Space, Typography, Empty, Row, Col, Statistic, Input, InputNumber } from 'antd';
 import { DeleteOutlined } from '@ant-design/icons';
 
 function ProductosSeleccionadosTable({
@@ -24,17 +24,11 @@ function ProductosSeleccionadosTable({
       dataIndex: 'nombre',
       key: 'nombre',
       render: (text, record) => (
-        <input
-          type="text"
+        <Input
           value={text || ''}
           onChange={(e) => onSetNombre(record.tipo, String(record.id), e.target.value)}
-          style={{
-            width: '100%',
-            padding: 4,
-            border: '1px solid #d9d9d9',
-            borderRadius: 4,
-            fontWeight: 500,
-          }}
+          placeholder="Nombre del producto"
+          size="small"
         />
       ),
     },
@@ -43,18 +37,11 @@ function ProductosSeleccionadosTable({
       dataIndex: 'descripcion',
       key: 'descripcion',
       render: (text, record) => (
-        <input
-          type="text"
+        <Input
           value={text || ''}
           onChange={(e) => onSetDescripcion(record.tipo, String(record.id), e.target.value)}
           placeholder="Sin descripción"
-          style={{
-            width: '100%',
-            padding: 4,
-            border: '1px solid #d9d9d9',
-            borderRadius: 4,
-            fontSize: 12,
-          }}
+          size="small"
         />
       ),
     },
@@ -63,21 +50,20 @@ function ProductosSeleccionadosTable({
       dataIndex: 'precioUnitario',
       key: 'precioUnitario',
       align: 'right',
-      width: 120,
+      width: 140,
       render: (price, record) => (
-        <input
-          type="number"
-          min={1}
+        <InputNumber
+          min={0}
           step={1}
+          precision={0}
           value={Number(price || 0)}
-          onChange={(e) => onSetPrecio(record.tipo, String(record.id), Math.max(0, Number(e.target.value) || 0))}
-          style={{
-            width: '100%',
-            textAlign: 'right',
-            padding: 4,
-            border: '1px solid #d9d9d9',
-            borderRadius: 4,
+          onChange={(val) => {
+            if (Number.isInteger(val)) {
+              onSetPrecio(record.tipo, String(record.id), Math.max(0, val || 0));
+            }
           }}
+          style={{ width: '100%' }}
+          size="small"
         />
       ),
     },
@@ -86,20 +72,20 @@ function ProductosSeleccionadosTable({
       dataIndex: 'cantidad',
       key: 'cantidad',
       align: 'center',
-      width: 80,
+      width: 100,
       render: (cantidad, record) => (
-        <input
-          type="number"
+        <InputNumber
           min={1}
+          step={1}
+          precision={0}
           value={cantidad}
-          onChange={(e) => onSetCantidad(record.tipo, String(record.id), Math.max(1, Number(e.target.value) || 1))}
-          style={{
-            width: '100%',
-            textAlign: 'center',
-            padding: 4,
-            border: '1px solid #d9d9d9',
-            borderRadius: 4,
+          onChange={(val) => {
+            if (Number.isInteger(val)) {
+              onSetCantidad(record.tipo, String(record.id), Math.max(1, val || 1));
+            }
           }}
+          style={{ width: '100%' }}
+          size="small"
         />
       ),
     },
@@ -108,10 +94,10 @@ function ProductosSeleccionadosTable({
       dataIndex: 'totalLinea',
       key: 'totalLinea',
       align: 'right',
-      width: 100,
+      width: 120,
       render: (total) => (
         <span style={{ fontWeight: 600 }}>
-          {Number(total || 0).toFixed(2)}
+          {Number(total || 0).toLocaleString('es-BO')}
         </span>
       ),
     },
@@ -121,7 +107,13 @@ function ProductosSeleccionadosTable({
       align: 'center',
       width: 70,
       render: (_, record) => (
-        <Button type="text" danger size="small" icon={<DeleteOutlined />} onClick={() => onRemove(record.tipo, String(record.id))} />
+        <Button
+          type="text"
+          danger
+          size="small"
+          icon={<DeleteOutlined />}
+          onClick={() => onRemove(record.tipo, String(record.id))}
+        />
       ),
     },
   ];

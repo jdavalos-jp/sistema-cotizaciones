@@ -31,6 +31,12 @@ function AgregarProductosSection({ productos, componentes, cart }) {
     const item = items.find((i) => i[keyField] === selectedId);
     if (!item) return;
 
+    console.log(
+      '[AgregarProductosSection] Antes de agregar. Carrito actual:',
+      cart.cart.length,
+      'items'
+    );
+
     cart.addItem({
       tipo: selectedType,
       id: selectedId,
@@ -38,6 +44,12 @@ function AgregarProductosSection({ productos, componentes, cart }) {
       descripcion: item.descripcion || item.description || '',
       cantidad: Math.max(1, Number(cantidad) || 1),
     });
+
+    console.log(
+      '[AgregarProductosSection] Después de agregar. Carrito nuevo:',
+      cart.cart.length,
+      'items'
+    );
 
     message.success(`${item.nombre} agregado al carrito`);
     setSelectedId(null);
