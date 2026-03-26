@@ -1,46 +1,20 @@
-const { Prisma } = require('@prisma/client');
-
 /**
- * Convierte recursivamente todos los valores Decimal de Prisma a números
+ * DEPRECATED: Esta función es solo para compatibilidad
+ * Ya que todo está en enteros (Int), simplemente devolvemos el valor
+ * NO HAGAS MÁS CONVERSIONES AQUÍ
  */
 function decimalToNumber(value) {
-  if (value === null || value === undefined) {
-    return value;
-  }
-
-  // BigInt no es serializable a JSON. Convertimos a Number si es seguro;
-  // si no, lo dejamos como string para no perder precisión.
-  if (typeof value === 'bigint') {
-    const maxSafe = BigInt(Number.MAX_SAFE_INTEGER);
-    const minSafe = BigInt(Number.MIN_SAFE_INTEGER);
-    if (value <= maxSafe && value >= minSafe) {
-      return Number(value);
-    }
-    return value.toString();
-  }
-
-  // IMPORTANT: preserve Date instances (Prisma DateTime/@db.Date)
-  // Otherwise they become plain objects {} and end up as [object Object].
-  if (value instanceof Date) {
-    return value;
-  }
-
-  if (value instanceof Prisma.Decimal) {
-    return Number(value);
-  }
-
+  // Si es array, mapea recursivamente
   if (Array.isArray(value)) {
     return value.map((item) => decimalToNumber(item));
   }
 
-  if (typeof value === 'object' && value !== null) {
-    const converted = {};
-    for (const [key, val] of Object.entries(value)) {
-      converted[key] = decimalToNumber(val);
-    }
-    return converted;
+  // Si es objeto, retorna tal cual - ya está en formato correcto (Int)
+  if (typeof value === 'object' && value !== null && !(value instanceof Date)) {
+    return value;
   }
 
+  // Si es valor primitivo, retorna tal cual
   return value;
 }
 

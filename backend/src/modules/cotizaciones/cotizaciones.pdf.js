@@ -4,12 +4,13 @@ const path = require('path');
 const PDFDocument = require('pdfkit');
 const { toDateOnlyString, formatDateDMY, toUtcMidnightDate } = require('../../utils/dateOnly');
 const { getSettings, settingsToBrand } = require('../settings/settings.service');
+const { addDaysToDate, countBusinessDays, formatCurrency } = require('./converters');
 
 function formatMoney(value, moneda) {
-  // Convierte a entero (sin decimales)
-  const n = typeof value?.toNumber === 'function' ? value.toNumber() : Number(value ?? 0);
+  // Ya están como enteros en la BD, no needed toNumber()
+  const n = Number(value ?? 0);
   const curr = String(moneda || '').trim() || 'Bs';
-  return `${curr} ${Math.round(n)}`;
+  return `${curr} ${Math.floor(n).toLocaleString('es-BO')}`;
 }
 
 function safeText(value) {
@@ -47,52 +48,8 @@ function formatDate(value) {
   return formatDateDMY(value);
 }
 
-function addDays(dateValue, days) {
-  try {
-    const d = toUtcMidnightDate(dateValue);
-    if (!d) return null;
-
-    const newDate = new Date(d);
-    newDate.setUTCDate(newDate.getUTCDate() + Number(days || 0));
-    return newDate;
-  } catch (err) {
-    // Error in addDays - return null
-    return null;
-  }
-}
-
 function calcularDiasHabiles(desde, hasta) {
-  try {
-    if (!desde || !hasta) {
-      // Invalid dates
-      return 0;
-    }
-
-    const fechaInicio = toUtcMidnightDate(desde);
-    const fechaHasta = toUtcMidnightDate(hasta);
-
-    if (!fechaInicio || !fechaHasta || isNaN(fechaInicio.getTime()) || isNaN(fechaHasta.getTime())) {
-      // Invalid date format
-      return 0;
-    }
-
-    let diasHabiles = 0;
-    const actual = new Date(fechaInicio);
-
-    while (actual <= fechaHasta) {
-      const dayOfWeek = actual.getUTCDay();
-      // 0 = Domingo, 1 = Lunes, 5 = Viernes, 6 = Sábado
-      if (dayOfWeek !== 0 && dayOfWeek !== 6) {
-        diasHabiles++;
-      }
-      actual.setUTCDate(actual.getUTCDate() + 1);
-    }
-
-    return diasHabiles;
-  } catch (err) {
-    // Error calculating business days
-    return 0;
-  }
+  return countBusinessDays(desde, hasta);
 }
 
 function resolveCompanyLogoPath() {
@@ -204,7 +161,7 @@ function drawHeader(doc, cotizacion, brand, { moneda, compact = false } = {}) {
   let validez = cotizacion.fechaValidez;
 
   if (!validez) {
-    validez = addDays(fechaEmision, 7);
+    validez = addDaysToDate(fechaEmision, 7);
   }
 
   const validezStr = toDateOnlyString(validez);

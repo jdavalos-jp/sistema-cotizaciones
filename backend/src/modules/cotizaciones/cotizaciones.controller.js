@@ -76,6 +76,17 @@ async function updateCotizacionHandler(req, res) {
   const { idCotizacion } = req.params;
   const body = req.body ?? {};
 
+  console.log(
+    '[updateCotizacionHandler] Actualizando cotización',
+    idCotizacion,
+    'Productos recibidos:',
+    Array.isArray(body.productos) ? body.productos.length : 0,
+    'Componentes recibidos:',
+    Array.isArray(body.componentes) ? body.componentes.length : 0,
+    'Payload completo:',
+    JSON.stringify(body, null, 2)
+  );
+
   const cotizacion = await updateCotizacion(idCotizacion, {
     productos: Array.isArray(body.productos) ? body.productos : [],
     componentes: Array.isArray(body.componentes) ? body.componentes : [],

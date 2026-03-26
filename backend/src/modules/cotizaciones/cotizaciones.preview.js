@@ -1,28 +1,6 @@
-const { Prisma } = require('@prisma/client');
-
 const { prisma } = require('../../db/prisma');
 const { HttpError } = require('../../utils/httpError');
-const { decimalToNumber } = require('./decimal-converter');
-
-function toBigInt(value, fieldName) {
-  try {
-    return BigInt(value);
-  } catch {
-    throw new HttpError(400, `${fieldName} inválido`);
-  }
-}
-
-function toInt(value, fieldName) {
-  const n = Number(value);
-  if (!Number.isInteger(n) || n <= 0) throw new HttpError(400, `${fieldName} inválido`);
-  return n;
-}
-
-function moneyDecimal(value) {
-  // Ahora convierte a número entero en lugar de Decimal
-  const num = typeof value === 'string' ? parseInt(value, 10) : Number(value);
-  return Number.isInteger(num) ? num : Math.round(num);
-}
+const { toBigInt, toInt, toPriceInt } = require('./converters');
 
 async function buildCotizacionPreview({ idCliente, productos, componentes, moneda = 'Bs' }) {
   if ((!productos || productos.length === 0) && (!componentes || componentes.length === 0)) {
@@ -31,14 +9,14 @@ async function buildCotizacionPreview({ idCliente, productos, componentes, moned
 
   const productItems = (productos ?? []).map((p, idx) => ({
     idProducto: toBigInt(p.idProducto, `productos[${idx}].idProducto`),
-    cantidad: toInt(p.cantidad ?? 1, `productos[${idx}].cantidad`),
-    precioUnitario: p.precioUnitario !== undefined ? moneyDecimal(p.precioUnitario) : null,
+    cantidad: toInt(p.cantidad ?? 1, `productos[${idx}].cantidad`, { min: 1 }),
+    precioUnitario: p.precioUnitario !== undefined ? toPriceInt(p.precioUnitario, `productos[${idx}].precioUnitario`) : null,
   }));
 
   const componentItems = (componentes ?? []).map((c, idx) => ({
     idComponente: toBigInt(c.idComponente, `componentes[${idx}].idComponente`),
-    cantidad: toInt(c.cantidad ?? 1, `componentes[${idx}].cantidad`),
-    precioUnitario: c.precioUnitario !== undefined ? moneyDecimal(c.precioUnitario) : null,
+    cantidad: toInt(c.cantidad ?? 1, `componentes[${idx}].cantidad`, { min: 1 }),
+    precioUnitario: c.precioUnitario !== undefined ? toPriceInt(c.precioUnitario, `componentes[${idx}].precioUnitario`) : null,
   }));
 
   const productIds = [...new Set(productItems.map((x) => x.idProducto))];
@@ -77,7 +55,7 @@ async function buildCotizacionPreview({ idCliente, productos, componentes, moned
     const p = productosById.get(it.idProducto);
     if (!p) throw new HttpError(400, 'Producto no encontrado');
 
-    const precioUnitario = it.precioUnitario ?? moneyDecimal(p.precioBase);
+    const precioUnitario = it.precioUnitario ?? p.precioBase;
     const totalLinea = precioUnitario * it.cantidad;
     subtotal += totalLinea;
 
@@ -97,7 +75,7 @@ async function buildCotizacionPreview({ idCliente, productos, componentes, moned
     const c = componentesById.get(it.idComponente);
     if (!c) throw new HttpError(400, 'Componente no encontrado');
 
-    const precioUnitario = it.precioUnitario ?? moneyDecimal(c.precioBase);
+    const precioUnitario = it.precioUnitario ?? c.precioBase;
     const totalLinea = precioUnitario * it.cantidad;
     subtotal += totalLinea;
 
@@ -117,7 +95,7 @@ async function buildCotizacionPreview({ idCliente, productos, componentes, moned
   const impuestos = 0;
   const total = subtotal - descuento + impuestos;
 
-  return decimalToNumber({
+  return {
     cliente,
     moneda,
     lineas,
@@ -127,7 +105,7 @@ async function buildCotizacionPreview({ idCliente, productos, componentes, moned
       impuestos,
       total,
     },
-  });
+  };
 }
 
 module.exports = { buildCotizacionPreview };
