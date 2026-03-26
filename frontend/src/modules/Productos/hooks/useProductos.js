@@ -1,5 +1,5 @@
 import { useState, useCallback } from 'react'
-import { getProductos } from '../../Producto/Services/api/productosApi'
+import { getProductos } from '../../Producto/services/api/productosApi'
 
 /**
  * Hook para gestionar productos
@@ -28,7 +28,6 @@ export function useProductos() {
         setPagination((prev) => ({ ...prev, total: response.total }))
       }
     } catch (error) {
-      console.error('Error cargando productos:', error)
       setProductos([])
       throw error
     } finally {

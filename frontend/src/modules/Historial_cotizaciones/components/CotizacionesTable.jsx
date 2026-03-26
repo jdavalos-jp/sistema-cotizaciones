@@ -96,13 +96,27 @@ function CotizacionesTable({
     },
   ]
 
+  const handleShowSizeChange = (current, pageSize) => {
+    console.log(current, pageSize)
+    setPaginacion({ current, pageSize })
+  }
+
   return (
     <Table
       columns={columns}
       dataSource={cotizaciones}
       rowKey="idCotizacion"
-      pagination={paginacion}
-      onChange={setPaginacion}
+      pagination={{
+        ...paginacion,
+        showSizeChanger: true,
+        showQuickJumper: true,
+        pageSizeOptions: ['5', '10', '20', '50'],
+        showTotal: (total) => `Total: ${total} cotizaciones`,
+        onShowSizeChange: handleShowSizeChange,
+        onChange: (page) => {
+          setPaginacion({ ...paginacion, current: page })
+        },
+      }}
       locale={{ emptyText: <Empty /> }}
     />
   )

@@ -51,7 +51,7 @@ export default function Sidebar() {
   const menuItems = useMemo(() => [
     getItem('Dashboard', 'dashboard', <DashboardOutlined />),
 
-    getItem('Catálogo', 'catalogo', <ShoppingOutlined />, [
+    getItem('Catálogo', 'catalogo-group', <ShoppingOutlined />, [
       getItem('Ver Catálogo', 'catalogo', <ShoppingOutlined />),
       getItem('Productos', 'productos', <ShoppingOutlined />),
       getItem('Componentes', 'componentes', <ShoppingOutlined />),

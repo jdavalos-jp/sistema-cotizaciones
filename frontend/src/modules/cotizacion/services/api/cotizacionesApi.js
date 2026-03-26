@@ -1,6 +1,6 @@
 import { apiPost, apiGet, apiPut, apiDelete, apiPatch } from './http'
 
-const BASE_URL = '/api/cotizaciones'
+const BASE_URL = '/cotizaciones'
 
 /**
  * Listar todas las cotizaciones
@@ -93,7 +93,7 @@ export async function previewCotizacion(payload, fetchOptions = {}) {
  */
 export async function generarPdfCotizacion(payload, fetchOptions = {}) {
   // Devuelve ArrayBuffer del PDF
-  return apiPost('/api/cotizaciones/pdf/create', payload, {
+  return apiPost('/cotizaciones/pdf/create', payload, {
     responseType: 'blob',
     ...fetchOptions,
   })

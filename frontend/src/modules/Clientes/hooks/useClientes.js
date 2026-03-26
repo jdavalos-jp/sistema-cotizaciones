@@ -17,7 +17,6 @@ export function useClientes() {
       // TODO: Conectar con API de clientes
       setClientes([])
     } catch (error) {
-      console.error('Error cargando clientes:', error)
       setClientes([])
       throw error
     } finally {

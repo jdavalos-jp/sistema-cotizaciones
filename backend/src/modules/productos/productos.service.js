@@ -1,6 +1,7 @@
 const { prisma } = require('../../db/prisma');
 const { Prisma } = require('@prisma/client');
 const { HttpError } = require('../../utils/httpError');
+const { decimalToNumber } = require('../cotizaciones/decimal-converter');
 
 function toBigInt(value, fieldName) {
   try {
@@ -77,7 +78,14 @@ async function listProductos({ take = 50, skip = 0, search, idCategoria, idSubca
       skip,
       where,
       orderBy: { idProducto: 'desc' },
-      include: {
+      select: {
+        idProducto: true,
+        nombre: true,
+        descripcion: true,
+        precioBase: true,
+        cantidad: true,
+        sku: true,
+        estado: true,
         imagenes: {
           where: { principal: true },
           take: 1,
@@ -98,19 +106,19 @@ async function listProductos({ take = 50, skip = 0, search, idCategoria, idSubca
     prisma.producto.count({ where }),
   ]);
 
-  // Mapear campos de camelCase a snake_case para consistencia con base de datos
-  const data = productos.map((p) => ({
+  // Convertir Decimales a números
+  const data = decimalToNumber(productos.map((p) => ({
     idProducto: p.idProducto,
     nombre: p.nombre,
     descripcion: p.descripcion,
-    precio_base: typeof p.precioBase === 'object' ? parseFloat(p.precioBase) : Number(p.precioBase),
+    precio_base: p.precioBase,
     cantidad: p.cantidad,
     sku: p.sku,
     estado: p.estado,
     categoria: p.categoria,
     subcategoria: p.subcategoria,
     imagenes: p.imagenes,
-  }));
+  })));
 
   return { data, total };
 }
@@ -123,7 +131,14 @@ async function getProductoById(idProducto) {
 
   const producto = await prisma.producto.findUnique({
     where: { idProducto: prodId },
-    include: {
+    select: {
+      idProducto: true,
+      nombre: true,
+      descripcion: true,
+      precioBase: true,
+      cantidad: true,
+      sku: true,
+      estado: true,
       imagenes: {
         select: {
           idImagen: true,
@@ -165,12 +180,11 @@ async function getProductoById(idProducto) {
     throw new HttpError(404, 'Producto no encontrado');
   }
 
-  // Mapear a snake_case
-  return {
+  return decimalToNumber({
     idProducto: producto.idProducto,
     nombre: producto.nombre,
     descripcion: producto.descripcion,
-    precio_base: typeof producto.precioBase === 'object' ? parseFloat(producto.precioBase) : Number(producto.precioBase),
+    precio_base: producto.precioBase,
     cantidad: producto.cantidad,
     sku: producto.sku,
     estado: producto.estado,
@@ -183,10 +197,10 @@ async function getProductoById(idProducto) {
       componente: {
         idComponente: c.componente.idComponente,
         nombre: c.componente.nombre,
-        precio_base: typeof c.componente.precioBase === 'object' ? parseFloat(c.componente.precioBase) : Number(c.componente.precioBase),
+        precio_base: c.componente.precioBase,
       },
     })),
-  };
+  });
 }
 
 /**
@@ -255,14 +269,39 @@ async function createProducto({
         },
       }),
     },
-    include: {
-      imagenes: true,
+    select: {
+      idProducto: true,
+      nombre: true,
+      descripcion: true,
+      precioBase: true,
+      cantidad: true,
+      sku: true,
+      estado: true,
+      imagenes: {
+        select: {
+          idImagen: true,
+          urlImagen: true,
+          orden: true,
+          principal: true,
+        },
+      },
       categoria: { select: { nombre: true } },
       subcategoria: { select: { nombre: true } },
     },
   });
 
-  return producto;
+  return decimalToNumber({
+    idProducto: producto.idProducto,
+    nombre: producto.nombre,
+    descripcion: producto.descripcion,
+    precio_base: producto.precioBase,
+    cantidad: producto.cantidad,
+    sku: producto.sku,
+    estado: producto.estado,
+    imagenes: producto.imagenes,
+    categoria: producto.categoria,
+    subcategoria: producto.subcategoria,
+  });
 }
 
 /**
@@ -336,7 +375,14 @@ async function updateProducto(
   const producto = await prisma.producto.update({
     where: { idProducto: prodId },
     data,
-    include: {
+    select: {
+      idProducto: true,
+      nombre: true,
+      descripcion: true,
+      precioBase: true,
+      cantidad: true,
+      sku: true,
+      estado: true,
       imagenes: {
         select: {
           idImagen: true,
@@ -350,7 +396,18 @@ async function updateProducto(
     },
   });
 
-  return producto;
+  return decimalToNumber({
+    idProducto: producto.idProducto,
+    nombre: producto.nombre,
+    descripcion: producto.descripcion,
+    precio_base: producto.precioBase,
+    cantidad: producto.cantidad,
+    sku: producto.sku,
+    estado: producto.estado,
+    imagenes: producto.imagenes,
+    categoria: producto.categoria,
+    subcategoria: producto.subcategoria,
+  });
 }
 
 /**

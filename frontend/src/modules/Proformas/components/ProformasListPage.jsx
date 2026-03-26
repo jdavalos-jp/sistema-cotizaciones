@@ -33,6 +33,15 @@ export default function ProformasListPage() {
     } catch {}
   }
 
+  const handleShowSizeChange = async (current, pageSize) => {
+    console.log(current, pageSize)
+    const skip = (current - 1) * pageSize
+    setPagination((prev) => ({ ...prev, current, pageSize }))
+    try {
+      await loadProformas(skip, searchTerm)
+    } catch {}
+  }
+
   const handleDelete = async (idProforma) => {
     try {
       deleteProforma(idProforma)
@@ -134,6 +143,11 @@ export default function ProformasListPage() {
               current: pagination.current,
               total: pagination.total,
               onChange: handlePaginationChange,
+              onShowSizeChange: handleShowSizeChange,
+              showSizeChanger: true,
+              showQuickJumper: true,
+              pageSizeOptions: ['5', '10', '20', '50'],
+              showTotal: (total) => `Total: ${total} proformas`,
             }}
             loading={loading}
           />

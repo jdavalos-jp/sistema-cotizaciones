@@ -46,7 +46,7 @@ export default function CatalogoPage() {
 
       {/* Filtros */}
       <Card style={{ marginBottom: 24 }}>
-        <Space direction="vertical" style={{ width: '100%' }} size="large">
+        <Space orientation="vertical" style={{ width: '100%' }} size="large">
           <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 16 }}>
             <Input
               placeholder="Buscar por nombre o SKU..."
@@ -101,7 +101,7 @@ export default function CatalogoPage() {
                   <div style={{ marginBottom: 8 }}>
                     <Typography.Text type="secondary" style={{ marginRight: 8 }}>Precio:</Typography.Text>
                     <Typography.Text strong style={{ fontSize: 16 }}>
-                      Bs {item.precio.toFixed(2)}
+                      Bs {item.precio}
                     </Typography.Text>
                   </div>
                   <div>

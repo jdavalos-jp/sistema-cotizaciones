@@ -35,7 +35,7 @@ async function listComponentes({ take = 50, skip = 0, search } = {}) {
     sku: c.sku,
     nombre: c.nombre,
     descripcion: c.descripcion,
-    precio_base: typeof c.precioBase === 'object' ? parseFloat(c.precioBase) : Number(c.precioBase),
+    precio_base: Number(c.precioBase),
     estado: c.estado,
   }));
 
@@ -63,7 +63,7 @@ async function getComponenteById(idComponente) {
     sku: componente.sku,
     nombre: componente.nombre,
     descripcion: componente.descripcion,
-    precio_base: typeof componente.precioBase === 'object' ? parseFloat(componente.precioBase) : Number(componente.precioBase),
+    precio_base: Number(componente.precioBase),
     estado: componente.estado,
   };
 }

@@ -1,4 +1,5 @@
 import { useState, useCallback } from 'react'
+import { apiGet, apiPut, apiDelete } from '../../cotizacion/services/api/http'
 
 /**
  * Hook para gestionar la lista de productos
@@ -28,8 +29,7 @@ export function useProductosList() {
         }
       })
 
-      const response = await fetch(`/api/productos?${params.toString()}`)
-      const data = await response.json()
+      const data = await apiGet(`/productos?${params.toString()}`)
       
       setProductos(data.data || [])
       setPagination({
@@ -51,12 +51,7 @@ export function useProductosList() {
     setLoading(true)
     setError(null)
     try {
-      const response = await fetch(`/api/productos/${idProducto}`, {
-        method: 'PUT',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(data),
-      })
-      const result = await response.json()
+      const result = await apiPut(`/productos/${idProducto}`, data)
       
       setProductos((prev) =>
         prev.map((p) =>
@@ -77,7 +72,7 @@ export function useProductosList() {
     setLoading(true)
     setError(null)
     try {
-      await fetch(`/api/productos/${idProducto}`, { method: 'DELETE' })
+      await apiDelete(`/productos/${idProducto}`)
       setProductos((prev) =>
         prev.filter((p) => String(p.idProducto) !== String(idProducto))
       )

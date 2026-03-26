@@ -54,11 +54,11 @@ export default function FormEditarComponente({ componente, onSuccess, onCancel }
         rules={[{ required: true, message: 'Ingresa el precio' }]}
       >
         <InputNumber
-          min={0}
-          step={0.01}
+          min={1}
+          step={1}
           prefix={<DollarOutlined />}
           style={{ width: '100%' }}
-          placeholder="0.00"
+          placeholder="0"
         />
       </Form.Item>
 

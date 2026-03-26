@@ -21,6 +21,8 @@ async function createCotizacion(req, res) {
     componentes: Array.isArray(body.componentes) ? body.componentes : [],
     moneda: body.moneda ?? 'Bs',
     observaciones: body.observaciones,
+    fechaValidez: body.fechaValidez,
+    diasEntrega: body.diasEntrega ?? 5,
   });
 
   res.status(201).json({ ok: true, data: cotizacion });
@@ -37,6 +39,8 @@ async function createPdf(req, res) {
     componentes: Array.isArray(body.componentes) ? body.componentes : [],
     moneda: body.moneda ?? 'Bs',
     observaciones: body.observaciones,
+    fechaValidez: body.fechaValidez,
+    diasEntrega: body.diasEntrega ?? 5,
   });
 
   const pdfBuffer = await buildCotizacionPdf(cotizacion);
@@ -79,6 +83,8 @@ async function updateCotizacionHandler(req, res) {
     observaciones: body.observaciones,
     descuento: body.descuento,
     impuestos: body.impuestos,
+    diasValidez: body.diasValidez,
+    diasEntrega: body.diasEntrega,
   });
 
   res.json({ ok: true, data: cotizacion });

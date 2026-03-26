@@ -1,7 +1,8 @@
-const DEFAULT_BASE_URL = 'http://localhost:3001'
-
+/**
+ * Get API base URL from environment or default to '/api' (proxied by Vite)
+ */
 export function getApiBaseUrl() {
-  return import.meta.env.VITE_API_BASE_URL || DEFAULT_BASE_URL
+  return import.meta.env.VITE_API_BASE_URL || '/api'
 }
 
 export async function apiGet(path, { signal, responseType = 'json', headers } = {}) {

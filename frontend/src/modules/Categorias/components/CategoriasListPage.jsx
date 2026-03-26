@@ -32,6 +32,15 @@ export default function CategoriasListPage() {
     } catch {}
   }
 
+  const handleShowSizeChange = async (current, pageSize) => {
+    console.log(current, pageSize)
+    const skip = (current - 1) * pageSize
+    setPagination((prev) => ({ ...prev, current, pageSize }))
+    try {
+      await loadCategorias(skip, searchTerm)
+    } catch {}
+  }
+
   const handleDelete = async (idCategoria) => {
     try {
       deleteCategoria(idCategoria)
@@ -77,7 +86,7 @@ export default function CategoriasListPage() {
           </Typography.Title>
           <Typography.Text type="secondary">Gestión de categorías de productos</Typography.Text>
         </div>
-        <Button type="primary" icon={<PlusOutlined />} size="large">
+        <Button type="primary" icon={<PlusOutlined />} >
           Agregar Categoría
         </Button>
       </div>
@@ -103,6 +112,11 @@ export default function CategoriasListPage() {
               current: pagination.current,
               total: pagination.total,
               onChange: handlePaginationChange,
+              onShowSizeChange: handleShowSizeChange,
+              showSizeChanger: true,
+              showQuickJumper: true,
+              pageSizeOptions: ['5', '10', '20', '50'],
+              showTotal: (total) => `Total: ${total} categorías`,
             }}
             loading={loading}
           />

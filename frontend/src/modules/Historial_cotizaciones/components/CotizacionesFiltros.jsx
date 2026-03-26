@@ -1,89 +1,131 @@
 import React from 'react'
-import { Badge, Select, Space, Typography } from 'antd'
+import { Badge, Select, Space, Typography, Input, Card, Statistic, Row, Col } from 'antd'
+import { SearchOutlined, FileTextOutlined, CheckOutlined, CheckCircleOutlined } from '@ant-design/icons'
 
-function StatItem({ label, count, color, bg }) {
+function StatItem({ label, count, color, icon }) {
   return (
-    <div
+    <Card
       style={{
-        display: 'flex',
-        alignItems: 'center',
-        gap: 8,
-        padding: '6px 12px',
-        borderRadius: 20,
-        background: bg,
-        border: `1px solid ${color}`,
-        fontWeight: 500,
+        borderLeft: `4px solid ${color}`,
+        boxShadow: '0 2px 8px rgba(0,0,0,0.08)',
+        cursor: 'pointer',
+        transition: 'all 0.3s ease',
+        flex: 1,
+        minWidth: 180,
       }}
+      onMouseEnter={(e) => {
+        e.currentTarget.style.boxShadow = `0 4px 12px ${color}33`
+        e.currentTarget.style.transform = 'translateY(-2px)'
+      }}
+      onMouseLeave={(e) => {
+        e.currentTarget.style.boxShadow = '0 2px 8px rgba(0,0,0,0.08)'
+        e.currentTarget.style.transform = 'translateY(0)'
+      }}
+      bodyStyle={{ padding: 12 }}
     >
-      <Badge
-        count={count}
-        showZero
-        style={{
-          backgroundColor: color,
-        }}
-      />
-      <Typography.Text style={{ color }}>
-        {label}
-      </Typography.Text>
-    </div>
+      <Row gutter={12} align="middle">
+        <Col>
+          <div
+            style={{
+              fontSize: 24,
+              color: color,
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+            }}
+          >
+            {icon}
+          </div>
+        </Col>
+        <Col flex="auto">
+          <div>
+            <Typography.Text type="secondary" style={{ fontSize: 12 }}>
+              {label}
+            </Typography.Text>
+            <div>
+              <Typography.Text
+                style={{
+                  fontSize: 20,
+                  fontWeight: 'bold',
+                  color: color,
+                }}
+              >
+                {count}
+              </Typography.Text>
+            </div>
+          </div>
+        </Col>
+      </Row>
+    </Card>
   )
 }
 
-function CotizacionesFiltros({ cotizaciones, filtro, setFiltro }) {
+function CotizacionesFiltros({ cotizaciones, filtro, setFiltro, busqueda, setBusqueda }) {
   const borradores = cotizaciones.filter(c => c.estado === 'borrador').length
   const enviadas = cotizaciones.filter(c => c.estado === 'enviada').length
   const aceptadas = cotizaciones.filter(c => c.estado === 'aceptada').length
 
   return (
-    <Space
-      style={{
-        width: '100%',
-        justifyContent: 'space-between',
-        marginBottom: 20,
-        flexWrap: 'wrap',
-      }}
-    >
-      {/* 🔥 Stats mejoradas */}
-      <Space wrap>
-        <StatItem
-          label="Borradores"
-          count={borradores}
-          color="#fa8c16"
-          bg="#fff7e6"
+    <div style={{ marginBottom: 20, display: 'flex', flexDirection: 'column', gap: 16 }}>
+      {/* Stats mejorados */}
+      <Row gutter={[12, 12]}>
+        <Col xs={24} sm={12} md={8} lg={6}>
+          <StatItem
+            label="Borradores"
+            count={borradores}
+            color="#fa8c16"
+            icon={<FileTextOutlined />}
+          />
+        </Col>
+        <Col xs={24} sm={12} md={8} lg={6}>
+          <StatItem
+            label="Enviadas"
+            count={enviadas}
+            color="#1890ff"
+            icon={<CheckOutlined />}
+          />
+        </Col>
+        <Col xs={24} sm={12} md={8} lg={6}>
+          <StatItem
+            label="Aceptadas"
+            count={aceptadas}
+            color="#52c41a"
+            icon={<CheckCircleOutlined />}
+          />
+        </Col>
+      </Row>
+
+      {/* Buscador y Filtro */}
+      <Space style={{ width: '100%', justifyContent: 'space-between', flexWrap: 'wrap' }} wrap>
+        <Input
+          placeholder="Buscar por número o nombre de cliente..."
+          prefix={<SearchOutlined />}
+          value={busqueda}
+          onChange={(e) => setBusqueda(e.target.value)}
+          style={{
+            borderRadius: 8,
+            minWidth: 300,
+          }}
+          allowClear
         />
 
-        <StatItem
-          label="Enviadas"
-          count={enviadas}
-          color="#1890ff"
-          bg="#e6f7ff"
-        />
-
-        <StatItem
-          label="Aceptadas"
-          count={aceptadas}
-          color="#52c41a"
-          bg="#f6ffed"
+        <Select
+          value={filtro}
+          onChange={setFiltro}
+          style={{
+            width: 200,
+            borderRadius: 8,
+          }}
+          options={[
+            { label: 'Todas', value: 'todos' },
+            { label: 'Borradores', value: 'borrador' },
+            { label: 'Enviadas', value: 'enviada' },
+            { label: 'Aceptadas', value: 'aceptada' },
+            { label: 'Rechazadas', value: 'rechazada' },
+          ]}
         />
       </Space>
-
-      {/* 🔽 Filtro */}
-      <Select
-        value={filtro}
-        onChange={setFiltro}
-        style={{
-          width: 200,
-          borderRadius: 8,
-        }}
-        options={[
-          { label: 'Todas', value: 'todos' },
-          { label: 'Borradores', value: 'borrador' },
-          { label: 'Enviadas', value: 'enviada' },
-          { label: 'Aceptadas', value: 'aceptada' },
-          { label: 'Rechazadas', value: 'rechazada' },
-        ]}
-      />
-    </Space>
+    </div>
   )
 }
 

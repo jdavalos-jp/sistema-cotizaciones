@@ -20,24 +20,13 @@ function normalizeClienteBody(body) {
   const nombreCompleto = typeof body?.nombreCompleto === 'string' ? body.nombreCompleto.trim() : '';
   if (!nombreCompleto) throw new HttpError(400, 'nombreCompleto es requerido');
 
-  const idInstitucion =
-    body?.idInstitucion === null || body?.idInstitucion === undefined || body?.idInstitucion === ''
-      ? null
-      : (() => {
-          try {
-            return BigInt(body.idInstitucion);
-          } catch {
-            throw new HttpError(400, 'idInstitucion inválido');
-          }
-        })();
-
   return {
     nombreCompleto,
     telefono: body?.telefono ? String(body.telefono).trim() : null,
     email: body?.email ? String(body.email).trim() : null,
     ciudad: body?.ciudad ? String(body.ciudad).trim() : null,
     cargo: body?.cargo ? String(body.cargo).trim() : null,
-    idInstitucion,
+    institucion: body?.institucion ? String(body.institucion).trim() : null,
     direccion: body?.direccion ? String(body.direccion).trim() : null,
     observaciones: body?.observaciones ? String(body.observaciones).trim() : null,
   };

@@ -20,7 +20,6 @@ export function useCategoriesAndSubcategories() {
       setCategorias(Array.isArray(response) ? response : [])
     } catch (err) {
       setError(err.message || 'Error al cargar categorías')
-      console.error('Error fetching categorias:', err)
     } finally {
       setLoadingCategorias(false)
     }
@@ -40,7 +39,6 @@ export function useCategoriesAndSubcategories() {
       setSubcategorias(Array.isArray(response) ? response : [])
     } catch (err) {
       setError(err.message || `Error al cargar subcategorías`)
-      console.error('Error fetching subcategorias:', err)
     } finally {
       setLoadingSubcategorias(false)
     }

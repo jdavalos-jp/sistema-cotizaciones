@@ -3,7 +3,11 @@ const bcrypt = require('bcrypt');
 const { prisma } = require('../../db/prisma');
 const { HttpError } = require('../../utils/httpError');
 
-const JWT_SECRET = process.env.JWT_SECRET || 'tu-secret-muy-seguro-cambia-esto';
+if (!process.env.JWT_SECRET) {
+  throw new Error('CRITICAL: JWT_SECRET not set in environment variables. Add JWT_SECRET to .env file.');
+}
+
+const JWT_SECRET = process.env.JWT_SECRET;
 const JWT_EXPIRY = process.env.JWT_EXPIRY || '7d';
 
 /**

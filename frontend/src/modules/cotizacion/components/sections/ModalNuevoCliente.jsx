@@ -1,22 +1,45 @@
 import React, { useState } from 'react'
-import { Modal, Form, Input, Button, Space, message } from 'antd'
+import { Modal, Form, Input, Button, Space, message, Row, Col } from 'antd'
 import { UserOutlined, MailOutlined, PhoneOutlined, EnvironmentOutlined } from '@ant-design/icons'
 
-export default function ModalNuevoCliente({ visible, onClose, onSuccess }) {
+function ModalNuevoCliente({ visible, onClose, onSuccess }) {
 	const [form] = Form.useForm()
 	const [loading, setLoading] = useState(false)
 
 	const handleSubmit = async (values) => {
 		setLoading(true)
 		try {
-			// Aquí iría la llamada a tu API para crear cliente
-			// const response = await createCliente(values)
+			const payload = {
+				nombreCompleto: values.nombre,
+				email: values.correo,
+				telefono: values.telefono,
+				direccion: values.direccion,
+				ciudad: values.ciudad,
+				cargo: values.cargo,
+				institucion: values.institucion,
+				observaciones: values.observaciones,
+			}
+
+			const response = await fetch('/api/clientes', {
+				method: 'POST',
+				headers: {
+					'Content-Type': 'application/json',
+				},
+				body: JSON.stringify(payload),
+			})
+
+			if (!response.ok) {
+				const errorData = await response.json()
+				throw new Error(errorData?.message || 'Error al crear cliente')
+			}
+
+			const responseData = await response.json()
 			message.success('Cliente creado exitosamente')
 			form.resetFields()
-			onSuccess(values)
+			onSuccess(responseData.data)
 			onClose()
 		} catch (err) {
-			message.error('Error al crear cliente')
+			message.error(err.message || 'Error al crear cliente')
 		} finally {
 			setLoading(false)
 		}
@@ -43,24 +66,30 @@ export default function ModalNuevoCliente({ visible, onClose, onSuccess }) {
 					<Input prefix={<UserOutlined />} placeholder="Nombre completo" />
 				</Form.Item>
 
-				<Form.Item
-					label="Correo electrónico"
-					name="correo"
-					rules={[
-						{ required: true, message: 'Por favor ingresa el correo' },
-						{ type: 'email', message: 'Formato de correo inválido' },
-					]}
-				>
-					<Input prefix={<MailOutlined />} placeholder="correo@ejemplo.com" />
-				</Form.Item>
+				<Row gutter={16}>
+					<Col span={12}>
+						<Form.Item
+							label="Correo electrónico"
+							name="correo"
+							rules={[
+								{ required: true, message: 'Por favor ingresa el correo' },
+								{ type: 'email', message: 'Formato de correo inválido' },
+							]}
+						>
+							<Input prefix={<MailOutlined />} placeholder="correo@ejemplo.com" />
+						</Form.Item>
+					</Col>
 
-				<Form.Item
-					label="Teléfono"
-					name="telefono"
-					rules={[{ required: true, message: 'Por favor ingresa el teléfono' }]}
-				>
-					<Input prefix={<PhoneOutlined />} placeholder="Número de teléfono" />
-				</Form.Item>
+					<Col span={12}>
+						<Form.Item
+							label="Teléfono"
+							name="telefono"
+							rules={[{ required: true, message: 'Por favor ingresa el teléfono' }]}
+						>
+							<Input prefix={<PhoneOutlined />} placeholder="Número de teléfono" />
+						</Form.Item>
+					</Col>
+				</Row>
 
 				<Form.Item
 					label="Dirección"
@@ -68,6 +97,34 @@ export default function ModalNuevoCliente({ visible, onClose, onSuccess }) {
 					rules={[{ required: true, message: 'Por favor ingresa la dirección' }]}
 				>
 					<Input prefix={<EnvironmentOutlined />} placeholder="Dirección completa" />
+				</Form.Item>
+
+				<Row gutter={16}>
+					<Col span={12}>
+						<Form.Item
+							label="Ciudad"
+							name="ciudad"
+							rules={[{ required: true, message: 'Por favor ingresa la ciudad' }]}
+						>
+							<Input placeholder="Ciudad" />
+						</Form.Item>
+					</Col>
+
+					<Col span={12}>
+						<Form.Item
+							label="Cargo"
+							name="cargo"
+						>
+							<Input placeholder="Cargo del cliente" />
+						</Form.Item>
+					</Col>
+				</Row>
+
+				<Form.Item
+					label="Institución"
+					name="institucion"
+				>
+					<Input placeholder="Nombre de la institución" />
 				</Form.Item>
 
 				<Form.Item
@@ -87,3 +144,5 @@ export default function ModalNuevoCliente({ visible, onClose, onSuccess }) {
 		</Modal>
 	)
 }
+
+export default ModalNuevoCliente

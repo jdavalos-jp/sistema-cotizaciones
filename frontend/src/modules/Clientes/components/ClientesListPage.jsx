@@ -40,6 +40,17 @@ export default function ClientesListPage() {
     }
   }
 
+  const handleShowSizeChange = async (current, pageSize) => {
+    console.log(current, pageSize)
+    const skip = (current - 1) * pageSize
+    setPagination((prev) => ({ ...prev, current, pageSize }))
+    try {
+      await loadClientes(skip, searchTerm)
+    } catch {
+      // Error ya manejado
+    }
+  }
+
   const handleDelete = async (idCliente) => {
     try {
       deleteCliente(idCliente)
@@ -87,7 +98,7 @@ export default function ClientesListPage() {
           </Typography.Title>
           <Typography.Text type="secondary">Gestión de clientes y contactos</Typography.Text>
         </div>
-        <Button type="primary" icon={<PlusOutlined />} size="large">
+        <Button type="primary" icon={<PlusOutlined />}>
           Agregar Cliente
         </Button>
       </div>
@@ -113,6 +124,11 @@ export default function ClientesListPage() {
               current: pagination.current,
               total: pagination.total,
               onChange: handlePaginationChange,
+              onShowSizeChange: handleShowSizeChange,
+              showSizeChanger: true,
+              showQuickJumper: true,
+              pageSizeOptions: ['5', '10', '20', '50'],
+              showTotal: (total) => `Total: ${total} clientes`,
             }}
             loading={loading}
           />

@@ -28,7 +28,6 @@ export function useCotizacionesList() {
     } catch (err) {
       const errorMsg = err.message || 'Error al cargar cotizaciones'
       setError(errorMsg)
-      console.error(errorMsg, err)
       throw err
     } finally {
       setLoading(false)

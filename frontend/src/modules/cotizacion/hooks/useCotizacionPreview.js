@@ -21,11 +21,19 @@ export function useCotizacionPreview({ idCliente, moneda, cart }) {
 
       const productos = debouncedCart
         .filter((x) => x.tipo === 'producto')
-        .map((x) => ({ idProducto: String(x.id), cantidad: x.cantidad }))
+        .map((x) => ({
+          idProducto: String(x.id),
+          cantidad: x.cantidad,
+          ...(x.precioUnitario !== undefined && { precioUnitario: x.precioUnitario }),
+        }))
 
       const componentes = debouncedCart
         .filter((x) => x.tipo === 'componente')
-        .map((x) => ({ idComponente: String(x.id), cantidad: x.cantidad }))
+        .map((x) => ({
+          idComponente: String(x.id),
+          cantidad: x.cantidad,
+          ...(x.precioUnitario !== undefined && { precioUnitario: x.precioUnitario }),
+        }))
 
       setLoading(true)
       try {

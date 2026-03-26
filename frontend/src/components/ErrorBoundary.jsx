@@ -22,8 +22,7 @@ export class ErrorBoundary extends React.Component {
   }
 
   componentDidCatch(error, errorInfo) {
-    // Log el error para debugging
-    console.error('Error capturado por ErrorBoundary:', error, errorInfo)
+    // Log error for debugging in development
 
     // Actualizar estado con detalles del error
     this.setState((prev) => ({

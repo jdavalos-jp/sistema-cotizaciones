@@ -11,7 +11,7 @@ message,
 import { CloseOutlined, DollarOutlined, InfoCircleOutlined, UploadOutlined } from '@ant-design/icons'
 import { useCategoriesAndSubcategories } from '../hooks/useCategoriesAndSubcategories'
 import { useProducto } from '../hooks/useProductosManager'
-//import * as productosApi from '../services/api/productosApi'
+import * as productosApi from '../services/api/productosApi'
 import { supabase } from '../../../lib/supabaseClient'
 
 const { Title, Text } = Typography
@@ -260,7 +260,7 @@ function ProductoForm({ onSuccess, onCancel, idProductoEdit = null }) {
     } catch (err) {
       const errorMsg = err?.response?.data?.message || err?.message || 'Error al guardar producto'
       message.error(errorMsg)
-      console.error('Error:', err)
+      // Error adding product
     } finally {
       setSubmitting(false)
     }
@@ -313,14 +313,13 @@ function ProductoForm({ onSuccess, onCancel, idProductoEdit = null }) {
               <Form.Item
                 label="Subcategoría"
                 name="categoriaPath"
-                rules={[{ required: true, message: 'Selecciona una categoría o subcategoría' }]}
+                rules={[{ required: true, message: 'Selecciona una subcategoría' }]}
               >
                 <Cascader
                   options={categoriaOptions}
                   placeholder={cascaderPlaceholder}
                   loading={loadingCategorias || loadingHierarchy}
                   showSearch
-                  changeOnSelect
                   allowClear
                 />
               </Form.Item>
@@ -373,15 +372,14 @@ function ProductoForm({ onSuccess, onCancel, idProductoEdit = null }) {
                 name="precioBase"
                 rules={[
                   { required: true, message: 'Campo requerido' },
-                  { type: 'number', min: 0.01, message: 'Debe ser mayor que 0' },
+                  { type: 'number', min: 1, message: 'Debe ser mayor que 0' },
                 ]}
               >
                 <InputNumber
                   style={{ width: '100%' }}
-                  min={0.01}
-                  step={0.01}
-                  precision={2}
-                  placeholder="0.00"
+                  min={1}
+                  step={1}
+                  placeholder="0"
                   prefix="$"
                 />
               </Form.Item>

@@ -38,7 +38,6 @@ export function useProductosList() {
       }))
     } catch (err) {
       setError(err.message || 'Error al cargar productos')
-      console.error('Error fetching productos:', err)
     } finally {
       setLoading(false)
     }
@@ -93,7 +92,6 @@ export function useProducto(idProducto = null) {
       setImagenes(response?.imagenes || [])
     } catch (err) {
       setError(err.message || 'Error al cargar producto')
-      console.error('Error fetching producto:', err)
     } finally {
       setLoading(false)
     }

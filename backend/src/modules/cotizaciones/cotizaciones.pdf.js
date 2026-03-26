@@ -2,12 +2,14 @@ const fs = require('fs');
 const path = require('path');
 
 const PDFDocument = require('pdfkit');
+const { toDateOnlyString, formatDateDMY, toUtcMidnightDate } = require('../../utils/dateOnly');
+const { getSettings, settingsToBrand } = require('../settings/settings.service');
 
 function formatMoney(value, moneda) {
-  // value puede venir como Decimal de Prisma
+  // Convierte a entero (sin decimales)
   const n = typeof value?.toNumber === 'function' ? value.toNumber() : Number(value ?? 0);
   const curr = String(moneda || '').trim() || 'Bs';
-  return `${curr} ${n.toFixed(2)}`;
+  return `${curr} ${Math.round(n)}`;
 }
 
 function safeText(value) {
@@ -42,49 +44,53 @@ function formatIncludedComponents(producto) {
 }
 
 function formatDate(value) {
-  try {
-    const d = value instanceof Date ? value : new Date(value);
-    return d.toLocaleDateString('es-BO');
-  } catch {
-    return '';
-  }
+  return formatDateDMY(value);
 }
 
 function addDays(dateValue, days) {
   try {
-    const d = dateValue instanceof Date ? new Date(dateValue) : new Date(dateValue);
-    if (Number.isNaN(d.getTime())) return null;
-    d.setDate(d.getDate() + Number(days || 0));
-    return d;
-  } catch {
+    const d = toUtcMidnightDate(dateValue);
+    if (!d) return null;
+
+    const newDate = new Date(d);
+    newDate.setUTCDate(newDate.getUTCDate() + Number(days || 0));
+    return newDate;
+  } catch (err) {
+    // Error in addDays - return null
     return null;
   }
 }
 
-function calcularDiasHabiles(hasta) {
+function calcularDiasHabiles(desde, hasta) {
   try {
-    const hoy = new Date();
-    hoy.setHours(0, 0, 0, 0);
-    
-    const fechaHasta = hasta instanceof Date ? new Date(hasta) : new Date(hasta);
-    fechaHasta.setHours(0, 0, 0, 0);
-    
-    if (isNaN(fechaHasta.getTime())) return 0;
-    
+    if (!desde || !hasta) {
+      // Invalid dates
+      return 0;
+    }
+
+    const fechaInicio = toUtcMidnightDate(desde);
+    const fechaHasta = toUtcMidnightDate(hasta);
+
+    if (!fechaInicio || !fechaHasta || isNaN(fechaInicio.getTime()) || isNaN(fechaHasta.getTime())) {
+      // Invalid date format
+      return 0;
+    }
+
     let diasHabiles = 0;
-    const actual = new Date(hoy);
-    
+    const actual = new Date(fechaInicio);
+
     while (actual <= fechaHasta) {
-      const dayOfWeek = actual.getDay();
-      // 1 = Lunes, 5 = Viernes, 0 = Domingo, 6 = Sábado
+      const dayOfWeek = actual.getUTCDay();
+      // 0 = Domingo, 1 = Lunes, 5 = Viernes, 6 = Sábado
       if (dayOfWeek !== 0 && dayOfWeek !== 6) {
         diasHabiles++;
       }
-      actual.setDate(actual.getDate() + 1);
+      actual.setUTCDate(actual.getUTCDate() + 1);
     }
-    
+
     return diasHabiles;
-  } catch {
+  } catch (err) {
+    // Error calculating business days
     return 0;
   }
 }
@@ -120,8 +126,8 @@ function drawHeader(doc, cotizacion, brand, { moneda, compact = false } = {}) {
   const topY = 40;
 
   const logoPath = resolveCompanyLogoPath();
-  const logoW = compact ? 70 : 92;
-  const logoH = compact ? 34 : 48;
+  const logoW = compact ? 120 : 200;
+  const logoH = compact ? 80 : 100;
   const hasLogo = Boolean(logoPath);
 
   // Cuadro datos (derecha)
@@ -132,7 +138,7 @@ function drawHeader(doc, cotizacion, brand, { moneda, compact = false } = {}) {
 
   // Columna izquierda (logo + datos debajo)
   const gap = 12;
-  const leftColW = Math.max(120, boxX - left - gap);
+  const leftColW = Math.max(100, boxX - left - gap);
 
   // Logo (arriba a la izquierda)
   if (hasLogo) {
@@ -148,32 +154,45 @@ function drawHeader(doc, cotizacion, brand, { moneda, compact = false } = {}) {
   doc.save();
   doc.fillColor('#111827');
   if (brand.brandName) {
-    doc.font('Helvetica-Bold').fontSize(compact ? 12 : 16);
-    doc.text(brand.brandName, left, textY, { width: leftColW, align: 'left' });
+    doc.font('Helvetica-Bold').fontSize(compact ? 11 : 13);
+    doc.text(safeText(brand.brandName), left, textY, { width: leftColW, align: 'left' });
   } else {
     doc.y = textY;
   }
 
-  doc.font('Helvetica').fontSize(compact ? 8 : 9).fillColor('#374151');
-  if (brand.brandTagline) {
-    doc.text(brand.brandTagline, left, doc.y + 2, { width: leftColW, align: 'left' });
+  // Dirección
+  doc.font('Helvetica').fontSize(compact ? 7 : 8).fillColor('#374151');
+  if (brand.brandAddress) {
+    doc.text(`Av. ${safeText(brand.brandAddress)}`, left, doc.y + 2, { width: leftColW, align: 'left' });
   }
 
-  const lineA = [brand.brandAddress ? safeText(brand.brandAddress) : null, brand.brandWebsite ? safeText(brand.brandWebsite) : null]
+  // Teléfonos
+  doc.font('Helvetica').fontSize(compact ? 7 : 8).fillColor('#374151');
+  const phones = [brand.brandPhone ? `Tel: ${safeText(brand.brandPhone)}` : null, brand.brandPhone2 ? `Tel: ${safeText(brand.brandPhone2)}` : null]
     .filter(Boolean)
-    .join('   |   ');
-  if (lineA) {
-    doc.font('Helvetica').fontSize(compact ? 7.5 : 8).fillColor('#6B7280');
-    doc.text(lineA, left, doc.y + 2, { width: leftColW, align: 'left' });
+    .join('   ');
+  if (phones) {
+    doc.text(phones, left, doc.y + 2, { width: leftColW, align: 'left' });
   }
 
-  const lineB = [brand.brandPhone ? `Tel: ${safeText(brand.brandPhone)}` : null, brand.brandEmail ? `Email: ${safeText(brand.brandEmail)}` : null]
-    .filter(Boolean)
-    .join('   |   ');
-  if (lineB) {
-    doc.font('Helvetica').fontSize(compact ? 7.5 : 8).fillColor('#6B7280');
-    doc.text(lineB, left, doc.y + 2, { width: leftColW, align: 'left' });
+  // Website
+  doc.font('Helvetica').fontSize(compact ? 7 : 8).fillColor('#374151');
+  if (brand.brandWebsite) {
+    doc.text(`Web: ${safeText(brand.brandWebsite)}`, left, doc.y + 2, { width: leftColW, align: 'left' });
   }
+
+  // Email
+  doc.font('Helvetica').fontSize(compact ? 7 : 8).fillColor('#374151');
+  if (brand.brandEmail) {
+    doc.text(`Email: ${safeText(brand.brandEmail)}`, left, doc.y + 2, { width: leftColW, align: 'left' });
+  }
+
+  const tagline = brand.brandTagline;
+  if (tagline) {
+    doc.font('Helvetica-Oblique').fontSize(compact ? 6.5 : 7.5).fillColor('#9CA3AF');
+    doc.text(safeText(tagline), left, doc.y + 3, { width: leftColW, align: 'left' });
+  }
+
   const leftBlockBottom = Math.max(topY + (hasLogo ? logoH : 0), doc.y);
   doc.restore();
 
@@ -181,8 +200,14 @@ function drawHeader(doc, cotizacion, brand, { moneda, compact = false } = {}) {
   doc.roundedRect(boxX, boxY, boxW, boxH, 6).fillAndStroke('#FFFFFF', '#E5E7EB');
   doc.fillColor('#111827');
 
-  const fechaEmision = cotizacion.fechaEmision;
-  const validez = cotizacion.fechaValidez || addDays(fechaEmision, 7);
+  const fechaEmision = cotizacion.fechaEmision || new Date().toISOString().split('T')[0];
+  let validez = cotizacion.fechaValidez;
+
+  if (!validez) {
+    validez = addDays(fechaEmision, 7);
+  }
+
+  const validezStr = toDateOnlyString(validez);
 
   const labelWidth = compact ? 92 : 120;
   const valueWidth = boxW - 24 - labelWidth;
@@ -196,15 +221,15 @@ function drawHeader(doc, cotizacion, brand, { moneda, compact = false } = {}) {
 
   drawKV(boxY + 10, 'Nro de Proforma:', safeText(cotizacion.numeroCotizacion));
   drawKV(boxY + 26, 'Fecha:', formatDate(fechaEmision));
-  drawKV(boxY + 42, 'Validez:', validez ? formatDate(validez) : '');
+  drawKV(boxY + 42, 'Validez:', formatDate(validezStr));
   doc.restore();
 
   // Banda PROFORMA (solo en primera página)
   const bandY = topY + boxH + (compact ? 6 : 10);
   if (!compact) {
-    const bandW = 300;
+    const bandW = 250;
     const bandX = right - bandW;
-    const bandH = 34;
+    const bandH = 50;
     doc.save();
     doc.rect(bandX, bandY, bandW, bandH).fillAndStroke('#FEF3C7', '#E5E7EB');
     doc.fillColor('#111827').font('Helvetica-Bold').fontSize(22);
@@ -275,10 +300,11 @@ function addPageWithFooter(doc, meta) {
 }
 
 function ensureSpace(doc, neededHeight, { meta, onNewPage } = {}) {
-  const bottomLimit = doc.page.height - doc.page.margins.bottom - 28; // reserva para footer
+  const bottomLimit = doc.page.height - doc.page.margins.bottom - 40; // reserva más grande para footer
   if (doc.y + neededHeight <= bottomLimit) return;
-  if (typeof onNewPage === 'function') onNewPage();
   addPageWithFooter(doc, meta);
+  if (typeof onNewPage === 'function') onNewPage();
+  doc.y = doc.page.margins.top + 50; // Posicionar correctamente después de nuevo página
 }
 
 function drawTableHeader(doc, cols) {
@@ -374,197 +400,229 @@ function drawRow(doc, row, cols, { moneda, zebra, index } = {}) {
 }
 
 function buildCotizacionPdf(cotizacion) {
-  return new Promise((resolve, reject) => {
-    const doc = new PDFDocument({ size: 'A4', margin: 40, bufferPages: true });
+  return new Promise(async (resolve, reject) => {
+    try {
+      const doc = new PDFDocument({ size: 'A4', margin: 40, bufferPages: true });
 
-    doc.info.Title = `Cotización ${safeText(cotizacion.numeroCotizacion)}`;
-    doc.info.Author = String(process.env.COMPANY_NAME || '').trim() || undefined;
+      doc.info.Title = `Cotización ${safeText(cotizacion.numeroCotizacion)}`;
+      doc.info.Author = String(process.env.COMPANY_NAME || '').trim() || undefined;
 
-    const chunks = [];
-    doc.on('data', (c) => chunks.push(c));
-    doc.on('end', () => resolve(Buffer.concat(chunks)));
-    doc.on('error', reject);
+      const chunks = [];
+      doc.on('data', (c) => chunks.push(c));
+      doc.on('end', () => resolve(Buffer.concat(chunks)));
+      doc.on('error', reject);
 
-    const moneda = cotizacion.moneda ?? 'Bs';
-    const brand = {
-      brandName: String(process.env.COMPANY_NAME || '').trim(),
-      brandTagline: String(process.env.COMPANY_TAGLINE || '').trim(),
-      brandEmail: process.env.COMPANY_EMAIL || '',
-      brandPhone: process.env.COMPANY_PHONE || '',
-      brandAddress: process.env.COMPANY_ADDRESS || '',
-      brandWebsite: process.env.COMPANY_WEBSITE || '',
-    };
+      const moneda = cotizacion.moneda ?? 'Bs';
 
-    const left = doc.page.margins.left;
-    const right = doc.page.width - doc.page.margins.right;
+      // Obtener brand info desde DB
+      const settings = await getSettings();
+      const brand = settingsToBrand(settings);
 
-    // Meta para footers
-    const meta = {
-      pageNumber: 0,
-      totalPages: 0,
-    };
+      const left = doc.page.margins.left;
+      const right = doc.page.width - doc.page.margins.right;
 
-    // Encabezado (estilo proforma)
-    doc.y = drawHeader(doc, cotizacion, brand, { moneda, compact: false });
+      // Meta para footers
+      const meta = {
+        pageNumber: 0,
+        totalPages: 0,
+      };
 
-    // Cliente + contacto
-    doc.font('Helvetica-Bold').fontSize(11).fillColor('#111827').text('Cliente', left, doc.y);
-    doc.moveDown(0.3);
+      // Encabezado (estilo proforma)
+      doc.y = drawHeader(doc, cotizacion, brand, { moneda, compact: false });
 
-    const cliente = cotizacion.cliente ?? null;
-    const clientBoxY = doc.y;
-    doc
-      .roundedRect(left, clientBoxY, right - left, 70, 6)
-      .fillAndStroke('#FFFFFF', '#E5E7EB');
+      // Cliente + contacto
+      doc.font('Helvetica-Bold').fontSize(11).fillColor('#111827').text('Cliente', left, doc.y);
+      doc.moveDown(0.3);
 
-    doc.font('Helvetica-Bold').fontSize(10).fillColor('#111827');
-    doc.text(cliente ? safeText(cliente.nombreCompleto) : '—', left + 12, clientBoxY + 12, {
-      width: right - left - 24,
-    });
-    doc.font('Helvetica').fontSize(9).fillColor('#374151');
-    const line2 = [
-      cliente?.email ? `Email: ${cliente.email}` : null,
-      cliente?.telefono ? `Tel: ${cliente.telefono}` : null,
-      cliente?.ciudad ? `Ciudad: ${cliente.ciudad}` : null,
-    ]
-      .filter(Boolean)
-      .join('   |   ');
-    doc.text(line2 || ' ', left + 12, clientBoxY + 30, { width: right - left - 24 });
+      const cliente = cotizacion.cliente ?? null;
+      const clientBoxY = doc.y;
+      doc
+        .roundedRect(left, clientBoxY, right - left, 90, 6)
+        .fillAndStroke('#FFFFFF', '#E5E7EB');
 
-    const line3 = [brand.brandEmail ? `Email: ${brand.brandEmail}` : null, brand.brandPhone ? `Tel: ${brand.brandPhone}` : null]
-      .filter(Boolean)
-      .join('   |   ');
-    if (line3) {
-      doc.font('Helvetica').fontSize(8).fillColor('#6B7280');
-      doc.text(`Contacto: ${line3}`, left + 12, clientBoxY + 48, { width: right - left - 24 });
-    }
-
-    doc.y = clientBoxY + 82;
-
-    // Items
-    doc.font('Helvetica-Bold').fontSize(11).fillColor('#111827').text('Detalle de ítems', left, doc.y);
-    doc.moveDown(0.4);
-
-    const tableLeft = left;
-    const tableWidth = right - left;
-
-    const cols = [
-      { key: 'item', title: 'Ítem', x: tableLeft + 0, w: Math.floor(tableWidth * 0.42), align: 'left' },
-      { key: 'sku', title: 'SKU', x: tableLeft + Math.floor(tableWidth * 0.42), w: Math.floor(tableWidth * 0.18), align: 'left' },
-      { key: 'dias', title: 'Entrega de Días Hábiles', x: tableLeft + Math.floor(tableWidth * 0.60), w: Math.floor(tableWidth * 0.14), align: 'center' },
-      { key: 'cant', title: 'Cant.', x: tableLeft + Math.floor(tableWidth * 0.74), w: Math.floor(tableWidth * 0.08), align: 'right' },
-      { key: 'unit', title: 'P. Unit', x: tableLeft + Math.floor(tableWidth * 0.82), w: Math.floor(tableWidth * 0.09), align: 'right' },
-      { key: 'total', title: 'Total', x: tableLeft + Math.floor(tableWidth * 0.91), w: Math.floor(tableWidth * 0.09), align: 'right' },
-    ];
-
-    const validez = cotizacion.fechaValidez || addDays(cotizacion.fechaEmision, 7);
-    const diasHabiles = calcularDiasHabiles(validez);
-
-    const items = [
-      ...(cotizacion.productos ?? [])
-        .slice()
-        .sort((a, b) => Number(a.ordenVisual ?? 0) - Number(b.ordenVisual ?? 0))
-        .map((p) => ({
-          sku: p?.producto?.sku ?? null,
-          item: p.nombreItem,
-          descripcion: joinNonEmpty([p.descripcionItem, formatIncludedComponents(p?.producto)]),
-          cantidad: p.cantidad,
-          unitario: p.precioUnitario,
-          total: p.subtotal,
-          diasHabiles: diasHabiles,
-        })),
-      ...(cotizacion.componentes ?? [])
-        .slice()
-        .sort((a, b) => Number(a.ordenVisual ?? 0) - Number(b.ordenVisual ?? 0))
-        .map((c) => ({
-          sku: c?.componente?.sku ?? null,
-          item: c.nombreItem,
-          descripcion: c.descripcionItem,
-          cantidad: c.cantidad,
-          unitario: c.precioUnitario,
-          total: c.subtotal,
-          diasHabiles: diasHabiles,
-        })),
-    ];
-
-    // Header tabla
-    drawTableHeader(doc, cols);
-
-    const redrawOnNewPage = () => {
-      // Encabezado compacto en páginas siguientes
-      doc.y = drawHeader(doc, cotizacion, brand, { moneda, compact: true });
-      drawTableHeader(doc, cols);
-    };
-
-    items.forEach((row, idx) => {
-      // estimación conservadora antes de dibujar
-      ensureSpace(doc, 52, { meta, onNewPage: redrawOnNewPage });
-      drawRow(doc, row, cols, { moneda, zebra: true, index: idx });
-    });
-
-    // Totales
-    ensureSpace(doc, 120, { meta, onNewPage: redrawOnNewPage });
-    doc.moveDown(0.6);
-
-    const totalsBoxW = 260;
-    const totalsX = right - totalsBoxW;
-    const totalsY = doc.y;
-    doc
-      .roundedRect(totalsX, totalsY, totalsBoxW, 86, 6)
-      .fillAndStroke('#F9FAFB', '#E5E7EB');
-
-    doc.font('Helvetica').fontSize(9).fillColor('#111827');
-    const lineY = (y, label, value, bold = false) => {
-      doc.font(bold ? 'Helvetica-Bold' : 'Helvetica');
-      doc.text(label, totalsX + 12, y, { width: 120, align: 'left' });
-      doc.text(value, totalsX + 132, y, { width: totalsBoxW - 144, align: 'right' });
-    };
-
-    lineY(totalsY + 12, 'Subtotal', formatMoney(cotizacion.subtotal, moneda));
-    lineY(totalsY + 30, 'Descuento', formatMoney(cotizacion.descuento, moneda));
-    lineY(totalsY + 48, 'Impuestos', formatMoney(cotizacion.impuestos, moneda));
-    doc.save();
-    doc.fillColor('#111827');
-    lineY(totalsY + 66, 'TOTAL', formatMoney(cotizacion.total, moneda), true);
-    doc.restore();
-
-    doc.y = totalsY + 98;
-
-    // Observaciones y términos
-    const obs = safeText(cotizacion.observaciones).trim();
-    if (obs) {
-      ensureSpace(doc, 80, { meta, onNewPage: redrawOnNewPage });
-      doc.font('Helvetica-Bold').fontSize(10).fillColor('#111827').text('Observaciones', left, doc.y);
-      doc.moveDown(0.2);
-      doc.font('Helvetica').fontSize(9).fillColor('#374151').text(obs, {
-        width: right - left,
+      // Nombre del cliente (Bold)
+      doc.font('Helvetica-Bold').fontSize(10).fillColor('#111827');
+      doc.text(cliente ? safeText(cliente.nombreCompleto) : '—', left + 12, clientBoxY + 12, {
+        width: right - left - 24,
       });
+
+      // Institución + Cargo
+      doc.font('Helvetica').fontSize(9).fillColor('#374151');
+      const line1 = [
+        cliente?.institucion ? `${safeText(cliente.institucion)}` : null,
+        cliente?.cargo ? `Cargo: ${safeText(cliente.cargo)}` : null,
+      ]
+        .filter(Boolean)
+        .join('   |   ');
+      doc.text(line1 || ' ', left + 12, clientBoxY + 30, { width: right - left - 24 });
+
+      // Email, Teléfono, Ciudad
+      const line2 = [
+        cliente?.email ? `Email: ${cliente.email}` : null,
+        cliente?.telefono ? `Tel: ${cliente.telefono}` : null,
+        cliente?.ciudad ? `Ciudad: ${cliente.ciudad}` : null,
+      ]
+        .filter(Boolean)
+        .join('   |   ');
+      doc.text(line2 || ' ', left + 12, clientBoxY + 48, { width: right - left - 24 });
+
+      // Dirección
+      doc.font('Helvetica').fontSize(8).fillColor('#6B7280');
+      const direccion = cliente?.direccion ? `Dirección: ${safeText(cliente.direccion)}` : '';
+      doc.text(direccion || ' ', left + 12, clientBoxY + 66, { width: right - left - 24 });
+
+      const line3 = [brand.brandEmail ? `Email: ${brand.brandEmail}` : null, brand.brandPhone ? `Tel: ${brand.brandPhone}` : null]
+        .filter(Boolean)
+        .join('   |   ');
+
+      doc.y = clientBoxY + 102;
+
+      // Items
+      doc.font('Helvetica-Bold').fontSize(11).fillColor('#111827').text('Detalle de ítems', left, doc.y);
+      doc.moveDown(0.4);
+
+      const tableLeft = left;
+      const tableWidth = right - left;
+
+      const cols = [
+        { key: 'item', title: 'Ítem', x: tableLeft + 0, w: Math.floor(tableWidth * 0.42), align: 'left' },
+        { key: 'sku', title: 'SKU', x: tableLeft + Math.floor(tableWidth * 0.42), w: Math.floor(tableWidth * 0.18), align: 'left' },
+        { key: 'dias', title: 'Entrega de Días Hábiles', x: tableLeft + Math.floor(tableWidth * 0.60), w: Math.floor(tableWidth * 0.14), align: 'center' },
+        { key: 'cant', title: 'Cant.', x: tableLeft + Math.floor(tableWidth * 0.74), w: Math.floor(tableWidth * 0.08), align: 'right' },
+        { key: 'unit', title: 'P. Unit', x: tableLeft + Math.floor(tableWidth * 0.82), w: Math.floor(tableWidth * 0.09), align: 'right' },
+        { key: 'total', title: 'Total', x: tableLeft + Math.floor(tableWidth * 0.91), w: Math.floor(tableWidth * 0.09), align: 'right' },
+      ];
+
+      const fechaEmisionTable = cotizacion.fechaEmision || new Date().toISOString().split('T')[0];
+      let validezTable = cotizacion.fechaValidez;
+
+      // Asegurar que validez es un Date o string en formato ISO
+      if (!validezTable) {
+        validezTable = addDays(fechaEmisionTable, 7);
+      }
+
+      const validezStr = toDateOnlyString(validezTable);
+
+      // USAR diasEntrega del objeto cotizacion, NO calcular
+      const diasHabiles = cotizacion.diasEntrega ?? 5;
+
+      // DEBUG: PDF generated with dates
+
+      const items = [
+        ...(cotizacion.productos ?? [])
+          .slice()
+          .sort((a, b) => Number(a.ordenVisual ?? 0) - Number(b.ordenVisual ?? 0))
+          .map((p) => ({
+            sku: p?.producto?.sku ?? null,
+            item: p.nombreItem,
+            descripcion: joinNonEmpty([p.descripcionItem, formatIncludedComponents(p?.producto)]),
+            cantidad: p.cantidad,
+            unitario: p.precioUnitario,
+            total: p.subtotal,
+            diasHabiles: diasHabiles,
+          })),
+        ...(cotizacion.componentes ?? [])
+          .slice()
+          .sort((a, b) => Number(a.ordenVisual ?? 0) - Number(b.ordenVisual ?? 0))
+          .map((c) => ({
+            sku: c?.componente?.sku ?? null,
+            item: c.nombreItem,
+            descripcion: c.descripcionItem,
+            cantidad: c.cantidad,
+            unitario: c.precioUnitario,
+            total: c.subtotal,
+            diasHabiles: diasHabiles,
+          })),
+      ];
+
+      // Header tabla
+      drawTableHeader(doc, cols);
+
+      const redrawOnNewPage = () => {
+        // En nuevas páginas, solo redibuja el header de tabla (sin encabezado de marca)
+        doc.y = 40; // Margen superior
+        drawTableHeader(doc, cols);
+      };
+
+      items.forEach((row, idx) => {
+        // Estimar altura de fila con márgenes de seguridad (puede ser más alta si hay descripciones largas)
+        const estimatedRowHeight = 60; // Margen conservador para descripciones
+        ensureSpace(doc, estimatedRowHeight, { meta, onNewPage: redrawOnNewPage });
+        drawRow(doc, row, cols, { moneda, zebra: true, index: idx });
+      });
+
+      // Totales
+      ensureSpace(doc, 140, { meta, onNewPage: redrawOnNewPage });
       doc.moveDown(0.6);
-    }
 
-    // Condiciones mínimas (MVP)
-    ensureSpace(doc, 70, { meta, onNewPage: redrawOnNewPage });
-    doc.font('Helvetica-Bold').fontSize(10).fillColor('#111827').text('INFORMACION DE PAGO', left, doc.y);
-    doc.moveDown(0.2);
-    doc
-      .font('Helvetica')
-      .fontSize(9)
-      .fillColor('#374151')
-      .text(
-        '• Banco de credito.\n• Jorge Davalos Crespo.\n• Nº Cuenta: 3015040742318',
-        { width: right - left },
-       
+      const totalsBoxW = 260;
+      const totalsX = right - totalsBoxW;
+      const totalsY = doc.y;
+      doc
+        .roundedRect(totalsX, totalsY, totalsBoxW, 86, 6)
+        .fillAndStroke('#F9FAFB', '#E5E7EB');
+
+      doc.font('Helvetica').fontSize(9).fillColor('#111827');
+      const lineY = (y, label, value, bold = false) => {
+        doc.font(bold ? 'Helvetica-Bold' : 'Helvetica');
+        doc.text(label, totalsX + 12, y, { width: 120, align: 'left' });
+        doc.text(value, totalsX + 132, y, { width: totalsBoxW - 144, align: 'right' });
+      };
+
+      lineY(totalsY + 12, 'Subtotal', formatMoney(cotizacion.subtotal, moneda));
+      lineY(totalsY + 30, 'Descuento', formatMoney(cotizacion.descuento, moneda));
+      lineY(totalsY + 48, 'Impuestos', formatMoney(cotizacion.impuestos, moneda));
+      doc.save();
+      doc.fillColor('#111827');
+      lineY(totalsY + 66, 'TOTAL', formatMoney(cotizacion.total, moneda), true);
+      doc.restore();
+
+      doc.y = totalsY + 98;
+
+      // Observaciones y términos
+      const obs = safeText(cotizacion.observaciones).trim();
+      if (obs) {
+        ensureSpace(doc, 80, { meta, onNewPage: redrawOnNewPage });
+        doc.font('Helvetica-Bold').fontSize(10).fillColor('#111827').text('Observaciones', left, doc.y);
+        doc.moveDown(0.2);
+        doc.font('Helvetica').fontSize(9).fillColor('#374151').text(obs, {
+          width: right - left,
+        });
+        doc.moveDown(0.6);
+      }
+
+      // Condiciones mínimas (MVP)
+      ensureSpace(doc, 70, { meta, onNewPage: redrawOnNewPage });
+      doc.font('Helvetica-Bold').fontSize(10).fillColor('#111827').text('INFORMACION DE PAGO', left, doc.y);
+      doc.moveDown(0.2);
+      doc
+        .font('Helvetica')
+        .fontSize(9)
+        .fillColor('#374151')
+      doc.text(
+        'Banco de credito.\nJorge Davalos Crespo.\nNº Cuenta: 3015040742318.\n',
+        { width: right - left }
       );
-      
-    // Renderizar footers en todas las páginas
-    const range = doc.bufferedPageRange(); // { start, count }
-    meta.totalPages = range.count;
-    for (let i = range.start; i < range.start + range.count; i++) {
-      doc.switchToPage(i);
-      drawFooter(doc, i - range.start + 1, range.count);
-    }
 
-    doc.end();
+      doc.text(
+        'Todos los equipos o Accesorios cuentan con 1 año de garantía',
+        {
+          width: right - left,
+          align: 'center'
+        }
+      );
+      // Renderizar footers en todas las páginas
+      const range = doc.bufferedPageRange();
+      meta.totalPages = range.count;
+      for (let i = range.start; i < range.start + range.count; i++) {
+        doc.switchToPage(i);
+        drawFooter(doc, i - range.start + 1, range.count);
+      }
+
+      doc.end();
+    } catch (err) {
+      reject(err);
+    }
   });
 }
 

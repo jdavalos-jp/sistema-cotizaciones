@@ -21,7 +21,7 @@ const CreateProductoSchema = z.object({
     .nullable(),
   precioBase: z
     .union([z.number(), z.string()])
-    .pipe(z.coerce.number().positive('Precio debe ser un número positivo')),
+    .pipe(z.coerce.number().int().positive('Precio debe ser un número entero positivo')),
   cantidad: z
     .union([z.number(), z.string()])
     .pipe(z.coerce.number().int().positive('Cantidad debe ser un número positivo'))
@@ -101,6 +101,14 @@ const CreateCotizacionSchema = z.object({
     .pipe(z.coerce.bigint().positive('idCliente inválido')),
   productos: z.array(CotizacionItemSchema).optional().default([]),
   componentes: z.array(CotizacionItemSchema).optional().default([]),
+  fechaInicio: z
+    .union([z.string(), z.date()])
+    .pipe(z.coerce.date('fechaInicio debe ser una fecha válida'))
+    .optional(),
+  fechaValidez: z
+    .union([z.string(), z.date()])
+    .pipe(z.coerce.date('fechaValidez debe ser una fecha válida'))
+    .optional(),
   moneda: z.enum(['Bs', 'USD', 'EUR']).default('Bs'),
   observaciones: z.string().max(1000).trim().optional().nullable(),
 });

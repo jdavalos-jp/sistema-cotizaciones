@@ -14,7 +14,6 @@ export function useProformas() {
       // TODO: Conectar con API de proformas
       setProformas([])
     } catch (error) {
-      console.error('Error cargando proformas:', error)
       throw error
     } finally {
       setLoading(false)

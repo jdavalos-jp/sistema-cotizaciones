@@ -2,6 +2,8 @@ const { Prisma } = require('@prisma/client');
 
 const { prisma } = require('../../db/prisma');
 const { HttpError } = require('../../utils/httpError');
+const { toUtcMidnightDate } = require('../../utils/dateOnly');
+const { decimalToNumber } = require('./decimal-converter');
 
 function toBigInt(value, fieldName) {
   try {
@@ -18,10 +20,53 @@ function toInt(value, fieldName) {
 }
 
 function moneyDecimal(value) {
-  // Acepta Decimal/string/number y lo normaliza a Decimal de Prisma
-  if (value instanceof Prisma.Decimal) return value;
-  if (typeof value === 'string' || typeof value === 'number') return new Prisma.Decimal(value);
-  return new Prisma.Decimal(0);
+  // Ahora convierte a número entero en lugar de Decimal
+  const num = typeof value === 'string' ? parseInt(value, 10) : Number(value);
+  return Number.isInteger(num) ? num : Math.round(num);
+}
+
+function addDays(date, days) {
+  try {
+    let dateStr = '';
+    
+    if (date instanceof Date) {
+      dateStr = date.toISOString().split('T')[0];
+    } else if (typeof date === 'string') {
+      dateStr = date.trim();
+    } else {
+      // Invalid date type
+      return new Date(); // fallback
+    }
+    
+    if (!dateStr || !/^\d{4}-\d{2}-\d{2}$/.test(dateStr)) {
+      // Invalid date format
+      return new Date(); // fallback
+    }
+    
+    // Convertir a Date usando UTC
+    const d = new Date(dateStr + 'T00:00:00Z');
+    
+    if (Number.isNaN(d.getTime())) return new Date();
+    
+    // Sumar días en UTC
+    const newDate = new Date(d);
+    newDate.setUTCDate(newDate.getUTCDate() + days);
+    return newDate;
+  } catch (err) {
+    // Error in addDays helper
+    return new Date();
+  }
+}
+
+function enriquecerCotizacion(cotizacion) {
+  if (!cotizacion) return cotizacion;
+
+  // Si no tiene fechaValidez, calcular como fechaEmision + 7 días
+  if (!cotizacion.fechaValidez && cotizacion.fechaEmision) {
+    cotizacion.fechaValidez = addDays(cotizacion.fechaEmision, 7);
+  }
+
+  return cotizacion;
 }
 
 function createNumeroCotizacion() {
@@ -34,8 +79,16 @@ function createNumeroCotizacion() {
   return `COT-${ymd}-${rnd}`;
 }
 
-async function createCotizacionWithItems({ idCliente, productos, componentes, moneda = 'Bs', observaciones }) {
+async function createCotizacionWithItems({ idCliente, productos, componentes, moneda = 'Bs', observaciones, fechaValidez, diasEntrega = 5 }) {
   const clienteId = toBigInt(idCliente, 'idCliente');
+
+  const fechaValidezDate =
+    fechaValidez === null || fechaValidez === undefined || fechaValidez === ''
+      ? null
+      : toUtcMidnightDate(fechaValidez);
+  if (fechaValidez !== null && fechaValidez !== undefined && fechaValidez !== '' && !fechaValidezDate) {
+    throw new HttpError(400, 'fechaValidez inválida (usa YYYY-MM-DD o una fecha válida)');
+  }
 
   if ((!productos || productos.length === 0) && (!componentes || componentes.length === 0)) {
     throw new HttpError(400, 'Debes seleccionar al menos un producto o componente');
@@ -44,11 +97,17 @@ async function createCotizacionWithItems({ idCliente, productos, componentes, mo
   const productItems = (productos ?? []).map((p, idx) => ({
     idProducto: toBigInt(p.idProducto, `productos[${idx}].idProducto`),
     cantidad: toInt(p.cantidad ?? 1, `productos[${idx}].cantidad`),
+    precioUnitario: p.precioUnitario !== undefined ? moneyDecimal(p.precioUnitario) : null,
+    nombre: p.nombre || undefined,
+    descripcion: p.descripcion || undefined,
   }));
 
   const componentItems = (componentes ?? []).map((c, idx) => ({
     idComponente: toBigInt(c.idComponente, `componentes[${idx}].idComponente`),
     cantidad: toInt(c.cantidad ?? 1, `componentes[${idx}].cantidad`),
+    precioUnitario: c.precioUnitario !== undefined ? moneyDecimal(c.precioUnitario) : null,
+    nombre: c.nombre || undefined,
+    descripcion: c.descripcion || undefined,
   }));
 
   const productIds = [...new Set(productItems.map((x) => x.idProducto))];
@@ -74,21 +133,21 @@ async function createCotizacionWithItems({ idCliente, productos, componentes, mo
   }
 
   // Cálculos
-  let subtotal = new Prisma.Decimal(0);
+  let subtotal = 0;
 
   const cotizacionProductosData = productItems.map((it, idx) => {
     const p = productosById.get(it.idProducto);
-    const unit = moneyDecimal(p.precioBase);
-    const lineSubtotal = unit.mul(it.cantidad);
-    subtotal = subtotal.plus(lineSubtotal);
+    const unit = it.precioUnitario ?? moneyDecimal(p.precioBase);
+    const lineSubtotal = unit * it.cantidad;
+    subtotal += lineSubtotal;
 
     return {
       idProducto: it.idProducto,
-      nombreItem: p.nombre,
-      descripcionItem: p.descripcion ?? null,
+      nombreItem: it.nombre ?? p.nombre,
+      descripcionItem: it.descripcion ?? p.descripcion ?? null,
       cantidad: it.cantidad,
       precioUnitario: unit,
-      descuento: new Prisma.Decimal(0),
+      descuento: 0,
       subtotal: lineSubtotal,
       ordenVisual: idx + 1,
       observaciones: null,
@@ -99,26 +158,26 @@ async function createCotizacionWithItems({ idCliente, productos, componentes, mo
 
   const cotizacionComponentesData = componentItems.map((it, idx) => {
     const c = componentesById.get(it.idComponente);
-    const unit = moneyDecimal(c.precioBase);
-    const lineSubtotal = unit.mul(it.cantidad);
-    subtotal = subtotal.plus(lineSubtotal);
+    const unit = it.precioUnitario ?? moneyDecimal(c.precioBase);
+    const lineSubtotal = unit * it.cantidad;
+    subtotal += lineSubtotal;
 
     return {
       idComponente: it.idComponente,
-      nombreItem: c.nombre,
-      descripcionItem: c.descripcion ?? null,
+      nombreItem: it.nombre ?? c.nombre,
+      descripcionItem: it.descripcion ?? c.descripcion ?? null,
       cantidad: it.cantidad,
       precioUnitario: unit,
-      descuento: new Prisma.Decimal(0),
+      descuento: 0,
       subtotal: lineSubtotal,
       ordenVisual: baseOrdenComponentes + idx + 1,
       observaciones: null,
     };
   });
 
-  const descuento = new Prisma.Decimal(0);
-  const impuestos = new Prisma.Decimal(0);
-  const total = subtotal.minus(descuento).plus(impuestos);
+  const descuento = 0;
+  const impuestos = 0;
+  const total = subtotal - descuento + impuestos;
 
   const numeroCotizacion = createNumeroCotizacion();
 
@@ -136,6 +195,8 @@ async function createCotizacionWithItems({ idCliente, productos, componentes, mo
         observaciones: observaciones ? String(observaciones) : null,
         terminosCondiciones: null,
         idUsuarioCreador: null,
+        diasEntrega: diasEntrega ? Math.max(1, Number(diasEntrega)) : 5,
+        fechaValidez: fechaValidezDate ?? undefined,
         productos: cotizacionProductosData.length
           ? { create: cotizacionProductosData }
           : undefined,
@@ -178,7 +239,7 @@ async function createCotizacionWithItems({ idCliente, productos, componentes, mo
     return cotizacion;
   });
 
-  return result;
+  return decimalToNumber(enriquecerCotizacion(result));
 }
 
 async function getAllCotizaciones({ skip = 0, take = 50, estado = null } = {}) {
@@ -193,14 +254,7 @@ async function getAllCotizaciones({ skip = 0, take = 50, estado = null } = {}) {
     take,
     orderBy: { fechaCreacion: 'desc' },
     include: {
-      cliente: {
-        select: {
-          idCliente: true,
-          nombreCompleto: true,
-          email: true,
-          telefono: true,
-        },
-      },
+      cliente: true,
       usuarioCreador: {
         select: {
           idUsuario: true,
@@ -211,7 +265,7 @@ async function getAllCotizaciones({ skip = 0, take = 50, estado = null } = {}) {
     },
   });
 
-  return cotizaciones;
+  return decimalToNumber(cotizaciones).map(enriquecerCotizacion);
 }
 
 async function getCotizacionById(idCotizacion) {
@@ -258,7 +312,7 @@ async function getCotizacionById(idCotizacion) {
     throw new HttpError(404, 'Cotización no encontrada');
   }
 
-  return cotizacion;
+  return decimalToNumber(enriquecerCotizacion(cotizacion));
 }
 
 async function recalculateTotals(subtotal, descuento = 0, impuestos = 0) {
@@ -270,7 +324,7 @@ async function recalculateTotals(subtotal, descuento = 0, impuestos = 0) {
   return { subtotal: s, descuento: d, impuestos: i, total };
 }
 
-async function updateCotizacion(idCotizacion, { productos, componentes, moneda, observaciones, descuento, impuestos } = {}) {
+async function updateCotizacion(idCotizacion, { productos, componentes, moneda, observaciones, descuento, impuestos, diasValidez, diasEntrega } = {}) {
   const cotizacionId = toBigInt(idCotizacion, 'idCotizacion');
 
   // Verificar que existe la cotización
@@ -291,14 +345,18 @@ async function updateCotizacion(idCotizacion, { productos, componentes, moneda, 
     idProducto: toBigInt(p.idProducto, `productos[${idx}].idProducto`),
     cantidad: toInt(p.cantidad ?? 1, `productos[${idx}].cantidad`),
     precioUnitario: p.precioUnitario ? moneyDecimal(p.precioUnitario) : null,
-    descuento: p.descuento ? moneyDecimal(p.descuento) : new Prisma.Decimal(0),
+    descuento: p.descuento ? moneyDecimal(p.descuento) : 0,
+    nombre: p.nombre || undefined,
+    descripcion: p.descripcion || undefined,
   }));
 
   const componentItems = (componentes ?? []).map((c, idx) => ({
     idComponente: toBigInt(c.idComponente, `componentes[${idx}].idComponente`),
     cantidad: toInt(c.cantidad ?? 1, `componentes[${idx}].cantidad`),
     precioUnitario: c.precioUnitario ? moneyDecimal(c.precioUnitario) : null,
-    descuento: c.descuento ? moneyDecimal(c.descuento) : new Prisma.Decimal(0),
+    descuento: c.descuento ? moneyDecimal(c.descuento) : 0,
+    nombre: c.nombre || undefined,
+    descripcion: c.descripcion || undefined,
   }));
 
   if (productItems.length === 0 && componentItems.length === 0) {
@@ -328,18 +386,18 @@ async function updateCotizacion(idCotizacion, { productos, componentes, moneda, 
   }
 
   // Calcular subtotal
-  let subtotal = new Prisma.Decimal(0);
+  let subtotal = 0;
 
   const cotizacionProductosData = productItems.map((it, idx) => {
     const p = productosById.get(it.idProducto);
     const unit = it.precioUnitario ?? moneyDecimal(p.precioBase);
-    const lineSubtotal = unit.mul(it.cantidad).minus(it.descuento);
-    subtotal = subtotal.plus(lineSubtotal);
+    const lineSubtotal = unit * it.cantidad - it.descuento;
+    subtotal += lineSubtotal;
 
     return {
       idProducto: it.idProducto,
-      nombreItem: p.nombre,
-      descripcionItem: p.descripcion ?? null,
+      nombreItem: it.nombre ?? p.nombre,
+      descripcionItem: it.descripcion ?? p.descripcion ?? null,
       cantidad: it.cantidad,
       precioUnitario: unit,
       descuento: it.descuento,
@@ -354,13 +412,13 @@ async function updateCotizacion(idCotizacion, { productos, componentes, moneda, 
   const cotizacionComponentesData = componentItems.map((it, idx) => {
     const c = componentesById.get(it.idComponente);
     const unit = it.precioUnitario ?? moneyDecimal(c.precioBase);
-    const lineSubtotal = unit.mul(it.cantidad).minus(it.descuento);
-    subtotal = subtotal.plus(lineSubtotal);
+    const lineSubtotal = unit * it.cantidad - it.descuento;
+    subtotal += lineSubtotal;
 
     return {
       idComponente: it.idComponente,
-      nombreItem: c.nombre,
-      descripcionItem: c.descripcion ?? null,
+      nombreItem: it.nombre ?? c.nombre,
+      descripcionItem: it.descripcion ?? c.descripcion ?? null,
       cantidad: it.cantidad,
       precioUnitario: unit,
       descuento: it.descuento,
@@ -372,7 +430,14 @@ async function updateCotizacion(idCotizacion, { productos, componentes, moneda, 
 
   const desc = moneyDecimal(descuento ?? 0);
   const imp = moneyDecimal(impuestos ?? 0);
-  const tot = subtotal.minus(desc).plus(imp);
+  const tot = subtotal - desc + imp;
+
+  // Calcular fechaValidez basada en diasValidez si se proporciona
+  let fechaValidezUpdate = cotizacion.fechaValidez;
+  if (diasValidez !== undefined && diasValidez !== null) {
+    const diasNum = Math.max(1, Number(diasValidez) || 1);
+    fechaValidezUpdate = addDays(cotizacion.fechaEmision, diasNum);
+  }
 
   const result = await prisma.$transaction(async (tx) => {
     // Eliminar items antiguos
@@ -393,6 +458,8 @@ async function updateCotizacion(idCotizacion, { productos, componentes, moneda, 
         total: tot,
         moneda: moneda || cotizacion.moneda,
         observaciones: observaciones !== undefined ? (observaciones ? String(observaciones) : null) : cotizacion.observaciones,
+        diasEntrega: diasEntrega !== undefined ? Math.max(1, Number(diasEntrega) || 1) : cotizacion.diasEntrega,
+        fechaValidez: fechaValidezUpdate || undefined,
         productos: cotizacionProductosData.length
           ? { create: cotizacionProductosData }
           : undefined,
@@ -435,7 +502,7 @@ async function updateCotizacion(idCotizacion, { productos, componentes, moneda, 
     return updatedCotizacion;
   });
 
-  return result;
+  return decimalToNumber(enriquecerCotizacion(result));
 }
 
 async function deleteCotizacion(idCotizacion) {
@@ -479,7 +546,7 @@ async function changeStatus(idCotizacion, newStatus) {
     },
   });
 
-  return cotizacion;
+  return decimalToNumber(enriquecerCotizacion(cotizacion));
 }
 
 module.exports = {

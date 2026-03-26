@@ -13,7 +13,6 @@ export function useCategorias() {
         // 🔥 IMPORTANTE: adapta según tu backend
         setData(Array.isArray(res.data) ? res.data : res.data?.data || [])
       } catch (error) {
-        console.error(error)
         setData([])
       } finally {
         setLoading(false)

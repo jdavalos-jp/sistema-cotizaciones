@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react'
+import React, { useState, useEffect, useMemo } from 'react'
 import { Modal, Spin, message } from 'antd'
 import { useCotizacionesList } from '../hooks/useCotizacionesManager'
 
@@ -18,6 +18,7 @@ function HistorialCotizaciones() {
   } = useCotizacionesList()
 
   const [filtro, setFiltro] = useState('todos')
+  const [busqueda, setBusqueda] = useState('')
   const [paginacion, setPaginacion] = useState({ current: 1, pageSize: 10 })
   const [modalVisible, setModalVisible] = useState(false)
   const [cotizacionSeleccionada, setCotizacionSeleccionada] = useState(null)
@@ -40,6 +41,19 @@ function HistorialCotizaciones() {
       message.error('Error al cargar cotizaciones')
     }
   }
+
+  // Filtrar cotizaciones por búsqueda en memoria
+  const cotizacionesFiltradas = useMemo(() => {
+    if (!busqueda.trim()) return cotizaciones
+
+    const searchTerm = busqueda.toLowerCase().trim()
+
+    return cotizaciones.filter((cotizacion) => {
+      const numeroMatch = cotizacion.numeroCotizacion?.toLowerCase().includes(searchTerm)
+      const clienteMatch = cotizacion.cliente?.nombreCompleto?.toLowerCase().includes(searchTerm)
+      return numeroMatch || clienteMatch
+    })
+  }, [cotizaciones, busqueda])
 
   const handleCambiarEstado = async (id, estado) => {
     await changeStatus(id, estado)
@@ -66,11 +80,13 @@ function HistorialCotizaciones() {
         cotizaciones={cotizaciones}
         filtro={filtro}
         setFiltro={setFiltro}
+        busqueda={busqueda}
+        setBusqueda={setBusqueda}
       />
 
       <Spin spinning={loading}>
         <CotizacionesTable
-          cotizaciones={cotizaciones}
+          cotizaciones={cotizacionesFiltradas}
           paginacion={paginacion}
           setPaginacion={setPaginacion}
           onVer={handleVerDetalles}

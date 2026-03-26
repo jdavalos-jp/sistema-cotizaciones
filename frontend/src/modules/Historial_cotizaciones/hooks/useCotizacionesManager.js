@@ -28,7 +28,6 @@ export function useCotizacionesList() {
     } catch (err) {
       const errorMsg = err.message || 'Error al cargar cotizaciones'
       setError(errorMsg)
-      console.error(errorMsg, err)
       throw err
     } finally {
       setLoading(false)
@@ -46,7 +45,6 @@ export function useCotizacionesList() {
     } catch (err) {
       const errorMsg = err.message || 'Error al crear cotización'
       setError(errorMsg)
-      console.error(errorMsg, err)
       throw err
     } finally {
       setLoading(false)
@@ -86,7 +84,6 @@ export function useCotizacionesList() {
     } catch (err) {
       const errorMsg = err.message || 'Error al cambiar estado'
       setError(errorMsg)
-      console.error(errorMsg, err)
       throw err
     } finally {
       setLoading(false)
@@ -127,7 +124,7 @@ export function useCotizacion(idCotizacion) {
     } catch (err) {
       const errorMsg = err.message || 'Error al cargar cotización'
       setError(errorMsg)
-      console.error(errorMsg, err)
+
       throw err
     } finally {
       setLoading(false)
@@ -148,7 +145,6 @@ export function useCotizacion(idCotizacion) {
       } catch (err) {
         const errorMsg = err.message || 'Error al actualizar cotización'
         setError(errorMsg)
-        console.error(errorMsg, err)
         throw err
       } finally {
         setLoading(false)
@@ -171,7 +167,6 @@ export function useCotizacion(idCotizacion) {
       } catch (err) {
         const errorMsg = err.message || 'Error al cambiar estado'
         setError(errorMsg)
-        console.error(errorMsg, err)
         throw err
       } finally {
         setLoading(false)
@@ -191,7 +186,6 @@ export function useCotizacion(idCotizacion) {
     } catch (err) {
       const errorMsg = err.message || 'Error al descargar PDF'
       setError(errorMsg)
-      console.error(errorMsg, err)
       throw err
     } finally {
       setLoading(false)

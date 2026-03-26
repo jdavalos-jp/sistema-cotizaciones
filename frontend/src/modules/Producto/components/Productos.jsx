@@ -257,13 +257,19 @@ function Productos() {
             loading={loading}
             rowKey="idProducto"
             pagination={{
+              current: Math.floor(pagination.skip / pagination.take) + 1,
               pageSize: pagination.take,
               total: pagination.total,
               onChange: (page, pageSize) => {
                 handlePagination((page - 1) * pageSize, pageSize)
               },
+              onShowSizeChange: (current, pageSize) => {
+                console.log(current, pageSize)
+                handlePagination((current - 1) * pageSize, pageSize)
+              },
               showSizeChanger: true,
               showQuickJumper: true,
+              pageSizeOptions: ['5', '10', '20', '50'],
               showTotal: (total, range) => `${range[0]} a ${range[1]} de ${total} productos`,
             }}
             scroll={{ x: 1200 }}

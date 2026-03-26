@@ -29,7 +29,6 @@ model Institucion {
   telefono        String?   @db.VarChar(30)
   email           String?   @db.VarChar(150)
   estado          String?   @default("activo") @db.VarChar(20)
-  clientes        Cliente[]
 
   @@map("instituciones")
 }
@@ -41,14 +40,12 @@ model Cliente {
   email          String?      @db.VarChar(150)
   ciudad         String?      @db.VarChar(100)
   cargo          String?      @db.VarChar(150)
-  idInstitucion  BigInt?      @map("id_institucion")
+  institucion    String?      @db.VarChar(150)
   direccion      String?
   observaciones  String?
   fechaCreacion  DateTime?    @default(now()) @map("fecha_creacion") @db.Timestamp(6)
-  institucion    Institucion? @relation(fields: [idInstitucion], references: [idInstitucion], onUpdate: NoAction, map: "fk_clientes_institucion")
   cotizaciones   Cotizacion[]
 
-  @@index([idInstitucion], map: "idx_clientes_institucion")
   @@map("clientes")
 }
 
@@ -83,7 +80,7 @@ model Producto {
   idSubcategoria BigInt?              @map("id_subcategoria")
   nombre         String               @db.VarChar(200)
   descripcion    String?
-  precioBase     Decimal              @default(0) @map("precio_base") @db.Decimal(12, 2)
+  precioBase     Int                  @default(0) @map("precio_base")
   cantidad       Int                  @default(1)
   sku            String?              @db.VarChar(100)
   estado         String?              @default("activo") @db.VarChar(20)
@@ -116,7 +113,7 @@ model Componente {
   idComponente BigInt                 @id @default(autoincrement()) @map("id_componente")
   nombre       String                 @db.VarChar(200)
   descripcion  String?
-  precioBase   Decimal                @default(0) @map("precio_base") @db.Decimal(12, 2)
+  precioBase   Int                    @default(0) @map("precio_base")
   sku          String?                @db.VarChar(100)
   estado       String?                @default("activo") @db.VarChar(20)
   cotizaciones CotizacionComponente[]
@@ -130,7 +127,7 @@ model ProductoComponente {
   idProducto           BigInt     @map("id_producto")
   idComponente         BigInt     @map("id_componente")
   cantidad             Int        @default(1)
-  precioReferencial    Decimal?   @default(0) @map("precio_referencial") @db.Decimal(12, 2)
+  precioReferencial    Int?       @default(0) @map("precio_referencial")
   observaciones        String?
   componente           Componente @relation(fields: [idComponente], references: [idComponente], onUpdate: NoAction, map: "fk_producto_componentes_componente")
   producto             Producto   @relation(fields: [idProducto], references: [idProducto], onDelete: Cascade, onUpdate: NoAction, map: "fk_producto_componentes_producto")
@@ -146,7 +143,7 @@ model Servicio {
   idSubcategoria BigInt?              @map("id_subcategoria")
   nombre         String               @db.VarChar(200)
   descripcion    String?
-  precioBase     Decimal              @default(0) @map("precio_base") @db.Decimal(12, 2)
+  precioBase     Int                  @default(0) @map("precio_base")
   estado         String?              @default("activo") @db.VarChar(20)
   cotizaciones   CotizacionServicio[]
   imagenes       ServicioImagen[]
@@ -177,12 +174,13 @@ model Cotizacion {
   numeroCotizacion    String                 @unique @map("numero_cotizacion") @db.VarChar(50)
   idCliente           BigInt                 @map("id_cliente")
   fechaEmision        DateTime               @default(dbgenerated("CURRENT_DATE")) @map("fecha_emision") @db.Date
-  fechaValidez        DateTime?              @map("fecha_validez") @db.Date
+  fechaValidez        DateTime?              @map("fecha_validez") @db.Date @default(dbgenerated("CURRENT_DATE + INTERVAL '10 days'"))
+  diasEntrega         Int?                   @default(5) @map("dias_entrega")
   estado              String?                @default("borrador") @db.VarChar(50)
-  subtotal            Decimal?               @default(0) @db.Decimal(12, 2)
-  descuento           Decimal?               @default(0) @db.Decimal(12, 2)
-  impuestos           Decimal?               @default(0) @db.Decimal(12, 2)
-  total               Decimal?               @default(0) @db.Decimal(12, 2)
+  subtotal            Int?                   @default(0)
+  descuento           Int?                   @default(0)
+  impuestos           Int?                   @default(0)
+  total               Int?                   @default(0)
   moneda              String?                @default("Bs") @db.VarChar(10)
   observaciones       String?
   terminosCondiciones String?                @map("terminos_condiciones")
@@ -207,9 +205,9 @@ model CotizacionProducto {
   nombreItem        String     @map("nombre_item") @db.VarChar(200)
   descripcionItem   String?    @map("descripcion_item")
   cantidad          Int        @default(1)
-  precioUnitario    Decimal    @default(0) @map("precio_unitario") @db.Decimal(12, 2)
-  descuento         Decimal?   @default(0) @db.Decimal(12, 2)
-  subtotal          Decimal?   @default(0) @db.Decimal(12, 2)
+  precioUnitario    Int        @default(0) @map("precio_unitario")
+  descuento         Int?       @default(0)
+  subtotal          Int?       @default(0)
   ordenVisual       Int?       @default(1) @map("orden_visual")
   observaciones     String?
   cotizacion        Cotizacion @relation(fields: [idCotizacion], references: [idCotizacion], onDelete: Cascade, onUpdate: NoAction, map: "fk_cotizacion_productos_cotizacion")
@@ -227,9 +225,9 @@ model CotizacionServicio {
   nombreItem        String     @map("nombre_item") @db.VarChar(200)
   descripcionItem   String?    @map("descripcion_item")
   cantidad          Int        @default(1)
-  precioUnitario    Decimal    @default(0) @map("precio_unitario") @db.Decimal(12, 2)
-  descuento         Decimal?   @default(0) @db.Decimal(12, 2)
-  subtotal          Decimal?   @default(0) @db.Decimal(12, 2)
+  precioUnitario    Int        @default(0) @map("precio_unitario")
+  descuento         Int?       @default(0)
+  subtotal          Int?       @default(0)
   ordenVisual       Int?       @default(1) @map("orden_visual")
   observaciones     String?
   cotizacion        Cotizacion @relation(fields: [idCotizacion], references: [idCotizacion], onDelete: Cascade, onUpdate: NoAction, map: "fk_cotizacion_servicios_cotizacion")
@@ -247,9 +245,9 @@ model CotizacionComponente {
   nombreItem          String     @map("nombre_item") @db.VarChar(200)
   descripcionItem     String?    @map("descripcion_item")
   cantidad            Int        @default(1)
-  precioUnitario      Decimal    @default(0) @map("precio_unitario") @db.Decimal(12, 2)
-  descuento           Decimal?   @default(0) @db.Decimal(12, 2)
-  subtotal            Decimal?   @default(0) @db.Decimal(12, 2)
+  precioUnitario      Int        @default(0) @map("precio_unitario")
+  descuento           Int?       @default(0)
+  subtotal            Int?       @default(0)
   ordenVisual         Int?       @default(1) @map("orden_visual")
   observaciones       String?
   componente          Componente @relation(fields: [idComponente], references: [idComponente], onUpdate: NoAction, map: "fk_cotizacion_componentes_componente")
@@ -271,3 +269,17 @@ model SolicitudCotizacionWeb {
   @@index([fechaCreacion], map: "idx_solicitudes_cotizacion_web_fecha")
   @@map("solicitudes_cotizacion_web")
 }
+
+model Settings {
+  idSetting  BigInt   @id @default(1) @map("id_setting")
+  brandName  String   @default("EQUIPAMIENTO EDUCATIVO Y DE INGENIERÍA") @db.VarChar(200) @map("brand_name")
+  brandEmail String   @default("servicios@tecnoequip.com.bo") @db.VarChar(150) @map("brand_email")
+  brandPhone String   @default("(4)4292937") @db.VarChar(30) @map("brand_phone")
+  brandPhone2 String  @default("70769521") @db.VarChar(30) @map("brand_phone2")
+  brandAddress String @default("Av. Circumvalación entre Vaticano y C.F. Pérez Saavedra") @map("brand_address")
+  brandWebsite String @default("www.jdblab.com.bo") @db.VarChar(100) @map("brand_website")
+  brandTagline String @default("") @db.VarChar(200) @map("brand_tagline")
+
+  @@map("settings")
+}
+

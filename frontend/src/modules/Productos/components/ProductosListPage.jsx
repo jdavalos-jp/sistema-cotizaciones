@@ -3,7 +3,6 @@ import { PlusOutlined, SearchOutlined, EditOutlined, DeleteOutlined } from '@ant
 import { useEffect, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useProductos } from '../hooks/useProductos'
-
 /**
  * Componente ProductosListPage
  * - Listado de productos
@@ -44,6 +43,18 @@ export default function ProductosListPage() {
     }
   }
 
+  // Cambiar tamaño de página
+  const handleShowSizeChange = async (current, pageSize) => {
+    console.log(current, pageSize)
+    const skip = (current - 1) * pageSize
+    setPagination((prev) => ({ ...prev, current, pageSize }))
+    try {
+      await loadProductos(skip, searchTerm)
+    } catch {
+      // Error ya manejado en el hook
+    }
+  }
+
   // Eliminar producto
   const handleDelete = async (idProducto) => {
     try {
@@ -51,23 +62,22 @@ export default function ProductosListPage() {
       deleteProducto(idProducto)
       message.success('Producto eliminado')
     } catch (error) {
-      console.error('Error eliminando producto:', error)
       message.error('Error al eliminar producto')
     }
   }
 
   const columns = [
-    { title: 'Nombre', dataIndex: 'nombre', key: 'nombre' },
+    { title: 'NOMBRE', dataIndex: 'nombre', key: 'nombre' },
     { title: 'SKU', dataIndex: 'sku', key: 'sku' },
-    { title: 'Categoría', dataIndex: ['categoria', 'nombre'], key: 'categoria' },
+    { title: 'SUBCATEGORÍA', dataIndex: ['categoria', 'nombre'], key: 'categoria' },
     {
-      title: 'Precio',
+      title: 'PRECIO',
       dataIndex: 'precioBase',
-      key: 'precioBase',
+      key: 'precio',
       render: (val) => `Bs ${typeof val === 'number' ? val.toFixed(2) : val}`,
     },
     {
-      title: 'Stock',
+      title: 'STOCK',
       dataIndex: 'cantidad',
       key: 'cantidad',
       render: (val) => (
@@ -77,7 +87,7 @@ export default function ProductosListPage() {
       ),
     },
     {
-      title: 'Acciones',
+      title: 'ACCIONES',
       key: 'acciones',
       render: (_, record) => (
         <Space>
@@ -99,8 +109,9 @@ export default function ProductosListPage() {
       ),
     },
   ]
-
+ 
   return (
+
     <div>
       <div style={{ marginBottom: 24, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
         <div>
@@ -109,14 +120,6 @@ export default function ProductosListPage() {
           </Typography.Title>
           <Typography.Text type="secondary">Gestión de productos del catálogo</Typography.Text>
         </div>
-        <Button
-          type="primary"
-          icon={<PlusOutlined />}
-          size="large"
-          onClick={() => navigate('/productos/crear')}
-        >
-          Agregar Producto
-        </Button>
       </div>
 
       <Card>
@@ -127,10 +130,18 @@ export default function ProductosListPage() {
               prefix={<SearchOutlined />}
               value={searchTerm}
               onChange={(e) => handleSearch(e.target.value)}
-              style={{ maxWidth: 300 }}
+              style={{ maxWidth: 725 , marginRight: 16}}
+              
             />
+            <Button
+               type="primary"
+               icon={<PlusOutlined />}
+              onClick={()=> navigate('/productos/crear')}
+              >
+              Agregar Producto
+              </Button>
           </div>
-
+          
           <Table
             columns={columns}
             dataSource={productos}
@@ -140,6 +151,11 @@ export default function ProductosListPage() {
               current: pagination.current,
               total: pagination.total,
               onChange: handlePaginationChange,
+              onShowSizeChange: handleShowSizeChange,
+              showSizeChanger: true,
+              showQuickJumper: true,
+              pageSizeOptions: ['5', '10', '20', '50'],
+              showTotal: (total) => `Total: ${total} productos`,
             }}
             loading={loading}
           />

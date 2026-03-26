@@ -16,11 +16,37 @@ export function useCotizacionCart() {
     )
   }, [])
 
+  const setPrecioUnitario = useCallback((tipo, id, precio) => {
+    const safe = Math.max(0, Number(precio) || 0)
+    setCart((prev) =>
+      prev.map((x) => (x.tipo === tipo && String(x.id) === String(id) ? { ...x, precioUnitario: safe } : x)),
+    )
+  }, [])
+
+  const setNombre = useCallback((tipo, id, nombre) => {
+    setCart((prev) =>
+      prev.map((x) => (x.tipo === tipo && String(x.id) === String(id) ? { ...x, nombre } : x)),
+    )
+  }, [])
+
+  const setDescripcion = useCallback((tipo, id, descripcion) => {
+    setCart((prev) =>
+      prev.map((x) => (x.tipo === tipo && String(x.id) === String(id) ? { ...x, descripcion } : x)),
+    )
+  }, [])
+
   const addItem = useCallback((item) => {
     setCart((prev) => {
       const exists = prev.some((x) => x.tipo === item.tipo && String(x.id) === String(item.id))
       if (exists) return prev
-      return [...prev, { id: item.id, tipo: item.tipo, cantidad: item.cantidad ?? 1 }]
+      return [...prev, { 
+        id: item.id, 
+        tipo: item.tipo, 
+        cantidad: item.cantidad ?? 1,
+        nombre: item.nombre,
+        descripcion: item.descripcion,
+        precioUnitario: item.precioUnitario,
+      }]
     })
   }, [])
 
@@ -51,6 +77,9 @@ export function useCotizacionCart() {
     addItem,
     removeItem,
     setCantidad,
+    setPrecioUnitario,
+    setNombre,
+    setDescripcion,
     setSelectionFromList,
     clear,
   }

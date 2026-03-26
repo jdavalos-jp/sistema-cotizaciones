@@ -96,6 +96,16 @@ export default function ListaComponentes() {
     })
   }
 
+  const handleShowSizeChange = (current, pageSize) => {
+    console.log(current, pageSize)
+    setTableParams({
+      pagination: { current, pageSize },
+      filters: tableParams.filters,
+      sortOrder: tableParams.sortOrder,
+      sortField: tableParams.sortField,
+    })
+  }
+
   const handleEdit = (componente) => {
     setEditingComponente(componente)
     setModalVisible(true)
@@ -165,7 +175,7 @@ export default function ListaComponentes() {
       width: 100,
       align: 'right',
       sorter: true,
-      render: (price) => <span style={{ fontWeight: '600' }}>${parseFloat(price || 0).toFixed(2)}</span>,
+      render: (price) => <span style={{ fontWeight: '600' }}>${Number(price || 0)}</span>,
     },
     {
       title: 'CANTIDAD',
@@ -229,7 +239,10 @@ export default function ListaComponentes() {
             ...tableParams.pagination,
             total: pagination.total,
             showSizeChanger: true,
+            showQuickJumper: true,
+            pageSizeOptions: ['5', '10', '20', '50'],
             showTotal: (total) => `Total: ${total} componentes`,
+            onShowSizeChange: handleShowSizeChange,
           }}
           onChange={handleTableChange}
           scroll={{ x: 1400 }}

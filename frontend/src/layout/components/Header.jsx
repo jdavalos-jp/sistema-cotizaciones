@@ -19,10 +19,9 @@ export default function Header() {
 
   const handleUserMenuClick = ({ key }) => {
     if (key === 'logout') {
-      console.log('Logout')
-      // Aquí ir ía la lógica de logout
+      // Aquí iría la lógica de logout
     } else if (key === 'profile') {
-      console.log('Ir a perfil')
+      // Aquí iría la lógica de perfil
     }
   }
 

@@ -32,6 +32,15 @@ export default function ComponentesListPage() {
     } catch {}
   }
 
+  const handleShowSizeChange = async (current, pageSize) => {
+    console.log(current, pageSize)
+    const skip = (current - 1) * pageSize
+    setPagination((prev) => ({ ...prev, current, pageSize }))
+    try {
+      await loadComponentes(skip, searchTerm)
+    } catch {}
+  }
+
   const handleDelete = async (idComponente) => {
     try {
       deleteComponente(idComponente)
@@ -104,6 +113,11 @@ export default function ComponentesListPage() {
               current: pagination.current,
               total: pagination.total,
               onChange: handlePaginationChange,
+              onShowSizeChange: handleShowSizeChange,
+              showSizeChanger: true,
+              showQuickJumper: true,
+              pageSizeOptions: ['5', '10', '20', '50'],
+              showTotal: (total) => `Total: ${total} componentes`,
             }}
             loading={loading}
           />

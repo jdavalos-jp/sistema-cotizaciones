@@ -9,23 +9,23 @@ function unwrapData(response) {
   return response
 }
 
-/**
- * Obtener todas las categorías para filtros
- */
+
+ //Obtener todas las categorías para filtros
+
 export async function getCategorias(fetchOptions = {}) {
   return unwrapData(await apiGet(`${BASE_URL}/categorias/list`, fetchOptions))
 }
 
-/**
- * Obtener subcategorías por categoría
- */
+
+//Obtener subcategorías por categoría
+
 export async function getSubcategoriasByCategoria(idCategoria, fetchOptions = {}) {
   return unwrapData(await apiGet(`${BASE_URL}/subcategorias/${idCategoria}`, fetchOptions))
 }
 
-/**
- * Listar productos con filtros
- */
+
+ //Listar productos con filtros
+
 export async function getProductos(options = {}, fetchOptions = {}) {
   const { skip = 0, take = 50, search, idCategoria, idSubcategoria, signal } = options
   const params = new URLSearchParams()
@@ -38,44 +38,45 @@ export async function getProductos(options = {}, fetchOptions = {}) {
   return unwrapData(await apiGet(`${BASE_URL}?${params.toString()}`, { signal, ...fetchOptions }))
 }
 
-/**
- * Obtener producto por ID
- */
+
+ //Obtener producto por ID
+
 export async function getProducto(idProducto, fetchOptions = {}) {
   return unwrapData(await apiGet(`${BASE_URL}/${idProducto}`, fetchOptions))
 }
 
-/**
- * Crear nuevo producto
- */
+
+//Crear nuevo producto
+
 export async function createProducto(payload, fetchOptions = {}) {
   return unwrapData(await apiPost(BASE_URL, payload, fetchOptions))
 }
 
-/**
- * Actualizar producto
- */
+
+ //Actualzar producto
+
 export async function updateProducto(idProducto, payload, fetchOptions = {}) {
   return unwrapData(await apiPut(`${BASE_URL}/${idProducto}`, payload, fetchOptions))
 }
 
-/**
- * Eliminar producto
- */
+
+ //Eliminar producto
+
 export async function deleteProducto(idProducto, fetchOptions = {}) {
   return unwrapData(await apiDelete(`${BASE_URL}/${idProducto}`, fetchOptions))
 }
 
-/**
- * Agregar imagen a producto
- */
+
+
+ //Agregar imagen a producto
+
 export async function addImagenToProducto(idProducto, payload, fetchOptions = {}) {
   return unwrapData(await apiPost(`${BASE_URL}/${idProducto}/imagenes`, payload, fetchOptions))
 }
 
-/**
- * Eliminar imagen de producto
- */
+
+ //Eliminar imagen de producto
+ 
 export async function deleteImagenFromProducto(idImagen, fetchOptions = {}) {
   return unwrapData(await apiDelete(`${BASE_URL}/imagenes/${idImagen}`, fetchOptions))
 }

@@ -14,7 +14,6 @@ export function useComponentes() {
       // TODO: Conectar con API de componentes
       setComponentes([])
     } catch (error) {
-      console.error('Error cargando componentes:', error)
       throw error
     } finally {
       setLoading(false)

@@ -1,7 +1,8 @@
-import React, { useEffect } from 'react'
-import { Spin, Card, Descriptions, Table, Tag, Button, Space, message } from 'antd'
-import { DownloadOutlined, PrinterOutlined } from '@ant-design/icons'
+import React, { useEffect, useState } from 'react'
+import { Spin, Card, Descriptions, Table, Tag, Button, Space, message, Modal } from 'antd'
+import { DownloadOutlined, PrinterOutlined, EditOutlined } from '@ant-design/icons'
 import { useCotizacion } from '../hooks/useCotizacionesManager'
+import { CotizacionEditar } from '../../cotizacion/components'
 
 const estadoColors = {
   borrador: 'orange',
@@ -15,12 +16,18 @@ export default function VerDetalleCotizacion({
   idCotizacion,
   onClose,
 }) {
+  const [modalEditarVisible, setModalEditarVisible] = useState(false)
   const { cotizacion, loading, error, load, downloadPdf } =
     useCotizacion(idCotizacion)
 
   useEffect(() => {
     load()
   }, [load])
+
+  const handleEditarSuccess = (updated) => {
+    load() // Recargar datos
+    setModalEditarVisible(false)
+  }
 
   if (error) {
     return <div style={{ color: 'red' }}>Error: {error}</div>
@@ -101,8 +108,35 @@ export default function VerDetalleCotizacion({
             Descargar PDF
           </Button>
           <Button icon={<PrinterOutlined />}>Imprimir</Button>
+          {(cotizacion?.estado === 'borrador' || cotizacion?.estado === 'pendiente') && (
+            <Button
+              type="primary"
+              danger
+              icon={<EditOutlined />}
+              onClick={() => setModalEditarVisible(true)}
+            >
+              Editar
+            </Button>
+          )}
         </Space>
       </div>
+
+      {/* Modal de edición */}
+      <Modal
+        open={modalEditarVisible}
+        onCancel={() => setModalEditarVisible(false)}
+        width="90%"
+        footer={null}
+        title="Editar Cotización"
+      >
+        {modalEditarVisible && (
+          <CotizacionEditar
+            idCotizacion={idCotizacion}
+            onSuccess={handleEditarSuccess}
+            onCancel={() => setModalEditarVisible(false)}
+          />
+        )}
+      </Modal>
 
       <Card title="Información General" style={{ marginBottom: 20 }}>
         <Descriptions column={2} bordered size="small">
@@ -156,19 +190,17 @@ export default function VerDetalleCotizacion({
             {cotizacion.moneda}
           </Descriptions.Item>
           <Descriptions.Item label="Subtotal">
-            {cotizacion.moneda} {cotizacion.subtotal?.toFixed(2) || '0.00'}
+            {cotizacion.moneda} {cotizacion.subtotal || '0'}
           </Descriptions.Item>
           <Descriptions.Item label="Descuento">
-            {cotizacion.moneda}{' '}
-            {(cotizacion.descuento || 0).toFixed(2)}
+            {cotizacion.moneda} {cotizacion.descuento || '0'}
           </Descriptions.Item>
           <Descriptions.Item label="Impuestos">
-            {cotizacion.moneda}{' '}
-            {(cotizacion.impuestos || 0).toFixed(2)}
+            {cotizacion.moneda} {cotizacion.impuestos || '0'}
           </Descriptions.Item>
           <Descriptions.Item label="Total" style={{ fontSize: 16 }}>
             <strong>
-              {cotizacion.moneda} {cotizacion.total?.toFixed(2) || '0.00'}
+              {cotizacion.moneda} {cotizacion.total || '0'}
             </strong>
           </Descriptions.Item>
         </Descriptions>

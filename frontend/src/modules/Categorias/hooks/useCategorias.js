@@ -14,7 +14,6 @@ export function useCategorias() {
       // TODO: Conectar con API de categorías
       setCategorias([])
     } catch (error) {
-      console.error('Error cargando categorías:', error)
       throw error
     } finally {
       setLoading(false)

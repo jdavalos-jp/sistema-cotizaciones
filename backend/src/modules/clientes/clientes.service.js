@@ -16,21 +16,18 @@ async function listClientes({ take = 50, search } = {}) {
     take,
     where,
     orderBy: { idCliente: 'desc' },
-    include: { institucion: true },
   });
 }
 
 async function getClienteById(idCliente) {
   return prisma.cliente.findUnique({
     where: { idCliente },
-    include: { institucion: true },
   });
 }
 
 async function createCliente(payload) {
   return prisma.cliente.create({
     data: payload,
-    include: { institucion: true },
   });
 }
 
@@ -38,7 +35,6 @@ async function updateCliente(idCliente, payload) {
   return prisma.cliente.update({
     where: { idCliente },
     data: payload,
-    include: { institucion: true },
   });
 }
 
