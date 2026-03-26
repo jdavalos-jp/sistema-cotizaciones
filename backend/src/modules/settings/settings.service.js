@@ -5,7 +5,7 @@ const { HttpError } = require('../../utils/httpError');
  */
 const DEFAULT_SETTINGS = {
   idSetting: 1,
-  brandName: 'EQUIPAMIENTO EDUCATIVO .\nY DE INGENIERÍA',
+  brandName: 'EQUIPAMIENTO EDUCATIVO Y DE INGENIERÍA',
   brandEmail: 'servicios@tecnoequip.com.bo',
   brandPhone: '(4)4292937',
   brandPhone2: '70769521',
