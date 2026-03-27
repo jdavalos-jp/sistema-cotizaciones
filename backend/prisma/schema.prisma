@@ -99,14 +99,45 @@ model Producto {
 model ProductoImagen {
   idImagen      BigInt    @id @default(autoincrement()) @map("id_imagen")
   idProducto    BigInt    @map("id_producto")
+  
+  // File info
   urlImagen     String    @map("url_imagen")
+  
+  // Metadata
   orden         Int?      @default(1)
   principal     Boolean?  @default(false)
+  
+  // Control
+  estado        String?   @default("activo") @db.VarChar(20)
   fechaCreacion DateTime? @default(now()) @map("fecha_creacion") @db.Timestamp(6)
+  
   producto      Producto  @relation(fields: [idProducto], references: [idProducto], onDelete: Cascade, onUpdate: NoAction, map: "fk_producto_imagenes_producto")
 
   @@index([idProducto], map: "idx_producto_imagenes_producto")
+  @@index([principal], map: "idx_producto_imagenes_principal")
   @@map("producto_imagenes")
+}
+
+model ComponenteImagen {
+  idImagen      BigInt    @id @default(autoincrement()) @map("id_imagen")
+  idComponente  BigInt    @map("id_componente")
+  
+  // File info
+  urlImagen     String    @map("url_imagen")
+  
+  // Metadata
+  orden         Int?      @default(1)
+  principal     Boolean?  @default(false)
+  
+  // Control
+  estado        String?   @default("activo") @db.VarChar(20)
+  fechaCreacion DateTime? @default(now()) @map("fecha_creacion") @db.Timestamp(6)
+  
+  componente    Componente @relation(fields: [idComponente], references: [idComponente], onDelete: Cascade, onUpdate: NoAction, map: "fk_componente_imagenes_componente")
+
+  @@index([idComponente], map: "idx_componente_imagenes_componente")
+  @@index([principal], map: "idx_componente_imagenes_principal")
+  @@map("componente_imagenes")
 }
 
 model Componente {
@@ -118,6 +149,7 @@ model Componente {
   estado       String?                @default("activo") @db.VarChar(20)
   cotizaciones CotizacionComponente[]
   productos    ProductoComponente[]
+  imagenes     ComponenteImagen[]
 
   @@map("componentes")
 }
@@ -185,10 +217,11 @@ model Cotizacion {
   observaciones       String?
   terminosCondiciones String?                @map("terminos_condiciones")
   idUsuarioCreador    BigInt?                @map("id_usuario_creador")
-  fechaCreacion       DateTime?              @default(now()) @map("fecha_creacion") @db.Timestamp(6)
+  fechaCreacion       DateTime?              @default(now()) @map("fecha_creacion")
   componentes         CotizacionComponente[]
   productos           CotizacionProducto[]
   servicios           CotizacionServicio[]
+  imagenes            CotizacionImagen[]
   cliente             Cliente                @relation(fields: [idCliente], references: [idCliente], onUpdate: NoAction, map: "fk_cotizaciones_cliente")
   usuarioCreador      Usuario?               @relation(fields: [idUsuarioCreador], references: [idUsuario], onUpdate: NoAction, map: "fk_cotizaciones_usuario")
 
@@ -256,6 +289,28 @@ model CotizacionComponente {
   @@index([idCotizacion], map: "idx_cotizacion_componentes_cotizacion")
   @@index([idComponente], map: "idx_cotizacion_componentes_componente")
   @@map("cotizacion_componentes")
+}
+
+model CotizacionImagen {
+  idImagen        BigInt    @id @default(autoincrement()) @map("id_imagen")
+  idCotizacion    BigInt    @map("id_cotizacion")
+  
+  nombreArchivo   String    @db.VarChar(255) @map("nombre_archivo")
+  rutaBucket      String    @db.VarChar(255) @map("ruta_bucket")
+  urlImagen       String    @db.Text @map("url_imagen")
+  
+  tipo            String    @db.VarChar(50)
+  descripcion     String?   @db.VarChar(500)
+  tamanio         Int?      @map("tamanio")
+  
+  orden           Int?      @default(1)
+  estado          String?   @default("activo") @db.VarChar(20)
+  fechaCreacion   DateTime? @default(now())    @map("fecha_creacion")
+  
+  cotizacion      Cotizacion @relation(fields: [idCotizacion], references: [idCotizacion], onDelete: Cascade, onUpdate: NoAction, map: "fk_cotizacion_imagenes_cotizacion")
+
+  @@index([idCotizacion], map: "idx_cotizacion_imagenes_cotizacion")
+  @@map("cotizacion_imagenes")
 }
 
 model SolicitudCotizacionWeb {

@@ -7,6 +7,7 @@ const { router: productosRouter } = require('../modules/productos/productos.rout
 const { router: componentesRouter } = require('../modules/componentes/componentes.routes');
 const { router: categoriasRouter } = require('../modules/categorias/categorias.routes');
 const { router: subcategoriasRouter } = require('../modules/subcategorias/subcategorias.routes');
+const { router: imagenesRouter } = require('../modules/imagenes/imagenes.routes');
 
 const router = express.Router();
 
@@ -20,5 +21,6 @@ router.use('/componentes', componentesRouter);
 router.use('/cotizaciones', cotizacionesRouter);
 router.use('/categorias', categoriasRouter);
 router.use('/subcategorias', subcategoriasRouter);
+router.use(imagenesRouter);
 
 module.exports = { router };

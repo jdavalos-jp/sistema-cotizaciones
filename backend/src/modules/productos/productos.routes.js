@@ -26,10 +26,6 @@ router.put('/:id', asyncHandler(controller.update));
 // Eliminar producto
 router.delete('/:id', asyncHandler(controller.deleteOne));
 
-// Agregar imagen a producto
-router.post('/:id/imagenes', asyncHandler(controller.addImagen));
-
-// Eliminar imagen de producto
-router.delete('/imagenes/:idImagen', asyncHandler(controller.deleteImagen));
+// ⚠️ IMÁGENES: Usar /productos/:idProducto/imagenes via imagenes.routes.js en su lugar
 
 module.exports = { router };

@@ -87,13 +87,14 @@ async function listProductos({ take = 50, skip = 0, search, idCategoria, idSubca
         sku: true,
         estado: true,
         imagenes: {
-          where: { principal: true },
-          take: 1,
+          where: { estado: 'activo' },
           select: {
             idImagen: true,
             urlImagen: true,
             principal: true,
+            orden: true,
           },
+          orderBy: [{ principal: 'desc' }, { orden: 'asc' }],
         },
         categoria: {
           select: { nombre: true },
@@ -111,7 +112,7 @@ async function listProductos({ take = 50, skip = 0, search, idCategoria, idSubca
     idProducto: p.idProducto,
     nombre: p.nombre,
     descripcion: p.descripcion,
-    precio_base: p.precioBase,
+    precioBase: p.precioBase,
     cantidad: p.cantidad,
     sku: p.sku,
     estado: p.estado,
@@ -214,7 +215,6 @@ async function createProducto({
   sku,
   idCategoria,
   idSubcategoria,
-  imagenPrincipal,
 }) {
   if (!nombre?.trim()) {
     throw new HttpError(400, 'Nombre es requerido');
@@ -259,15 +259,6 @@ async function createProducto({
       idCategoria: catId,
       idSubcategoria: subCatId,
       estado: 'activo',
-      ...(imagenPrincipal && {
-        imagenes: {
-          create: {
-            urlImagen: imagenPrincipal,
-            principal: true,
-            orden: 1,
-          },
-        },
-      }),
     },
     select: {
       idProducto: true,
@@ -284,6 +275,7 @@ async function createProducto({
           orden: true,
           principal: true,
         },
+        orderBy: [{ principal: 'desc' }, { orden: 'asc' }],
       },
       categoria: { select: { nombre: true } },
       subcategoria: { select: { nombre: true } },
@@ -433,37 +425,11 @@ async function deleteProducto(idProducto) {
 }
 
 /**
- * Agregar imagen a producto
+ * Agregar imagen a producto [DEPRECADO - Usar POST /productos/:idProducto/imagenes en su lugar]
+ * Esta función es un legacy. Las imágenes ahora se crean a través del endpoint de imagenes.routes.js
  */
 async function addImagenToProducto(idProducto, { urlImagen, principal = false, orden = 1 }) {
-  const prodId = toBigInt(idProducto, 'idProducto');
-
-  // Verificar que el producto existe
-  const producto = await prisma.producto.findUnique({
-    where: { idProducto: prodId },
-  });
-  if (!producto) {
-    throw new HttpError(404, 'Producto no encontrado');
-  }
-
-  // Si es principal, desmarcar otras
-  if (principal) {
-    await prisma.productoImagen.updateMany({
-      where: { idProducto: prodId },
-      data: { principal: false },
-    });
-  }
-
-  const imagen = await prisma.productoImagen.create({
-    data: {
-      idProducto: prodId,
-      urlImagen,
-      principal,
-      orden,
-    },
-  });
-
-  return imagen;
+  throw new HttpError(400, 'Esta función está deprecada. Use POST /productos/:idProducto/imagenes con multipart/form-data');
 }
 
 /**

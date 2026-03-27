@@ -8,8 +8,6 @@ const {
   createProducto,
   updateProducto,
   deleteProducto,
-  addImagenToProducto,
-  deleteImagenFromProducto,
 } = require('./productos.service');
 
 /**
@@ -76,6 +74,8 @@ async function create(req, res) {
   // Validar con Zod
   const validated = validate(CreateProductoSchema, req.body);
   
+  console.log('🆕 [PRODUCTOS] Creando nuevo producto:', validated.nombre);
+  
   const producto = await createProducto({
     nombre: validated.nombre,
     descripcion: validated.descripcion,
@@ -84,9 +84,9 @@ async function create(req, res) {
     sku: validated.sku,
     idCategoria: validated.idCategoria,
     idSubcategoria: validated.idSubcategoria,
-    imagenPrincipal: validated.imagenPrincipal,
   });
 
+  console.log('✅ [PRODUCTOS] Producto creado con ID:', producto.idProducto);
   res.status(201).json({ ok: true, data: producto });
 }
 
@@ -132,45 +132,6 @@ async function deleteOne(req, res) {
   }
 }
 
-/**
- * POST /productos/:id/imagenes
- * Agregar imagen a producto
- */
-async function addImagen(req, res) {
-  try {
-    const idProducto = BigInt(req.params.id);
-    const { urlImagen, principal = false, orden = 1 } = req.body;
-
-    if (!urlImagen) {
-      throw new HttpError(400, 'URL de imagen requerida');
-    }
-
-    const imagen = await addImagenToProducto(idProducto, {
-      urlImagen,
-      principal,
-      orden,
-    });
-
-    res.status(201).json({ ok: true, data: imagen });
-  } catch (err) {
-    throw new HttpError(400, 'ID de producto inválido');
-  }
-}
-
-/**
- * DELETE /productos/imagenes/:idImagen
- * Eliminar imagen de producto
- */
-async function deleteImagen(req, res) {
-  try {
-    const idImagen = BigInt(req.params.idImagen);
-    await deleteImagenFromProducto(idImagen);
-    res.json({ ok: true, message: 'Imagen eliminada' });
-  } catch (err) {
-    throw new HttpError(400, 'ID de imagen inválido');
-  }
-}
-
 module.exports = {
   listCategorias,
   listSubcategorias,
@@ -179,6 +140,4 @@ module.exports = {
   create,
   update,
   deleteOne,
-  addImagen,
-  deleteImagen,
 };
