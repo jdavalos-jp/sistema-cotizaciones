@@ -1,6 +1,12 @@
-import axios from 'axios';
+import { apiGet } from '../../../../services/api/http'
 
-export async function getCategorias() {
-  const { data } = await axios.get('/api/categorias');
-  return data;
+function unwrapData(response) {
+  if (response && typeof response === 'object' && 'data' in response) {
+    return response.data
+  }
+  return response
+}
+
+export async function getCategorias(fetchOptions = {}) {
+  return unwrapData(await apiGet('/categorias', fetchOptions))
 }

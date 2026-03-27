@@ -1,6 +1,6 @@
-import { apiGet, apiPost, apiPut, apiDelete } from '../../../cotizacion/services/api/http'
+import { apiGet, apiPost, apiPut, apiDelete } from '../../../../services/api/http'
 
-const BASE_URL = '/api/productos'
+const BASE_URL = '/productos'
 
 function unwrapData(response) {
   if (response && typeof response === 'object' && 'data' in response) {

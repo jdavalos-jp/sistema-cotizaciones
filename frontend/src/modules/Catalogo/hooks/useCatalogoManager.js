@@ -1,5 +1,5 @@
 import { useState, useCallback } from 'react'
-import { apiGet, apiPut, apiDelete } from '../../cotizacion/services/api/http'
+import { apiGet, apiPut, apiDelete } from '../../../services/api/http'
 
 /**
  * Hook para gestionar la lista de productos
@@ -125,8 +125,7 @@ export function useComponentesList() {
         }
       })
 
-      const response = await fetch(`/api/componentes?${params.toString()}`)
-      const data = await response.json()
+      const data = await apiGet(`/componentes?${params.toString()}`)
       
       setComponentes(data.data || [])
       setPagination({
@@ -148,12 +147,7 @@ export function useComponentesList() {
     setLoading(true)
     setError(null)
     try {
-      const response = await fetch(`/api/componentes/${idComponente}`, {
-        method: 'PUT',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(data),
-      })
-      const result = await response.json()
+      const result = await apiPut(`/componentes/${idComponente}`, data)
       
       setComponentes((prev) =>
         prev.map((c) =>
@@ -174,7 +168,7 @@ export function useComponentesList() {
     setLoading(true)
     setError(null)
     try {
-      await fetch(`/api/componentes/${idComponente}`, { method: 'DELETE' })
+      await apiDelete(`/componentes/${idComponente}`)
       setComponentes((prev) =>
         prev.filter((c) => String(c.idComponente) !== String(idComponente))
       )

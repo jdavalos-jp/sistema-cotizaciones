@@ -1,6 +1,7 @@
 import React, { useState } from 'react'
 import { Modal, Form, Input, Button, Space, message, Row, Col } from 'antd'
 import { UserOutlined, MailOutlined, PhoneOutlined, EnvironmentOutlined } from '@ant-design/icons'
+import { apiPost } from '../../../../services/api/http'
 
 function ModalNuevoCliente({ visible, onClose, onSuccess }) {
 	const [form] = Form.useForm()
@@ -20,20 +21,7 @@ function ModalNuevoCliente({ visible, onClose, onSuccess }) {
 				observaciones: values.observaciones,
 			}
 
-			const response = await fetch('/api/clientes', {
-				method: 'POST',
-				headers: {
-					'Content-Type': 'application/json',
-				},
-				body: JSON.stringify(payload),
-			})
-
-			if (!response.ok) {
-				const errorData = await response.json()
-				throw new Error(errorData?.message || 'Error al crear cliente')
-			}
-
-			const responseData = await response.json()
+			const responseData = await apiPost('/clientes', payload)
 			message.success('Cliente creado exitosamente')
 			form.resetFields()
 			onSuccess(responseData.data)

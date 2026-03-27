@@ -1,4 +1,4 @@
-import { apiGet } from './http'
+import { apiGet } from '../../../../services/api/http'
 
 export async function fetchClientes({ search = '', take = 20, signal } = {}) {
   const qs = new URLSearchParams()

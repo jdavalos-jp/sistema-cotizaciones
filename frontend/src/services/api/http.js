@@ -19,9 +19,10 @@ async function fetchWithRetry(url, options, { maxRetries = 3, timeout = 30000 } 
   let lastError;
 
   for (let attempt = 0; attempt <= maxRetries; attempt++) {
+    let timeoutId;
     try {
       const controller = new AbortController();
-      const timeoutId = setTimeout(() => controller.abort(), timeout);
+      timeoutId = setTimeout(() => controller.abort(), timeout);
 
       const res = await fetch(url, {
         ...options,
@@ -31,6 +32,7 @@ async function fetchWithRetry(url, options, { maxRetries = 3, timeout = 30000 } 
       clearTimeout(timeoutId);
       return res;
     } catch (err) {
+      if (timeoutId) clearTimeout(timeoutId);
       lastError = err;
 
       // No reintentar si fue cancelado por el usuario
@@ -145,8 +147,9 @@ export async function apiPut(path, body, { signal, headers, responseType = 'json
 }
 
 export async function apiPatch(path, body, { signal, headers, responseType = 'json' } = {}) {
-  const url = `${getApiBaseUrl()}${path}`
-  const res = await fetch(url, {
+  const url = `${getApiBaseUrl()}${path}`;
+
+  const res = await fetchWithRetry(url, {
     method: 'PATCH',
     headers: {
       'Content-Type': 'application/json',
@@ -154,39 +157,40 @@ export async function apiPatch(path, body, { signal, headers, responseType = 'js
     },
     body: JSON.stringify(body ?? {}),
     signal,
-  })
+  });
 
   if (!res.ok) {
-    const text = await res.text().catch(() => '')
-    throw new Error(text || `HTTP ${res.status}`)
+    throw await handleErrorResponse(res);
   }
 
   if (responseType === 'blob') {
-    return res.blob()
+    return res.blob();
   }
 
-  return res.json()
+  const contentType = res.headers.get('content-type') || '';
+  if (contentType.includes('application/pdf')) {
+    return res.arrayBuffer();
+  }
+
+  return res.json();
 }
 
 export async function apiDelete(path, { signal, headers, responseType = 'json' } = {}) {
-  const url = `${getApiBaseUrl()}${path}`
-  const res = await fetch(url, {
+  const url = `${getApiBaseUrl()}${path}`;
+
+  const res = await fetchWithRetry(url, {
     method: 'DELETE',
-    headers: {
-      'Content-Type': 'application/json',
-      ...(headers || {}),
-    },
+    headers: headers || {},
     signal,
-  })
+  });
 
   if (!res.ok) {
-    const text = await res.text().catch(() => '')
-    throw new Error(text || `HTTP ${res.status}`)
+    throw await handleErrorResponse(res);
   }
 
   if (responseType === 'blob') {
-    return res.blob()
+    return res.blob();
   }
 
-  return res.json()
+  return res.json();
 }

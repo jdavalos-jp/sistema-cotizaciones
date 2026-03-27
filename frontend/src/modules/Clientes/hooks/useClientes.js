@@ -1,4 +1,5 @@
 import { useState, useCallback } from 'react'
+import { apiGet } from '../../../services/api/http'
 
 /**
  * Hook para gestionar clientes
@@ -14,19 +15,13 @@ export function useClientes() {
   const loadClientes = useCallback(async (skip = 0, search = '') => {
     setLoading(true)
     try {
-      const apiBaseUrl = import.meta.env.VITE_API_BASE_URL || '/api'
-      const qs = new URLSearchParams()
-      if (search) qs.set('search', search)
+      const params = new URLSearchParams()
+      if (search) params.set('search', search)
       // Usar take grande para obtener todos los clientes disponibles
-      qs.set('take', '200')
+      params.set('take', '200')
 
-      const response = await fetch(`${apiBaseUrl}/clientes?${qs.toString()}`)
-      if (!response.ok) {
-        throw new Error(`Error: ${response.status}`)
-      }
-
-      const result = await response.json()
-      const clientesData = result.data ?? []
+      const result = await apiGet(`/clientes?${params.toString()}`)
+      const clientesData = result.data ?? result ?? []
       setClientes(clientesData)
       setPagination((prev) => ({
         ...prev,

@@ -1,4 +1,4 @@
-import { apiPost, apiGet, apiPut, apiDelete, apiPatch } from './http'
+import { apiGet, apiPost, apiPut, apiDelete } from '../../../../services/api/http'
 
 const BASE_URL = '/cotizaciones'
 
