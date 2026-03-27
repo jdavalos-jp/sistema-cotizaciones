@@ -1,5 +1,5 @@
 import { useState, useCallback, useEffect } from 'react'
-import * as productosApi from '../services/api/productosApi'
+import * as productosApi from '../Services/api/productosApi'
 
 /**
  * Hook para gestionar categorías y subcategorías

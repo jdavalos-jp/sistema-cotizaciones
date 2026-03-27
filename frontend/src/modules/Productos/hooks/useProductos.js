@@ -1,5 +1,5 @@
 import { useState, useCallback } from 'react'
-import { getProductos } from '../../Producto/services/api/productosApi'
+import { getProductos } from '../../Producto/Services/api/productosApi'
 
 /**
  * Hook para gestionar productos

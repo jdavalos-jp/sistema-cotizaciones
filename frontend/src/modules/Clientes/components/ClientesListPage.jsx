@@ -1,21 +1,14 @@
-import { Card, Button, Table, Space, Input, Popconfirm, message, Typography, Spin } from 'antd'
-import { PlusOutlined, SearchOutlined, EditOutlined, DeleteOutlined } from '@ant-design/icons'
+import { Card, Button, Table, Input, Popconfirm, message, Typography, Spin, Select } from 'antd'
+import { PlusOutlined, SearchOutlined } from '@ant-design/icons'
 import { useEffect, useState } from 'react'
 import { useClientes } from '../hooks/useClientes'
 
-/**
- * Componente ClientesListPage
- * - Listado de clientes
- * - Búsqueda y filtros
- * - Acciones (crear, editar, eliminar)
- */
-export default function ClientesListPage() {
+function ClientesListPage() {
   const [searchTerm, setSearchTerm] = useState('')
   const { clientes, loading, pagination, loadClientes, deleteCliente, setPagination } = useClientes()
 
-  // Cargar clientes al montar
   useEffect(() => {
-    loadClientes(0, searchTerm).catch((error) => {
+    loadClientes(0, searchTerm).catch(() => {
       message.error('Error al cargar clientes')
     })
   }, [])
@@ -25,9 +18,7 @@ export default function ClientesListPage() {
     setPagination((prev) => ({ ...prev, current: 1 }))
     try {
       await loadClientes(0, value)
-    } catch {
-      // Error ya manejado
-    }
+    } catch {}
   }
 
   const handlePaginationChange = async (page) => {
@@ -35,56 +26,55 @@ export default function ClientesListPage() {
     setPagination((prev) => ({ ...prev, current: page }))
     try {
       await loadClientes(skip, searchTerm)
-    } catch {
-      // Error ya manejado
-    }
+    } catch {}
   }
 
   const handleShowSizeChange = async (current, pageSize) => {
-    console.log(current, pageSize)
     const skip = (current - 1) * pageSize
     setPagination((prev) => ({ ...prev, current, pageSize }))
     try {
       await loadClientes(skip, searchTerm)
-    } catch {
-      // Error ya manejado
-    }
+    } catch {}
   }
 
   const handleDelete = async (idCliente) => {
+    const confirmed = window.confirm('¿Está seguro que desea eliminar este cliente?')
+    if (!confirmed) return
+
     try {
       deleteCliente(idCliente)
       message.success('Cliente eliminado')
-    } catch (error) {
+    } catch {
       message.error('Error al eliminar cliente')
     }
   }
 
+  const handleActionChange = (value, record) => {
+    if (value === 'editar') {
+      console.log('Editar cliente:', record.idCliente)
+    } else if (value === 'eliminar') {
+      handleDelete(record.idCliente)
+    }
+  }
+
   const columns = [
-    { title: 'Nombre', dataIndex: 'nombre', key: 'nombre' },
+    { title: 'Nombre', dataIndex: 'nombreCompleto', key: 'nombreCompleto' },
     { title: 'Email', dataIndex: 'email', key: 'email' },
     { title: 'Teléfono', dataIndex: 'telefono', key: 'telefono' },
-    { title: 'Empresa', dataIndex: 'empresa', key: 'empresa' },
+    { title: 'Institución', dataIndex: 'institucion', key: 'institucion' },
     {
       title: 'Acciones',
       key: 'acciones',
       render: (_, record) => (
-        <Space>
-          <Button type="text" size="small" icon={<EditOutlined />}>
-            Editar
-          </Button>
-          <Popconfirm
-            title="Eliminar"
-            description="¿Está seguro que desea eliminar?"
-            onConfirm={() => handleDelete(record.idCliente)}
-            okText="Sí"
-            cancelText="No"
-          >
-            <Button type="text" size="small" danger icon={<DeleteOutlined />}>
-              Eliminar
-            </Button>
-          </Popconfirm>
-        </Space>
+        <Select
+          placeholder="Acciones"
+          style={{ width: 100, textAlign: 'left' }}
+          onChange={(value) => handleActionChange(value, record)}
+          options={[
+            { label: 'Editar', value: 'editar' },
+            { label: 'Eliminar', value: 'eliminar' },
+          ]}
+        />
       ),
     },
   ]
@@ -98,9 +88,6 @@ export default function ClientesListPage() {
           </Typography.Title>
           <Typography.Text type="secondary">Gestión de clientes y contactos</Typography.Text>
         </div>
-        <Button type="primary" icon={<PlusOutlined />}>
-          Agregar Cliente
-        </Button>
       </div>
 
       <Card>
@@ -111,8 +98,11 @@ export default function ClientesListPage() {
               prefix={<SearchOutlined />}
               value={searchTerm}
               onChange={(e) => handleSearch(e.target.value)}
-              style={{ maxWidth: 300 }}
+              style={{ maxWidth: 737, marginRight: 17 }}
             />
+            <Button type="primary" icon={<PlusOutlined />}>
+              Agregar Cliente
+            </Button>
           </div>
 
           <Table
@@ -137,3 +127,5 @@ export default function ClientesListPage() {
     </div>
   )
 }
+
+export default ClientesListPage

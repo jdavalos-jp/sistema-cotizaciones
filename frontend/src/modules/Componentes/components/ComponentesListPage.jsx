@@ -87,9 +87,6 @@ export default function ComponentesListPage() {
           </Typography.Title>
           <Typography.Text type="secondary">Gestión de componentes y piezas</Typography.Text>
         </div>
-        <Button type="primary" icon={<PlusOutlined />} size="large">
-          Agregar Componente
-        </Button>
       </div>
 
       <Card>
@@ -100,8 +97,11 @@ export default function ComponentesListPage() {
               prefix={<SearchOutlined />}
               value={searchTerm}
               onChange={(e) => handleSearch(e.target.value)}
-              style={{ maxWidth: 300 }}
+              style={{ maxWidth: 700, marginRight: 17 }}
             />
+          <Button type="primary" icon={<PlusOutlined />}>
+          Agregar Componente 
+        </Button>
           </div>
 
           <Table
