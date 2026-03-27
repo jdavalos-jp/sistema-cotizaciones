@@ -11,12 +11,11 @@ message,
 import { CloseOutlined, DollarOutlined, InfoCircleOutlined, UploadOutlined } from '@ant-design/icons'
 import { useCategoriesAndSubcategories } from '../hooks/useCategoriesAndSubcategories'
 import { useProducto } from '../hooks/useProductosManager'
-import * as productosApi from '../services/api/productosApi'
-import { supabase } from '../../../lib/supabaseClient'
+import { useImagenesProducto } from '../../../hooks/useImagenes'
+import * as productosApi from '../Services/api/productosApi'
+import { uploadImagenProducto } from '../../../services/api/imagenes'
 
 const { Title, Text } = Typography
-
-const PRODUCT_IMAGES_BUCKET = import.meta.env.VITE_SUPABASE_BUCKET_PRODUCTOS || 'productos'
 
 function sanitizeFileName(name) {
   return String(name || 'imagen')
@@ -24,46 +23,6 @@ function sanitizeFileName(name) {
     .replace(/\s+/g, '-')
     .replace(/[^a-zA-Z0-9._-]/g, '')
     .slice(0, 120)
-}
-
-async function uploadProductImageToSupabase(file) {
-  if (!file) return null
-
-  const safeName = sanitizeFileName(file.name)
-  const ext = safeName.includes('.') ? safeName.split('.').pop() : ''
-  const stamp = Date.now()
-  const rand = (globalThis.crypto?.randomUUID?.() || Math.random().toString(16).slice(2))
-  const objectPath = `productos/${stamp}-${rand}${ext ? `.${ext}` : ''}`
-
-  const { error: uploadError } = await supabase.storage
-    .from(PRODUCT_IMAGES_BUCKET)
-    .upload(objectPath, file, {
-      contentType: file.type,
-      upsert: false,
-    })
-
-  if (uploadError) {
-    const msg = uploadError.message || 'Error subiendo imagen'
-    if (/bucket not found/i.test(msg)) {
-      throw new Error(
-        `Bucket "${PRODUCT_IMAGES_BUCKET}" no existe en Supabase Storage. ` +
-          `Crea el bucket o cambia VITE_SUPABASE_BUCKET_PRODUCTOS y reinicia el frontend.`
-      )
-    }
-    if (/permission|unauthorized|forbidden|row level|rls/i.test(msg)) {
-      throw new Error(
-        `Supabase Storage rechazó el upload. Revisa policies/permisos del bucket "${PRODUCT_IMAGES_BUCKET}".`
-      )
-    }
-    throw new Error(msg)
-  }
-
-  const { data } = supabase.storage.from(PRODUCT_IMAGES_BUCKET).getPublicUrl(objectPath)
-  if (!data?.publicUrl) {
-    throw new Error('No se pudo obtener URL pública de la imagen')
-  }
-
-  return data.publicUrl
 }
 
 function SectionHeader({ icon, title, description }) {
@@ -107,9 +66,13 @@ function ProductoForm({ onSuccess, onCancel, idProductoEdit = null }) {
   const [fileList, setFileList] = useState([])
   const [loadingHierarchy, setLoadingHierarchy] = useState(false)
   const [categoriaOptions, setCategoriaOptions] = useState([])
+  const [uploadPhase, setUploadPhase] = useState('') // Para rastrear el progreso
 
   const { categorias, loadingCategorias } = useCategoriesAndSubcategories()
-  const { producto, loading: loadingProducto, createProducto, updateProducto, addImagen } = useProducto(idProductoEdit)
+  const { producto, loading: loadingProducto, createProducto, updateProducto } = useProducto(idProductoEdit)
+  
+  // Hook para imágenes (para edición, carga las imagenes del producto)
+  const { subirImagen: subirImagenProductoHook } = useImagenesProducto(idProductoEdit)
 
   const title = idProductoEdit ? 'Editar Producto' : 'Crear Nuevo Producto'
   const subtitle = idProductoEdit
@@ -230,37 +193,61 @@ function ProductoForm({ onSuccess, onCancel, idProductoEdit = null }) {
       }
 
       const selectedFile = fileList?.[0]?.originFileObj || null
+      
+      console.log('🚀 Iniciando', idProductoEdit ? 'actualización' : 'creación', 'de producto')
+      console.log('📦 Payload:', basePayload)
+      console.log('🖼️ Archivo seleccionado:', selectedFile?.name || 'ninguno')
 
       if (idProductoEdit) {
+        setUploadPhase('Actualizando producto...')
+        console.log('✏️ Modo edición - ID:', idProductoEdit)
         await updateProducto(basePayload)
 
         if (selectedFile) {
-          const publicUrl = await uploadProductImageToSupabase(selectedFile)
-          await addImagen({ urlImagen: publicUrl, principal: true, orden: 1 })
+          setUploadPhase('Subiendo imagen...')
+          console.log('⬆️ Subiendo imagen para producto ID:', idProductoEdit)
+          await subirImagenProductoHook(selectedFile)
+          console.log('✅ Imagen subida exitosamente')
         }
 
         message.success('Producto actualizado exitosamente')
+        setUploadPhase('')
       } else {
-        let imagenPrincipal = null
-        if (selectedFile) {
-          imagenPrincipal = await uploadProductImageToSupabase(selectedFile)
-        }
+        // Creación: producto primero
+        setUploadPhase('Creando producto...')
+        console.log('🆕 Modo creación - creando nuevo producto')
+        const productoCreado = await createProducto(basePayload)
+        console.log('✅ Producto creado con ID:', productoCreado?.idProducto)
 
-        await createProducto({
-          ...basePayload,
-          imagenPrincipal,
-        })
+        // Subir imagen si existe y el producto se creó correctamente
+        if (selectedFile && productoCreado?.idProducto) {
+          setUploadPhase('Subiendo imagen...')
+          console.log('⬆️ Subiendo imagen para producto ID:', productoCreado.idProducto)
+          try {
+            const imagenResult = await uploadImagenProducto(productoCreado.idProducto, selectedFile)
+            console.log('✅ Imagen subida exitosamente:', imagenResult.data)
+            message.success('Imagen cargada exitosamente')
+          } catch (imgErr) {
+            const errorMsg = imgErr?.response?.data?.message || imgErr?.message || 'Error al cargar imagen'
+            console.error('❌ Error al subir imagen:', errorMsg)
+            message.warning(`Producto creado, pero error en imagen: ${errorMsg}`)
+          }
+        } else {
+          console.log('⏭️ Sin imagen para subir')
+        }
 
         message.success('Producto registrado exitosamente')
         form.resetFields()
         setFileList([])
+        setUploadPhase('')
       }
 
       if (onSuccess) onSuccess()
     } catch (err) {
+      console.error('❌ Error general:', err)
       const errorMsg = err?.response?.data?.message || err?.message || 'Error al guardar producto'
       message.error(errorMsg)
-      // Error adding product
+      setUploadPhase('')
     } finally {
       setSubmitting(false)
     }
@@ -287,6 +274,24 @@ function ProductoForm({ onSuccess, onCancel, idProductoEdit = null }) {
             background: token.colorBgContainer,
           }}
         >
+          {uploadPhase && (
+            <div
+              style={{
+                marginBottom: 16,
+                padding: 12,
+                background: token.colorBgElevated,
+                border: `1px solid ${token.colorPrimary}`,
+                borderRadius: token.borderRadiusLG,
+                display: 'flex',
+                alignItems: 'center',
+                gap: 12,
+              }}
+            >
+              <Spin size="small" />
+              <Text strong>{uploadPhase}</Text>
+            </div>
+          )}
+
           <SectionHeader
             icon={<InfoCircleOutlined style={{ color: '#13c2c2' }} />}
             title="Información General"

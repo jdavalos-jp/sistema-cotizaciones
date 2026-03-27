@@ -1,6 +1,6 @@
 import React, { useState } from 'react'
 import { Tabs, Space, Typography } from 'antd'
-import ListaProductos from './ListaProductos'
+import GridProductos from './GridProductos'
 import ListaComponentes from './ListaComponentes'
 
 export default function Catalogo() {
@@ -25,7 +25,7 @@ export default function Catalogo() {
             {
               key: 'productos',
               label: 'Productos',
-              children: <ListaProductos />,
+              children: <GridProductos />,
             },
             {
               key: 'componentes',

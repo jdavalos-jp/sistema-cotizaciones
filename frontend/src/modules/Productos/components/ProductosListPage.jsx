@@ -1,4 +1,4 @@
-import { Card, Button, Table, Space, Input, Popconfirm, message, Typography, Spin } from 'antd'
+import { Card, Button, Table, Space, Input, Popconfirm, message, Typography, Spin, Image } from 'antd'
 import { PlusOutlined, SearchOutlined, EditOutlined, DeleteOutlined } from '@ant-design/icons'
 import { useEffect, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
@@ -67,7 +67,55 @@ export default function ProductosListPage() {
   }
 
   const columns = [
-    { title: 'NOMBRE', dataIndex: 'nombre', key: 'nombre' },
+    {
+      title: 'NOMBRE',
+      dataIndex: 'nombre',
+      key: 'nombre',
+      render: (nombre, record) => (
+        <div style={{ display: 'flex', gap: 12, alignItems: 'flex-start' }}>
+          {/* Imagen */}
+          <div
+            style={{
+              width: 60,
+              height: 60,
+              flexShrink: 0,
+              background: '#f5f5f5',
+              borderRadius: 5,
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              overflow: 'hidden',
+            }}
+          >
+            {record.imagenes && record.imagenes.length > 0 ? (
+              <Image
+                src={record.imagenes[0]?.urlImagen}
+                alt={nombre}
+                style={{
+                  width: '100%',
+                  height: '100%',
+                  objectFit: 'cover',
+                  
+                }}
+                preview={{ mask: 'Ver' }}
+              />
+            ) : (
+              <span style={{ fontSize: '11px', color: '#999' }}>Sin imagen</span>
+            )}
+          </div>
+          
+          {/* Nombre y details */}
+          <div style={{ flex: 1 }}>
+            <div style={{ fontWeight: '500', marginBottom: 4 }}>{nombre}</div>
+            {record.categoria && (
+              <div style={{ fontSize: '12px', color: '#666', marginBottom: 2 }}>
+                {record.categoria.nombre}
+              </div>
+            )}
+          </div> 
+        </div>
+      ),
+    },
     { title: 'SKU', dataIndex: 'sku', key: 'sku' },
     { title: 'SUBCATEGORÍA', dataIndex: ['categoria', 'nombre'], key: 'categoria' },
     {

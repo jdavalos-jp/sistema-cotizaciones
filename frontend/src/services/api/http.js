@@ -96,15 +96,28 @@ export async function apiGet(path, { signal, responseType = 'json', headers } = 
 export async function apiPost(path, body, { signal, headers, responseType = 'json' } = {}) {
   const url = `${getApiBaseUrl()}${path}`;
 
-  const res = await fetchWithRetry(url, {
+  // Detectar si el body es FormData
+  const isFormData = body instanceof FormData;
+
+  const requestOptions = {
     method: 'POST',
-    headers: {
+    signal,
+  };
+
+  // Si es FormData, NO setear Content-Type (navegador lo hace automáticamente)
+  // Si es JSON, setear Content-Type
+  if (!isFormData) {
+    requestOptions.headers = {
       'Content-Type': 'application/json',
       ...(headers || {}),
-    },
-    body: JSON.stringify(body ?? {}),
-    signal,
-  });
+    };
+    requestOptions.body = JSON.stringify(body ?? {});
+  } else {
+    requestOptions.headers = headers || {};
+    requestOptions.body = body; // FormData sin stringify
+  }
+
+  const res = await fetchWithRetry(url, requestOptions);
 
   if (!res.ok) {
     throw await handleErrorResponse(res);
