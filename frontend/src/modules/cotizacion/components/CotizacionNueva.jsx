@@ -21,8 +21,8 @@ import { createAndDownloadPdf } from '../services/api/cotizacionesApi';
 function CotizacionNueva() {
   const [idCliente, setIdCliente] = useState(null);
   const [clienteLabel, setClienteLabel] = useState('');
-  const [diasValidez, setDiasValidez] = useState(10);
-  const [diasEntrega, setDiasEntrega] = useState(5);
+  const [diasValidez, setDiasValidez] = useState(15);
+  const [diasEntrega, setDiasEntrega] = useState(10);
   const [moneda] = useState('Bs');
   const [observaciones, setObservaciones] = useState('');
   const [descuento, setDescuento] = useState(0);
