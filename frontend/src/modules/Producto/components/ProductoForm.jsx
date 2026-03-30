@@ -34,7 +34,7 @@ function ProductoForm({ onSuccess, onCancel, idProductoEdit = null }) {
     ? 'Actualiza la información del producto en el catálogo.'
     : 'Completa la información detallada para publicar el producto en el catálogo.'
 
-  // Rebuild hierarchy - optimizado
+  // Rebuild hierarchy - optimizado (una sola query)
   const rebuildHierarchy = useCallback(async () => {
     if (!categorias?.length) {
       setCategoriaOptions([])
@@ -43,29 +43,20 @@ function ProductoForm({ onSuccess, onCancel, idProductoEdit = null }) {
 
     setLoadingHierarchy(true)
     try {
-      const options = await Promise.all(
-        categorias.map(async (cat) => {
-          try {
-            const subs = await productosApi.getSubcategoriasByCategoria(Number(cat.idCategoria))
-            return {
-              value: Number(cat.idCategoria),
-              label: cat.nombre,
-              ...(subs?.length && {
-                children: subs.map(sub => ({
-                  value: Number(sub.idSubcategoria),
-                  label: sub.nombre,
-                }))
-              })
-            }
-          } catch (err) {
-            console.error(`Error cargando subcategorías para ${cat.nombre}:`, err)
-            return {
-              value: Number(cat.idCategoria),
-              label: cat.nombre,
-            }
-          }
+      // Usar endpoint único que retorna categorías con subcategorías
+      const categoriasConSubs = await productosApi.getCategoriasConSubcategorias()
+      
+      const options = (categoriasConSubs || []).map(cat => ({
+        value: Number(cat.idCategoria),
+        label: cat.nombre,
+        ...(cat.subcategorias?.length && {
+          children: cat.subcategorias.map(sub => ({
+            value: Number(sub.idSubcategoria),
+            label: sub.nombre,
+          }))
         })
-      )
+      }))
+      
       setCategoriaOptions(options)
     } catch (err) {
       message.error('Error al construir la jerarquía de categorías')
@@ -93,9 +84,26 @@ function ProductoForm({ onSuccess, onCancel, idProductoEdit = null }) {
       cantidad: producto.cantidad ? Number(producto.cantidad) : 1,
     })
 
-    // Resetear estado de imagen
-    setFileList([])
-    setPreviewUrl('')
+    // Cargar imagen principal si existe
+    if (producto.imagenes && producto.imagenes.length > 0) {
+      const imagenPrincipal = producto.imagenes.find((img) => img.principal) || producto.imagenes[0]
+      if (imagenPrincipal?.urlImagen) {
+        setPreviewUrl(imagenPrincipal.urlImagen)
+        setFileList([
+          {
+            uid: imagenPrincipal.idImagen,
+            name: `imagen-${imagenPrincipal.idImagen}`,
+            status: 'done',
+            url: imagenPrincipal.urlImagen,
+          },
+        ])
+      }
+    } else {
+      // Resetear estado de imagen
+      setFileList([])
+      setPreviewUrl('')
+    }
+
     setImageHovered(false)
     setComponentesAgregados([])
   }, [idProductoEdit, producto, form])

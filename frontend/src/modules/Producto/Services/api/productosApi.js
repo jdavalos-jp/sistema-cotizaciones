@@ -16,6 +16,11 @@ export async function getCategorias(fetchOptions = {}) {
   return unwrapData(await apiGet(`${BASE_URL}/categorias/list`, fetchOptions))
 }
 
+//Obtener categorías con subcategorías en una sola query
+
+export async function getCategoriasConSubcategorias(fetchOptions = {}) {
+  return unwrapData(await apiGet(`${BASE_URL}/categorias-con-subcategorias`, fetchOptions))
+}
 
 //Obtener subcategorías por categoría
 

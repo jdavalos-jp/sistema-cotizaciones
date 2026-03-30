@@ -1,6 +1,13 @@
 /**
- * PRODUCTO MODULE - Index
- * Exporta todos los componentes, hooks y servicios del módulo
+ * PRODUCTO MODULE - Index (Barrel Export)
+ * 
+ * Exporta la API pública del módulo Producto:
+ * - Componentes: ProductoForm, Productos
+ * - Hooks: useProducto, useProductosList (para gestión de estado)
+ * - API: funciones de servicio (para llamadas directas al backend)
+ * 
+ * Nota: Los hooks internamente consumen las funciones de API,
+ * pero se exportan ambas para máxima flexibilidad
  */
 
 // ============ COMPONENTS ============
@@ -24,4 +31,4 @@ export {
   deleteProducto,
   addImagenToProducto,
   deleteImagenFromProducto,
-} //from './services/api/productosApi'
+} from './Services/api/productosApi'

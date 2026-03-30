@@ -1,65 +1,52 @@
 import { Card, Button, Table, Space, Input, Popconfirm, message, Typography, Spin, Image } from 'antd'
 import { PlusOutlined, SearchOutlined, EditOutlined, DeleteOutlined } from '@ant-design/icons'
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useProductos } from '../hooks/useProductos'
-/**
- * Componente ProductosListPage
- * - Listado de productos
- * - Búsqueda y filtros
- * - Acciones (crear, editar, eliminar)
- */
+
 export default function ProductosListPage() {
   const navigate = useNavigate()
-  const [searchTerm, setSearchTerm] = useState('')
-  const { productos, loading, pagination, loadProductos, deleteProducto, setPagination } = useProductos()
+  const debounceTimeoutRef = useRef(null)
+  const [searchTerm, setSearchTerm] = useState('') // ✅ Arreglado searchTerm
+
+  const { 
+    productos, 
+    loading, 
+    pagination, 
+    filters,
+    handleFilterChange, 
+    handlePagination,
+    deletProductoLocal 
+  } = useProductos()
 
   // Cargar productos al montar
   useEffect(() => {
-    loadProductos(0, searchTerm).catch((error) => {
-      message.error('Error al cargar productos')
-    })
+    // El hook se encarga de cargar automáticamente
   }, [])
 
-  // Buscar productos
-  const handleSearch = async (value) => {
-    setSearchTerm(value)
-    setPagination((prev) => ({ ...prev, current: 1 }))
-    try {
-      await loadProductos(0, value)
-    } catch {
-      // Error ya manejado en el hook
-    }
+  // Buscar productos con debounce
+  const handleSearch = (value) => {
+    setSearchTerm(value) // actualizar input
+    if (debounceTimeoutRef.current) clearTimeout(debounceTimeoutRef.current)
+    debounceTimeoutRef.current = setTimeout(() => {
+      handleFilterChange({ search: value })
+    }, 300)
   }
 
   // Cambiar página
-  const handlePaginationChange = async (page) => {
-    const skip = (page - 1) * pagination.pageSize
-    setPagination((prev) => ({ ...prev, current: page }))
-    try {
-      await loadProductos(skip, searchTerm)
-    } catch {
-      // Error ya manejado en el hook
-    }
+  const handlePaginationChange = (page) => {
+    handlePagination(page, pagination.take)
   }
 
   // Cambiar tamaño de página
-  const handleShowSizeChange = async (current, pageSize) => {
-    console.log(current, pageSize)
-    const skip = (current - 1) * pageSize
-    setPagination((prev) => ({ ...prev, current, pageSize }))
-    try {
-      await loadProductos(skip, searchTerm)
-    } catch {
-      // Error ya manejado en el hook
-    }
+  const handleShowSizeChange = (current, pageSize) => {
+    handlePagination(current, pageSize)
   }
 
   // Eliminar producto
   const handleDelete = async (idProducto) => {
     try {
-      // TODO: Conectar con API de eliminación
-      deleteProducto(idProducto)
+      deletProductoLocal(idProducto)
       message.success('Producto eliminado')
     } catch (error) {
       message.error('Error al eliminar producto')
@@ -73,7 +60,6 @@ export default function ProductosListPage() {
       key: 'nombre',
       render: (nombre, record) => (
         <div style={{ display: 'flex', gap: 12, alignItems: 'flex-start' }}>
-          {/* Imagen */}
           <div
             style={{
               width: 60,
@@ -91,20 +77,14 @@ export default function ProductosListPage() {
               <Image
                 src={record.imagenes[0]?.urlImagen}
                 alt={nombre}
-                style={{
-                  width: '100%',
-                  height: '100%',
-                  objectFit: 'cover',
-                  
-                }}
+                style={{ width: '100%', height: '100%', objectFit: 'cover' }}
                 preview={{ mask: 'Ver' }}
               />
             ) : (
               <span style={{ fontSize: '11px', color: '#999' }}>Sin imagen</span>
             )}
           </div>
-          
-          {/* Nombre y details */}
+
           <div style={{ flex: 1 }}>
             <div style={{ fontWeight: '500', marginBottom: 4 }}>{nombre}</div>
             {record.categoria && (
@@ -139,7 +119,7 @@ export default function ProductosListPage() {
       key: 'acciones',
       render: (_, record) => (
         <Space>
-          <Button type="text" size="small" icon={<EditOutlined />}>
+          <Button type="text" size="small" icon={<EditOutlined />} onClick={() => navigate(`/productos/editar/${record.idProducto}`)}>
             Editar
           </Button>
           <Popconfirm
@@ -157,43 +137,35 @@ export default function ProductosListPage() {
       ),
     },
   ]
- 
-  return (
 
+  return (
     <div>
       <div style={{ marginBottom: 24, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
         <div>
-          <Typography.Title level={1} style={{ marginTop: 0, marginBottom: 8 }}>
-            Productos
-          </Typography.Title>
+          <Typography.Title level={1} style={{ marginTop: 0, marginBottom: 8 }}>Productos</Typography.Title>
           <Typography.Text type="secondary">Gestión de productos del catálogo</Typography.Text>
         </div>
       </div>
 
       <Card>
         <Spin spinning={loading}>
-          <div style={{ marginBottom: 16 }}>
+          <div style={{ marginBottom: 16, display: 'flex', gap: 16, flexWrap: 'wrap' }}>
             <Input
               placeholder="Buscar por nombre o SKU..."
               prefix={<SearchOutlined />}
               value={searchTerm}
               onChange={(e) => handleSearch(e.target.value)}
-              style={{ maxWidth: 725 , marginRight: 16}}
-              
+              style={{ maxWidth: 750, flex: 1 }}
             />
-            <Button
-               type="primary"
-               icon={<PlusOutlined />}
-              onClick={()=> navigate('/productos/crear')}
-              >
+            <Button type="primary" icon={<PlusOutlined />} onClick={() => navigate('/productos/crear')}>
               Agregar Producto
-              </Button>
+            </Button>
           </div>
-          
+
           <Table
             columns={columns}
             dataSource={productos}
-            rowKey="idProducto"
+            rowKey={(record) => `${record.idProducto}-${record.sku || record.nombre}`} // ✅ evitar keys duplicadas
             pagination={{
               pageSize: pagination.pageSize,
               current: pagination.current,

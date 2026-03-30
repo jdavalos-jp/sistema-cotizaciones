@@ -1,0 +1,7 @@
+export { default as CategoriasListPage } from './CategoriasListPage'
+export { default as CategoriesHeader } from './CategoriesHeader'
+export { default as CategoriesSearchBar } from './CategoriesSearchBar'
+export { default as CategoriesTable } from './CategoriesTable'
+export { default as CategoryActions } from './CategoryActions'
+export { default as CategoryCell } from './CategoryCell'
+export { default as StatusBadge } from './StatusBadge'

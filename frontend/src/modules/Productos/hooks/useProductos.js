@@ -1,50 +1,8 @@
-import { useState, useCallback } from 'react'
-import { getProductos } from '../../Producto/Services/api/productosApi'
-
 /**
- * Hook para gestionar productos
- * - Carga de productos
- * - Búsqueda y filtros
- * - Paginación
+ * 🔄 DEPRECATED: Usar useProductosUnified.js en su lugar
+ * Este archivo se mantiene solo para compatibilidad hacia atrás
  */
-export function useProductos() {
-  const [productos, setProductos] = useState([])
-  const [loading, setLoading] = useState(false)
-  const [pagination, setPagination] = useState({ total: 0, current: 1, pageSize: 10 })
 
-  const loadProductos = useCallback(async (skip = 0, search = '') => {
-    setLoading(true)
-    try {
-      const response = await getProductos({
-        skip,
-        take: pagination.pageSize,
-        search: search || undefined,
-      })
+export { useProductos as default } from '../../Producto/hooks/useProductosUnified'
+export { useProductos } from '../../Producto/hooks/useProductosUnified'
 
-      const data = Array.isArray(response) ? response : response?.data || []
-      setProductos(data)
-
-      if (response?.total !== undefined) {
-        setPagination((prev) => ({ ...prev, total: response.total }))
-      }
-    } catch (error) {
-      setProductos([])
-      throw error
-    } finally {
-      setLoading(false)
-    }
-  }, [pagination.pageSize])
-
-  const deleteProducto = useCallback((idProducto) => {
-    setProductos((prev) => prev.filter((p) => p.idProducto !== idProducto))
-  }, [])
-
-  return {
-    productos,
-    loading,
-    pagination,
-    loadProductos,
-    deleteProducto,
-    setPagination,
-  }
-}

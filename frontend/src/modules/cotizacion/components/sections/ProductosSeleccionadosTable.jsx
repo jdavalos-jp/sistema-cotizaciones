@@ -5,11 +5,11 @@ import { DeleteOutlined } from '@ant-design/icons';
 function ProductosSeleccionadosTable({
   lineas = [],
   moneda = 'Bs',
-  onRemove = () => {},
-  onSetCantidad = () => {},
-  onSetPrecio = () => {},
-  onSetNombre = () => {},
-  onSetDescripcion = () => {},
+  onRemove = () => { },
+  onSetCantidad = () => { },
+  onSetPrecio = () => { },
+  onSetNombre = () => { },
+  onSetDescripcion = () => { },
 }) {
   const total = useMemo(() => lineas.reduce((acc, l) => acc + (Number(l.totalLinea) || 0), 0), [lineas]);
 
@@ -137,7 +137,7 @@ function ProductosSeleccionadosTable({
         <>
           <Table
             columns={columns}
-            rowKey={(record) => `${record.tipo}:${record.id}`}
+            rowKey={(record) => `${record.tipo}-${record.id}-${record.nombre}`} // por si hay duplicados
             dataSource={lineas}
             pagination={false}
             size="small"
@@ -147,7 +147,9 @@ function ProductosSeleccionadosTable({
               <Statistic
                 title={`Total 1 día de ${daysTotal} (${moneda})`}
                 value={total.toFixed(2)}
-                valueStyle={{ color: '#389e0d', fontSize: 20, fontWeight: 'bold' }}
+                styles={{
+                  content: { color: '#389e0d', fontSize: 20, fontWeight: 'bold' }
+                }}
               />
             </Col>
           </Row>

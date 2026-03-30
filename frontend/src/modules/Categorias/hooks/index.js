@@ -1,0 +1,1 @@
+export { useCategorias } from './useCategorias'

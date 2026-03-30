@@ -2,12 +2,12 @@ import React, { useState } from 'react';
 import { Button, Space, Typography, message, Card, Row, Col, Divider, InputNumber, Input } from 'antd';
 import { CheckCircleOutlined, PlusOutlined, FileTextOutlined } from '@ant-design/icons';
 
-import { 
-  ClienteDatosSection, 
-  FechaValidacionSection, 
-  AgregarProductosSection, 
-  ProductosSeleccionadosTable, 
-  ModalNuevoCliente 
+import {
+  ClienteDatosSection,
+  FechaValidacionSection,
+  AgregarProductosSection,
+  ProductosSeleccionadosTable,
+  ModalNuevoCliente
 } from './sections';
 
 import { useCatalogSearch } from '../hooks/useCatalogSearch';
@@ -145,134 +145,142 @@ function CotizacionNueva() {
 
       <div style={{ display: showSuccess ? 'none' : 'block' }} aria-hidden={showSuccess}>
         <Space orientation="vertical" size={24} style={{ width: '100%' }}>
-        <div>
-          <Typography.Title level={3} style={{ marginTop: 0, marginBottom: 0 }}>
-            Nueva Cotización
-          </Typography.Title>
-          <Typography.Text type="secondary">Completa los datos para crear una cotización</Typography.Text>
-        </div>
+          <div>
+            <Typography.Title level={3} style={{ marginTop: 0, marginBottom: 0 }}>
+              Nueva Cotización
+            </Typography.Title>
+            <Typography.Text type="secondary">Completa los datos para crear una cotización</Typography.Text>
+          </div>
 
-        <ClienteDatosSection
-          clientes={clientes}
-          idCliente={idCliente}
-          setIdCliente={setIdCliente}
-          clienteLabel={clienteLabel}
-          setClienteLabel={setClienteLabel}
-          onNewCliente={() => setModalNuevoClienteVisible(true)}
-        />
+          <ClienteDatosSection
+            clientes={clientes}
+            idCliente={idCliente}
+            setIdCliente={setIdCliente}
+            clienteLabel={clienteLabel}
+            setClienteLabel={setClienteLabel}
+            onNewCliente={() => setModalNuevoClienteVisible(true)}
+          />
 
-        <FechaValidacionSection
-          diasValidez={diasValidez}
-          setDiasValidez={setDiasValidez}
-          diasEntrega={diasEntrega}
-          setDiasEntrega={setDiasEntrega}
-        />
+          <FechaValidacionSection
+            diasValidez={diasValidez}
+            setDiasValidez={setDiasValidez}
+            diasEntrega={diasEntrega}
+            setDiasEntrega={setDiasEntrega}
+          />
 
-        <AgregarProductosSection
-          productos={productos}
-          componentes={componentes}
-          cart={cart}
-        />
+          <AgregarProductosSection
+            productos={productos}
+            componentes={componentes}
+            cart={cart}
+          />
 
-        <ProductosSeleccionadosTable
-          lineas={lineasConEdiciones}
-          moneda={moneda}
-          onRemove={onRemove}
-          onSetCantidad={onSetCantidad}
-          onSetPrecio={onSetPrecio}
-          onSetNombre={onSetNombre}
-          onSetDescripcion={onSetDescripcion}
-        />
+          <ProductosSeleccionadosTable
+            lineas={lineasConEdiciones}
+            moneda={moneda}
+            onRemove={onRemove}
+            onSetCantidad={onSetCantidad}
+            onSetPrecio={onSetPrecio}
+            onSetNombre={onSetNombre}
+            onSetDescripcion={onSetDescripcion}
+          />
 
-        {/* Resumen y Totales */}
-        <Card
-          title={
-            <Space>
-              <FileTextOutlined />
-              <span>Resumen y Totales</span>
-            </Space>
-          }
-        >
-          <Row gutter={[24, 16]}>
-            <Col xs={24} md={12}>
-              <Typography.Text type="secondary">Observaciones</Typography.Text>
-              <Input.TextArea
-                value={observaciones}
-                onChange={(e) => setObservaciones(e.target.value)}
-                rows={4}
-                placeholder="Notas u observaciones adicionales..."
-                style={{ marginTop: 8 }}
-              />
+          {/* Resumen y Totales */}
+          <Card
+            title={
+              <Space>
+                <FileTextOutlined />
+                <span>Resumen y Totales</span>
+              </Space>
+            }
+          >
+            <Row gutter={[24, 16]}>
+              <Col xs={24} md={12}>
+                <Typography.Text type="secondary">Observaciones</Typography.Text>
+                <Input.TextArea
+                  value={observaciones}
+                  onChange={(e) => setObservaciones(e.target.value)}
+                  rows={4}
+                  placeholder="Notas u observaciones adicionales..."
+                  style={{ marginTop: 8 }}
+                />
+              </Col>
+              <Col xs={24} md={12}>
+                <div style={{ display: 'grid', gap: '16px' }}>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                    <Typography.Text>Subtotal:</Typography.Text>
+                    <Typography.Text strong style={{ fontSize: '15px' }}>
+                      {(preview.data?.totales?.subtotal || 0).toLocaleString('es-BO')} {moneda}
+                    </Typography.Text>
+                  </div>
+
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                    <Typography.Text>Descuento:</Typography.Text>
+                    <Space.Compact style={{ width: 140 }}>
+                      <InputNumber
+                        value={descuento}
+                        onChange={(val) => setDescuento(val || 0)}
+                        min={0}
+                        step={1}
+                        precision={0}
+                        style={{ width: 100 }}
+                      />
+                      <span style={{ display: 'flex', alignItems: 'center', paddingLeft: 4 }}>
+                        {moneda}
+                      </span>
+                    </Space.Compact>
+                  </div>
+
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                    <Typography.Text>Impuestos:</Typography.Text>
+                    <Space.Compact style={{ width: 140 }}>
+                      <InputNumber
+                        value={impuestos}
+                        onChange={(val) => setImpuestos(val || 0)}
+                        min={0}
+                        step={1}
+                        precision={0}
+                        style={{ width: 100 }}
+                      />
+                      <span style={{ display: 'flex', alignItems: 'center', paddingLeft: 4 }}>
+                        {moneda}
+                      </span>
+                    </Space.Compact>
+                  </div>
+
+                  <Divider style={{ margin: '4px 0' }} />
+
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                    <Typography.Text strong style={{ fontSize: '18px' }}>TOTAL:</Typography.Text>
+                    <Typography.Text strong style={{ fontSize: '18px', color: '#389e0d' }}>
+                      {((preview.data?.totales?.subtotal || 0) - Number(descuento) + Number(impuestos)).toLocaleString('es-BO')} {moneda}
+                    </Typography.Text>
+                  </div>
+                </div>
+              </Col>
+            </Row>
+          </Card>
+
+          <Divider style={{ margin: '8px 0' }} />
+
+          <Row justify="space-between" align="middle">
+            <Col>
+              <Typography.Text type="secondary">{cart.cart.length} producto(s) en cotización</Typography.Text>
             </Col>
-            <Col xs={24} md={12}>
-              <div style={{ display: 'grid', gap: '16px' }}>
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                  <Typography.Text>Subtotal:</Typography.Text>
-                  <Typography.Text strong style={{ fontSize: '15px' }}>
-                    {(preview.data?.totales?.subtotal || 0).toLocaleString('es-BO')} {moneda}
-                  </Typography.Text>
-                </div>
-
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                  <Typography.Text>Descuento:</Typography.Text>
-                  <InputNumber
-                    value={descuento}
-                    onChange={(val) => setDescuento(val || 0)}
-                    min={0}
-                    step={1}
-                    precision={0}
-                    style={{ width: 140 }}
-                    addonAfter={moneda}
-                  />
-                </div>
-
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                  <Typography.Text>Impuestos:</Typography.Text>
-                  <InputNumber
-                    value={impuestos}
-                    onChange={(val) => setImpuestos(val || 0)}
-                    min={0}
-                    step={1}
-                    precision={0}
-                    style={{ width: 140 }}
-                    addonAfter={moneda}
-                  />
-                </div>
-
-                <Divider style={{ margin: '4px 0' }} />
-
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                  <Typography.Text strong style={{ fontSize: '18px' }}>TOTAL:</Typography.Text>
-                  <Typography.Text strong style={{ fontSize: '18px', color: '#389e0d' }}>
-                    {((preview.data?.totales?.subtotal || 0) - Number(descuento) + Number(impuestos)).toLocaleString('es-BO')} {moneda}
-                  </Typography.Text>
-                </div>
-              </div>
+            <Col>
+              <Space>
+                <Button onClick={() => cart.clear()}>Limpiar</Button>
+                <Button
+                  type="primary"
+                  icon={<PlusOutlined />}
+                  loading={loadingSubmit}
+                  onClick={handleGenerarCotizacion}
+                  disabled={!idCliente || !cart.cart.length || !diasValidez || !diasEntrega}
+                >
+                  Generar Cotización
+                </Button>
+              </Space>
             </Col>
           </Row>
-        </Card>
-
-        <Divider style={{ margin: '8px 0' }} />
-
-        <Row justify="space-between" align="middle">
-          <Col>
-            <Typography.Text type="secondary">{cart.cart.length} producto(s) en cotización</Typography.Text>
-          </Col>
-          <Col>
-            <Space>
-              <Button onClick={() => cart.clear()}>Limpiar</Button>
-              <Button
-                type="primary"
-                icon={<PlusOutlined />}
-                loading={loadingSubmit}
-                onClick={handleGenerarCotizacion}
-                disabled={!idCliente || !cart.cart.length || !diasValidez || !diasEntrega}
-              >
-                Generar Cotización
-              </Button>
-            </Space>
-          </Col>
-        </Row>
         </Space>
 
         <ModalNuevoCliente

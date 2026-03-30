@@ -1,17 +1,25 @@
-import { Card, Button, Table, Space, Input, Popconfirm, message, Typography, Spin } from 'antd'
-import { PlusOutlined, SearchOutlined, EditOutlined, DeleteOutlined } from '@ant-design/icons'
+import { Card, message, Spin } from 'antd'
 import { useEffect, useState } from 'react'
 import { useCategorias } from '../hooks/useCategorias'
+import CategoriesHeader from './CategoriesHeader'
+import CategoriesSearchBar from './CategoriesSearchBar'
+import CategoriesTable from './CategoriesTable'
 
 /**
- * Componente CategoriasListPage
+ * Componente CategoriasListPage - Página principal de gestión de categorías
+ * Componentes modulares:
+ * - CategoriesHeader: Encabezado con título y botón agregar
+ * - CategoriesSearchBar: Buscador de categorías
+ * - CategoriesTable: Tabla de categorías con todas las columnas
  */
 export default function CategoriasListPage() {
   const [searchTerm, setSearchTerm] = useState('')
   const { categorias, loading, pagination, loadCategorias, deleteCategoria, setPagination } = useCategorias()
+  const [selectedCategory, setSelectedCategory] = useState(null)
 
+  // Cargar categorías al montar el componente
   useEffect(() => {
-    loadCategorias(0, searchTerm).catch((error) => {
+    loadCategorias(0, searchTerm).catch(() => {
       message.error('Error al cargar categorías')
     })
   }, [])
@@ -21,7 +29,9 @@ export default function CategoriasListPage() {
     setPagination((prev) => ({ ...prev, current: 1 }))
     try {
       await loadCategorias(0, value)
-    } catch { }
+    } catch {
+      message.error('Error en la búsqueda')
+    }
   }
 
   const handlePaginationChange = async (page) => {
@@ -29,96 +39,49 @@ export default function CategoriasListPage() {
     setPagination((prev) => ({ ...prev, current: page }))
     try {
       await loadCategorias(skip, searchTerm)
-    } catch { }
+    } catch {
+      message.error('Error al cambiar de página')
+    }
   }
 
-  const handleShowSizeChange = async (current, pageSize) => {
-    console.log(current, pageSize)
-    const skip = (current - 1) * pageSize
-    setPagination((prev) => ({ ...prev, current, pageSize }))
-    try {
-      await loadCategorias(skip, searchTerm)
-    } catch { }
+  const handleEdit = (categoria) => {
+    setSelectedCategory(categoria)
+    // TODO: Abrir modal de edición
+    message.info(`Editar: ${categoria.nombre}`)
   }
 
   const handleDelete = async (idCategoria) => {
     try {
       deleteCategoria(idCategoria)
-      message.success('Categoría eliminada')
+      message.success('Categoría eliminada correctamente')
+      // Recargar la lista
+      await loadCategorias(0, searchTerm)
     } catch (error) {
-      message.error('Error al eliminar categoría')
+      message.error('Error al eliminar la categoría')
     }
   }
 
-  const columns = [
-    { title: 'Nombre', dataIndex: 'nombre', key: 'nombre' },
-    { title: 'Descripción', dataIndex: 'descripcion', key: 'descripcion' },
-    {
-      title: 'Acciones',
-      key: 'acciones',
-      render: (_, record) => (
-        <Space>
-          <Button type="text" size="small" icon={<EditOutlined />}>
-            Editar
-          </Button>
-          <Popconfirm
-            title="Eliminar"
-            description="¿Está seguro que desea eliminar?"
-            onConfirm={() => handleDelete(record.idCategoria)}
-            okText="Sí"
-            cancelText="No"
-          >
-            <Button type="text" size="small" danger icon={<DeleteOutlined />}>
-              Eliminar
-            </Button>
-          </Popconfirm>
-        </Space>
-      ),
-    },
-  ]
+  const handleAddCategory = () => {
+    setSelectedCategory(null)
+    // TODO: Abrir modal de creación
+    message.info('Abrir formulario para agregar categoría')
+  }
 
   return (
-    <div>
-      <div style={{ marginBottom: 24, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-        <div>
-          <Typography.Title level={1} style={{ marginTop: 0, marginBottom: 8 }}>
-            Categorías
-          </Typography.Title>
-          <Typography.Text type="secondary">Gestión de categorías de productos</Typography.Text>
-        </div>
-      </div>
+    <div style={{ padding: '0' }}>
+      <CategoriesHeader onAddCategory={handleAddCategory} />
 
       <Card>
         <Spin spinning={loading}>
-          <div style={{ marginBottom: 16 }}>
-            <Input
-              placeholder="Buscar categoría..."
-              prefix={<SearchOutlined />}
-              value={searchTerm}
-              onChange={(e) => handleSearch(e.target.value)}
-              style={{ maxWidth: 730, marginRight: 17 }}
-            />
-            < button type="primary" icon={<PlusOutlined />}>
-              Agregar Categoría
-            </button>
-          </div>
+          <CategoriesSearchBar value={searchTerm} onChange={handleSearch} />
 
-          <Table
-            columns={columns}
-            dataSource={categorias}
-            rowKey="idCategoria"
-            pagination={{
-              pageSize: pagination.pageSize,
-              current: pagination.current,
-              total: pagination.total,
-              onChange: handlePaginationChange,
-              onShowSizeChange: handleShowSizeChange,
-              showSizeChanger: true,
-              showQuickJumper: true,
-              pageSizeOptions: ['5', '10', '20', '50'],
-              showTotal: (total) => `Total: ${total} categorías`,
-            }}
+          <CategoriesTable
+            categorias={categorias}
             loading={loading}
+            pagination={pagination}
+            onPaginationChange={handlePaginationChange}
+            onEdit={handleEdit}
+            onDelete={handleDelete}
           />
         </Spin>
       </Card>

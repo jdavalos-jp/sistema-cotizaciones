@@ -21,19 +21,31 @@ export default function ProductoImagenYCategoria({
   const [hovered, setHovered] = useState(false)
 
   const handleUpload = ({ file, fileList: newList }) => {
-    const newFileList = newList.slice(-1)
-    if (setFileList) setFileList(newFileList)
-
+    console.log('🔍 handleUpload - file:', file.name, file.status)
+    
     if (file.status === 'removed') {
+      if (setFileList) setFileList([])
       if (setPreviewUrl) setPreviewUrl('')
       onDeleteImage?.()
       return
     }
 
-    if (file.originFileObj) {
+    // Mantener el archivo en la lista
+    const validList = newList.filter(f => f.originFileObj || f.url)
+    if (setFileList) setFileList(validList.slice(-1))
+
+    // Leer y mostrar preview solo si está pendiente o es un nuevo archivo
+    if (file.originFileObj && !file.url) {
       const reader = new FileReader()
       reader.onload = (e) => {
-        if (setPreviewUrl) setPreviewUrl(e.target.result)
+        console.log('📸 Preview cargado exitosamente')
+        const result = e.target?.result
+        if (result && setPreviewUrl) {
+          setPreviewUrl(result)
+        }
+      }
+      reader.onerror = () => {
+        console.error('❌ Error leyendo archivo')
       }
       reader.readAsDataURL(file.originFileObj)
     }
@@ -69,9 +81,17 @@ export default function ProductoImagenYCategoria({
             accept="image/jpeg,image/png,image/webp"
             maxCount={1}
             fileList={fileList}
-            beforeUpload={() => false}
+            beforeUpload={internalBeforeUpload}
             onChange={handleUpload}
             showUploadList={false}
+            customRequest={({ file, onSuccess, onError }) => {
+              try {
+                // No hacer HTTP request, solo simular éxito
+                setTimeout(() => onSuccess('ok'), 0)
+              } catch (err) {
+                onError(err)
+              }
+            }}
           >
             <Space orientation="vertical" align="center" style={{ width: '100%' }}>
               <div style={{
