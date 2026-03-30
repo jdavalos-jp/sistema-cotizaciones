@@ -97,11 +97,11 @@ export default function ComponentesListPage() {
               prefix={<SearchOutlined />}
               value={searchTerm}
               onChange={(e) => handleSearch(e.target.value)}
-              style={{ maxWidth: 700, marginRight: 17 }}
+              style={{ maxWidth: 708, marginRight: 17 }}
             />
           <Button type="primary" icon={<PlusOutlined />}>
-          Agregar Componente 
-        </Button>
+          Agregar Componente  
+          </Button>
           </div>
 
           <Table

@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useRef, useCallback, useEffect } from 'react'
 import {
   AutoComplete,
   Button,
@@ -9,13 +9,10 @@ import {
   Col,
   Divider,
   message,
-} from 'antd';
-import {
-  UserOutlined,
-  PlusOutlined,
-} from '@ant-design/icons';
-import { fetchClienteById } from '../../services/api/clientesApi';
-import { safeRender } from '../../../../shared/utils/safeRender';
+} from 'antd'
+import { UserOutlined, PlusOutlined } from '@ant-design/icons'
+import { fetchClienteById } from '../../services/api/clientesApi'
+import { safeRender } from '../../../../shared/utils/safeRender'
 
 function ClienteDatosSection({
   clientes,
@@ -25,33 +22,75 @@ function ClienteDatosSection({
   setClienteLabel,
   onNewCliente,
 }) {
-  const [clienteData, setClienteData] = useState(null);
-  const [loadingCliente, setLoadingCliente] = useState(false);
+  const [clienteData, setClienteData] = useState(null)
+  const [loadingCliente, setLoadingCliente] = useState(false)
 
-  const handleSelectCliente = async (value) => {
-    setIdCliente(value);
-    const label = clientes.options.find((o) => o.value === value)?.label ?? value;
-    setClienteLabel(label);
-    clientes.setSearch(label);
+  // Caché en memoria: evita re-fetches al reseleccionar el mismo cliente en la sesión
+  const clienteCache = useRef(new Map())
 
-    setLoadingCliente(true);
+  // Referencia al AbortController activo: cancela el request previo si el usuario
+  // cambia de cliente antes de que llegue la respuesta (evita race condition)
+  const abortRef = useRef(null)
+
+  // Evita llamar setState sobre un componente ya desmontado.
+  // Escenario típico: usuario navega fuera mientras hay un fetch en vuelo.
+  const mountedRef = useRef(true)
+
+  useEffect(() => {
+    mountedRef.current = true
+    return () => {
+      mountedRef.current = false
+      abortRef.current?.abort() // cancelar cualquier request en vuelo al desmontar
+    }
+  }, [])
+
+  const handleSelectCliente = useCallback(async (value) => {
+    setIdCliente(value)
+
+    const label = clientes.options.find((o) => o.value === value)?.label ?? value
+    setClienteLabel(label)
+    clientes.setSearch(label)
+
+    // Cancelar request previo en vuelo antes de lanzar uno nuevo
+    abortRef.current?.abort()
+    abortRef.current = new AbortController()
+
+    // Servir desde caché si ya fue cargado antes en esta sesión
+    if (clienteCache.current.has(value)) {
+      setClienteData(clienteCache.current.get(value))
+      return
+    }
+
+    setLoadingCliente(true)
     try {
-      const cliente = await fetchClienteById(value);
-      setClienteData(cliente);
-    } catch {
-      message.error('No se pudieron cargar los datos del cliente');
-    } finally {
-      setLoadingCliente(false);
-    }
-  };
+      const cliente = await fetchClienteById(value, { signal: abortRef.current.signal })
 
-  const handleSearchChange = (v) => {
-    clientes.setSearch(v);
-    if (idCliente && v !== clienteLabel) {
-      setIdCliente(null);
-      setClienteData(null);
+      // Solo actualizar estado si el componente sigue montado
+      if (!mountedRef.current) return
+
+      clienteCache.current.set(value, cliente)
+      setClienteData(cliente)
+    } catch (err) {
+      // AbortError es intencional (cambio de cliente o desmonte), no mostrar error
+      if (err.name !== 'AbortError' && mountedRef.current) {
+        message.error('No se pudieron cargar los datos del cliente')
+      }
+    } finally {
+      if (mountedRef.current) setLoadingCliente(false)
     }
-  };
+  }, [clientes, setIdCliente, setClienteLabel])
+
+  const handleSearchChange = useCallback((v) => {
+    clientes.setSearch(v)
+
+    // Si el usuario edita el texto después de haber seleccionado un cliente,
+    // limpiar la selección para que no queden datos huérfanos en pantalla
+    if (idCliente && v !== clienteLabel) {
+      setIdCliente(null)
+      setClienteData(null)
+      abortRef.current?.abort()
+    }
+  }, [idCliente, clienteLabel, clientes, setIdCliente])
 
   return (
     <Card
@@ -71,6 +110,7 @@ function ClienteDatosSection({
         </Button>
       }
     >
+      {/* orientation="vertical" es la prop correcta en antd v6 — direction está deprecado */}
       <Space orientation="vertical" style={{ width: '100%' }} size={12}>
         <div>
           <Typography.Text type="secondary">Seleccionar cliente *</Typography.Text>
@@ -90,7 +130,11 @@ function ClienteDatosSection({
         </div>
 
         {idCliente && clienteData && (
-          <>
+          // key={idCliente}: fuerza remount limpio del subtree al cambiar de cliente.
+          // Corrige el NotFoundError "removeChild" causado por nodos que React intenta
+          // eliminar pero que ya fueron movidos (extensiones del navegador como Google
+          // Translate, o renders concurrentes en vuelo).
+          <React.Fragment key={idCliente}>
             <Divider style={{ margin: '12px 0' }} />
             <div>
               <Typography.Text strong style={{ fontSize: '14px' }}>
@@ -102,7 +146,8 @@ function ClienteDatosSection({
                     Nombre
                   </Typography.Text>
                   <div style={{ fontSize: '16px', fontWeight: 500, marginTop: 4 }}>
-                    {safeRender(clienteData?.nombreCompleto)}
+                    {/* Sin optional chaining: clienteData está garantizado por el guard superior */}
+                    {safeRender(clienteData.nombreCompleto)}
                   </div>
                 </Col>
                 <Col xs={24} sm={12}>
@@ -110,7 +155,7 @@ function ClienteDatosSection({
                     Correo
                   </Typography.Text>
                   <div style={{ fontSize: '16px', fontWeight: 500, marginTop: 4 }}>
-                    {safeRender(clienteData?.email)}
+                    {safeRender(clienteData.email)}
                   </div>
                 </Col>
                 <Col xs={24} sm={12}>
@@ -118,7 +163,7 @@ function ClienteDatosSection({
                     Teléfono
                   </Typography.Text>
                   <div style={{ fontSize: '16px', fontWeight: 500, marginTop: 4 }}>
-                    {safeRender(clienteData?.telefono)}
+                    {safeRender(clienteData.telefono)}
                   </div>
                 </Col>
                 {clienteData.institucion && (
@@ -127,17 +172,17 @@ function ClienteDatosSection({
                       Razón Social
                     </Typography.Text>
                     <div style={{ fontSize: '16px', fontWeight: 500, marginTop: 4 }}>
-                      {safeRender(clienteData?.institucion)}
+                      {safeRender(clienteData.institucion)}
                     </div>
                   </Col>
                 )}
               </Row>
             </div>
-          </>
+          </React.Fragment>
         )}
       </Space>
     </Card>
-  );
+  )
 }
 
-export default ClienteDatosSection;
+export default ClienteDatosSection

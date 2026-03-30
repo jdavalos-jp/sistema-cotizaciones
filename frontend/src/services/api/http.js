@@ -1,209 +1,199 @@
 /**
- * Get API base URL from environment or default to '/api' (proxied by Vite)
+ * Obtiene la URL base de la API desde el entorno o usa '/api' (proxy Vite)
  */
 export function getApiBaseUrl() {
   return import.meta.env.VITE_API_BASE_URL || '/api'
 }
 
 /**
- * Espera exponencialmente para reintentos
+ * Espera exponencial para reintentos, con un máximo de 10s
  */
 function getBackoffDelay(attempt) {
-  return Math.min(1000 * Math.pow(2, attempt), 10000) // max 10s
+  return Math.min(1000 * Math.pow(2, attempt), 10000)
 }
 
 /**
- * Realiza request con reintentos automáticos
+ * Combina el signal de timeout interno con el signal externo del usuario.
+ * Si cualquiera de los dos aborta, el fetch se cancela.
+ *
+ * IMPORTANTE: Esto corrige el bug donde fetchWithRetry pisaba el signal
+ * externo con su propio AbortController interno, haciendo que la cancelación
+ * desde componentes (ej. AbortController en useEffect) no tuviera efecto real.
  */
-async function fetchWithRetry(url, options, { maxRetries = 3, timeout = 30000 } = {}) {
-  let lastError;
+function mergeSignals(...signals) {
+  const validSignals = signals.filter(Boolean)
+  if (validSignals.length === 0) return undefined
+  if (validSignals.length === 1) return validSignals[0]
+
+  const controller = new AbortController()
+
+  for (const signal of validSignals) {
+    if (signal.aborted) {
+      controller.abort(signal.reason)
+      break
+    }
+    signal.addEventListener('abort', () => controller.abort(signal.reason), { once: true })
+  }
+
+  return controller.signal
+}
+
+/**
+ * Realiza un request con reintentos automáticos y backoff exponencial.
+ * Respeta el signal externo del usuario Y aplica un timeout interno.
+ */
+async function fetchWithRetry(url, options = {}, { maxRetries = 3, timeout = 30000 } = {}) {
+  const { signal: externalSignal, ...restOptions } = options
+  let lastError
 
   for (let attempt = 0; attempt <= maxRetries; attempt++) {
-    let timeoutId;
+    const timeoutController = new AbortController()
+    const timeoutId = setTimeout(() => timeoutController.abort(), timeout)
+
     try {
-      const controller = new AbortController();
-      timeoutId = setTimeout(() => controller.abort(), timeout);
+      const mergedSignal = mergeSignals(externalSignal, timeoutController.signal)
 
       const res = await fetch(url, {
-        ...options,
-        signal: controller.signal,
-      });
+        ...restOptions,
+        signal: mergedSignal,
+      })
 
-      clearTimeout(timeoutId);
-      return res;
+      clearTimeout(timeoutId)
+      return res
     } catch (err) {
-      if (timeoutId) clearTimeout(timeoutId);
-      lastError = err;
+      clearTimeout(timeoutId)
+      lastError = err
 
-      // No reintentar si fue cancelado por el usuario
-      if (err.name === 'AbortError') {
-        throw err;
-      }
+      // Si el usuario canceló manualmente, no reintentar
+      if (externalSignal?.aborted) throw err
 
-      // Reintentar solo en errores de red
+      // Si fue AbortError por timeout u otro motivo, no reintentar
+      if (err.name === 'AbortError') throw err
+
+      // Solo reintentar en errores de red
       if (attempt < maxRetries) {
-        const delay = getBackoffDelay(attempt);
-        await new Promise((resolve) => setTimeout(resolve, delay));
+        await new Promise((resolve) => setTimeout(resolve, getBackoffDelay(attempt)))
       }
     }
   }
 
-  throw lastError;
+  throw lastError
 }
 
 /**
- * Maneja respuestas de error HTTP
+ * Parsea el cuerpo del error HTTP (JSON o texto plano)
  */
 async function handleErrorResponse(res) {
-  const contentType = res.headers.get('content-type') || '';
-  let errorMessage = `HTTP ${res.status}`;
+  const contentType = res.headers.get('content-type') || ''
+  let errorMessage = `HTTP ${res.status}`
 
   try {
     if (contentType.includes('application/json')) {
-      const data = await res.json();
-      errorMessage = data.message || data.error || errorMessage;
+      const data = await res.json()
+      errorMessage = data.message || data.error || errorMessage
     } else {
-      const text = await res.text();
-      if (text) errorMessage = text;
+      const text = await res.text()
+      if (text) errorMessage = text
     }
-  } catch (err) {
-    // Ignorar error al parsear
+  } catch {
+    // Ignorar error al parsear — el mensaje base es suficiente
   }
 
-  return new Error(errorMessage);
+  const error = new Error(errorMessage)
+  error.status = res.status
+  return error
 }
 
+/**
+ * Parsea la respuesta según el tipo esperado
+ */
+async function parseResponse(res, responseType) {
+  if (responseType === 'blob') return res.blob()
+
+  const contentType = res.headers.get('content-type') || ''
+  if (contentType.includes('application/pdf')) return res.arrayBuffer()
+
+  return res.json()
+}
+
+// ─────────────────────────────────────────────
+// Métodos públicos de la API
+// ─────────────────────────────────────────────
+
 export async function apiGet(path, { signal, responseType = 'json', headers } = {}) {
-  const url = `${getApiBaseUrl()}${path}`;
+  const url = `${getApiBaseUrl()}${path}`
 
   const res = await fetchWithRetry(url, {
     method: 'GET',
     headers: headers || {},
     signal,
-  });
+  })
 
-  if (!res.ok) {
-    throw await handleErrorResponse(res);
-  }
+  if (!res.ok) throw await handleErrorResponse(res)
 
-  if (responseType === 'blob') {
-    return res.blob();
-  }
-
-  return res.json();
+  return parseResponse(res, responseType)
 }
 
 export async function apiPost(path, body, { signal, headers, responseType = 'json' } = {}) {
-  const url = `${getApiBaseUrl()}${path}`;
-
-  // Detectar si el body es FormData
-  const isFormData = body instanceof FormData;
+  const url = `${getApiBaseUrl()}${path}`
+  const isFormData = body instanceof FormData
 
   const requestOptions = {
     method: 'POST',
     signal,
-  };
-
-  // Si es FormData, NO setear Content-Type (navegador lo hace automáticamente)
-  // Si es JSON, setear Content-Type
-  if (!isFormData) {
-    requestOptions.headers = {
-      'Content-Type': 'application/json',
-      ...(headers || {}),
-    };
-    requestOptions.body = JSON.stringify(body ?? {});
-  } else {
-    requestOptions.headers = headers || {};
-    requestOptions.body = body; // FormData sin stringify
+    headers: isFormData
+      ? headers || {}
+      : { 'Content-Type': 'application/json', ...(headers || {}) },
+    body: isFormData ? body : JSON.stringify(body ?? {}),
   }
 
-  const res = await fetchWithRetry(url, requestOptions);
+  const res = await fetchWithRetry(url, requestOptions)
 
-  if (!res.ok) {
-    throw await handleErrorResponse(res);
-  }
+  if (!res.ok) throw await handleErrorResponse(res)
 
-  if (responseType === 'blob') {
-    return res.blob();
-  }
-
-  const contentType = res.headers.get('content-type') || '';
-  if (contentType.includes('application/pdf')) {
-    return res.arrayBuffer();
-  }
-
-  return res.json();
+  return parseResponse(res, responseType)
 }
 
 export async function apiPut(path, body, { signal, headers, responseType = 'json' } = {}) {
-  const url = `${getApiBaseUrl()}${path}`;
+  const url = `${getApiBaseUrl()}${path}`
 
   const res = await fetchWithRetry(url, {
     method: 'PUT',
-    headers: {
-      'Content-Type': 'application/json',
-      ...(headers || {}),
-    },
+    headers: { 'Content-Type': 'application/json', ...(headers || {}) },
     body: JSON.stringify(body ?? {}),
     signal,
-  });
+  })
 
-  if (!res.ok) {
-    throw await handleErrorResponse(res);
-  }
+  if (!res.ok) throw await handleErrorResponse(res)
 
-  if (responseType === 'blob') {
-    return res.blob();
-  }
-
-  return res.json();
+  return parseResponse(res, responseType)
 }
 
 export async function apiPatch(path, body, { signal, headers, responseType = 'json' } = {}) {
-  const url = `${getApiBaseUrl()}${path}`;
+  const url = `${getApiBaseUrl()}${path}`
 
   const res = await fetchWithRetry(url, {
     method: 'PATCH',
-    headers: {
-      'Content-Type': 'application/json',
-      ...(headers || {}),
-    },
+    headers: { 'Content-Type': 'application/json', ...(headers || {}) },
     body: JSON.stringify(body ?? {}),
     signal,
-  });
+  })
 
-  if (!res.ok) {
-    throw await handleErrorResponse(res);
-  }
+  if (!res.ok) throw await handleErrorResponse(res)
 
-  if (responseType === 'blob') {
-    return res.blob();
-  }
-
-  const contentType = res.headers.get('content-type') || '';
-  if (contentType.includes('application/pdf')) {
-    return res.arrayBuffer();
-  }
-
-  return res.json();
+  return parseResponse(res, responseType)
 }
 
 export async function apiDelete(path, { signal, headers, responseType = 'json' } = {}) {
-  const url = `${getApiBaseUrl()}${path}`;
+  const url = `${getApiBaseUrl()}${path}`
 
   const res = await fetchWithRetry(url, {
     method: 'DELETE',
     headers: headers || {},
     signal,
-  });
+  })
 
-  if (!res.ok) {
-    throw await handleErrorResponse(res);
-  }
+  if (!res.ok) throw await handleErrorResponse(res)
 
-  if (responseType === 'blob') {
-    return res.blob();
-  }
-
-  return res.json();
+  return parseResponse(res, responseType)
 }

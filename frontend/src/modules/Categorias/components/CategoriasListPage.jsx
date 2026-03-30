@@ -21,7 +21,7 @@ export default function CategoriasListPage() {
     setPagination((prev) => ({ ...prev, current: 1 }))
     try {
       await loadCategorias(0, value)
-    } catch {}
+    } catch { }
   }
 
   const handlePaginationChange = async (page) => {
@@ -29,7 +29,7 @@ export default function CategoriasListPage() {
     setPagination((prev) => ({ ...prev, current: page }))
     try {
       await loadCategorias(skip, searchTerm)
-    } catch {}
+    } catch { }
   }
 
   const handleShowSizeChange = async (current, pageSize) => {
@@ -38,7 +38,7 @@ export default function CategoriasListPage() {
     setPagination((prev) => ({ ...prev, current, pageSize }))
     try {
       await loadCategorias(skip, searchTerm)
-    } catch {}
+    } catch { }
   }
 
   const handleDelete = async (idCategoria) => {
@@ -86,9 +86,6 @@ export default function CategoriasListPage() {
           </Typography.Title>
           <Typography.Text type="secondary">Gestión de categorías de productos</Typography.Text>
         </div>
-        <Button type="primary" icon={<PlusOutlined />} >
-          Agregar Categoría
-        </Button>
       </div>
 
       <Card>
@@ -99,8 +96,11 @@ export default function CategoriasListPage() {
               prefix={<SearchOutlined />}
               value={searchTerm}
               onChange={(e) => handleSearch(e.target.value)}
-              style={{ maxWidth: 300 }}
+              style={{ maxWidth: 730, marginRight: 17 }}
             />
+            < button type="primary" icon={<PlusOutlined />}>
+              Agregar Categoría
+            </button>
           </div>
 
           <Table

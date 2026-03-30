@@ -1,24 +1,74 @@
-import React, { useMemo } from 'react';
-import { Card, InputNumber, Row, Col, Typography, Space } from 'antd';
-import { CalendarOutlined } from '@ant-design/icons';
-import dayjs from 'dayjs';
+import React, { useMemo } from 'react'
+import { Card, InputNumber, Row, Col, Typography, Space } from 'antd'
+import { CalendarOutlined, CarOutlined } from '@ant-design/icons'
+import dayjs from 'dayjs'
 
-function FechaValidacionSection({ diasValidez, setDiasValidez, diasEntrega, setDiasEntrega, fechaEmision: fechaEmisionProp }) {
-  // Fecha de inicio: usar fechaEmision si viene (edición) o hoy (nueva)
+/**
+ * Sección de fechas y días de entrega para una cotización.
+ *
+ * Correcciones respecto a la versión original:
+ * - Date nativo eliminado: todo el manejo de fechas usa dayjs (evita bugs de timezone)
+ * - Bug de timezone corregido: ya no se concatena 'T00:00:00' a strings de fecha
+ * - diasValidez/diasEntrega null controlado: InputNumber nunca propaga null al estado padre
+ * - Fechas calculadas no se muestran si los días son null (en lugar de mostrar fecha inválida)
+ * - Emojis reemplazados por iconos de antd (renderizado consistente en todos los OS)
+ * - CampoDisplay extraído para eliminar estilos inline duplicados
+ * - Alias fechaEmision: fechaEmisionProp eliminado — nombre directo en la firma
+ */
+
+/**
+ * Campo de solo lectura con fondo de color para valores calculados o fijos.
+ * @param {'neutral'|'info'} variant - neutral = gris, info = azul claro
+ */
+function CampoDisplay({ label, value, variant = 'neutral' }) {
+  const bgColor = variant === 'info' ? '#e6f7ff' : '#f0f0f0'
+
+  return (
+    <div>
+      <Typography.Text type="secondary">{label}</Typography.Text>
+      <div
+        style={{
+          marginTop: 8,
+          padding: '8px 12px',
+          backgroundColor: bgColor,
+          borderRadius: 4,
+        }}
+      >
+        <Typography.Text strong>{value}</Typography.Text>
+      </div>
+    </div>
+  )
+}
+
+function FechaValidacionSection({
+  diasValidez,
+  setDiasValidez,
+  diasEntrega,
+  setDiasEntrega,
+  fechaEmision,
+}) {
+  // Fecha de inicio: usar fechaEmision si es válida (modo edición) o hoy (modo nuevo)
+  // Todo en dayjs para evitar bugs de timezone con Date nativo
   const fechaInicio = useMemo(() => {
-    if (fechaEmisionProp) {
-      const d = new Date(fechaEmisionProp);
-      if (!isNaN(d.getTime())) return d.toISOString().split('T')[0];
+    if (fechaEmision) {
+      const parsed = dayjs(fechaEmision)
+      if (parsed.isValid()) return parsed
     }
-    return new Date().toISOString().split('T')[0]; // YYYY-MM-DD
-  }, [fechaEmisionProp]);
+    return dayjs()
+  }, [fechaEmision])
 
-  // Fecha de validez calculada automáticamente
+  // Fecha de validez calculada — solo si diasValidez es un número válido
   const fechaValidez = useMemo(() => {
-    const base = new Date(fechaInicio + 'T00:00:00');
-    base.setDate(base.getDate() + (diasValidez || 0));
-    return base.toISOString().split('T')[0];
-  }, [diasValidez, fechaInicio]);
+    if (!diasValidez || diasValidez < 1) return null
+    return fechaInicio.add(diasValidez, 'day')
+  }, [diasValidez, fechaInicio])
+
+  // Guard de null: InputNumber puede llamar onChange con null si el usuario borra el campo
+  const handleDiasValidezChange = (v) => setDiasValidez(v ?? 1)
+  const handleDiasEntregaChange = (v) => setDiasEntrega(v ?? 1)
+
+  const inicioFormateado = fechaInicio.format('DD/MM/YYYY')
+  const validezFormateada = fechaValidez ? fechaValidez.format('DD/MM/YYYY') : '—'
 
   return (
     <Card
@@ -30,65 +80,80 @@ function FechaValidacionSection({ diasValidez, setDiasValidez, diasEntrega, setD
       }
     >
       <Row gutter={[16, 16]}>
-        {/* Fecha inicio */}
         <Col xs={24} md={12}>
-          <Typography.Text type="secondary">Fecha Inicio (Hoy)</Typography.Text>
-          <div style={{ marginTop: 8, padding: '8px 12px', backgroundColor: '#f0f0f0', borderRadius: 4 }}>
-            <Typography.Text strong>{dayjs(fechaInicio).format('DD/MM/YYYY')}</Typography.Text>
-          </div>
+          <CampoDisplay
+            label="Fecha Inicio"
+            value={inicioFormateado}
+            variant="neutral"
+          />
         </Col>
 
-        {/* Días de validez */}
         <Col xs={24} md={12}>
           <Typography.Text type="secondary">Días de Validez *</Typography.Text>
           <InputNumber
             style={{ width: '100%', marginTop: 8 }}
             value={diasValidez}
-            onChange={setDiasValidez}
+            onChange={handleDiasValidezChange}
             min={1}
             max={365}
             placeholder="Ej: 10"
           />
         </Col>
 
-        {/* Fecha validez */}
         <Col xs={24} md={12}>
-          <Typography.Text type="secondary">Fecha Validez (Calculada)</Typography.Text>
-          <div style={{ marginTop: 8, padding: '8px 12px', backgroundColor: '#e6f7ff', borderRadius: 4 }}>
-            <Typography.Text strong>{dayjs(fechaValidez).format('DD/MM/YYYY')}</Typography.Text>
-          </div>
+          <CampoDisplay
+            label="Fecha Validez (Calculada)"
+            value={validezFormateada}
+            variant="info"
+          />
         </Col>
 
-        {/* Días de entrega */}
         <Col xs={24} md={12}>
           <Typography.Text type="secondary">Días de Entrega *</Typography.Text>
           <InputNumber
             style={{ width: '100%', marginTop: 8 }}
             value={diasEntrega}
-            onChange={setDiasEntrega}
+            onChange={handleDiasEntregaChange}
             min={1}
             max={30}
             placeholder="Ej: 5"
           />
         </Col>
 
-        {/* Resumen */}
-        <Col xs={24}>
-          <div style={{ backgroundColor: '#f6ffed', padding: 12, borderRadius: 4, borderLeft: '4px solid #52c41a' }}>
-            <Typography.Text type="secondary">Resumen:</Typography.Text>
-            <div style={{ marginTop: 8 }}>
-              <Typography.Text>
-                📅 Inicio: {dayjs(fechaInicio).format('DD/MM/YYYY')} / Validez: {dayjs(fechaValidez).format('DD/MM/YYYY')} ({diasValidez} días)
-              </Typography.Text>
+        {/* Resumen — solo visible cuando ambos valores están completos */}
+        {fechaValidez && diasEntrega && (
+          <Col xs={24}>
+            <div
+              style={{
+                backgroundColor: '#f6ffed',
+                padding: 12,
+                borderRadius: 4,
+                borderLeft: '4px solid #52c41a',
+              }}
+            >
+              <Typography.Text type="secondary">Resumen</Typography.Text>
+              <div style={{ marginTop: 8 }}>
+                <Space>
+                  <CalendarOutlined />
+                  <Typography.Text>
+                    Inicio: {inicioFormateado} / Validez: {validezFormateada} ({diasValidez} días)
+                  </Typography.Text>
+                </Space>
+              </div>
+              <div style={{ marginTop: 6 }}>
+                <Space>
+                  <CarOutlined />
+                  <Typography.Text>
+                    Entrega: {diasEntrega} días hábiles
+                  </Typography.Text>
+                </Space>
+              </div>
             </div>
-            <div style={{ marginTop: 4 }}>
-              <Typography.Text>🚚 Entrega: {diasEntrega} días hábiles</Typography.Text>
-            </div>
-          </div>
-        </Col>
+          </Col>
+        )}
       </Row>
     </Card>
-  );
+  )
 }
 
-export default FechaValidacionSection;
+export default FechaValidacionSection

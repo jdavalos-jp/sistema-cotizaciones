@@ -302,20 +302,19 @@ function Productos() {
         title={productoEditando ? '✏️ Editar Producto' : '👁️ Detalles del Producto'}
         placement="right"
         onClose={() => setDrawerEditar(false)}
-        open={drawerEditar}
+        open={drawerEditar && !!productoEditando}
         width={700}
         bodyStyle={{ paddingBottom: 80 }}
       >
-        {productoEditando && (
-          <ProductoForm
-            idProductoEdit={productoEditando.idProducto}
-            onSuccess={() => {
-              setDrawerEditar(false)
-              refresh()
-            }}
-            onCancel={() => setDrawerEditar(false)}
-          />
-        )}
+        <ProductoForm
+          key={productoEditando?.idProducto}
+          idProductoEdit={productoEditando?.idProducto}
+          onSuccess={() => {
+            setDrawerEditar(false)
+            refresh()
+          }}
+          onCancel={() => setDrawerEditar(false)}
+        />
       </Drawer>
     </div>
   )

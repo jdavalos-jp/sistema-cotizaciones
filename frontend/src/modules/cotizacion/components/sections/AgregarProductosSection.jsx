@@ -1,60 +1,86 @@
-import React, { useState } from 'react';
-import { Card, Select, InputNumber, Button, Row, Col, Typography, Space, message } from 'antd';
-import { PlusOutlined } from '@ant-design/icons';
+import React, { useState, useMemo, useCallback } from 'react'
+import { Card, Select, InputNumber, Button, Row, Col, Typography, Space, message } from 'antd'
+import { PlusOutlined } from '@ant-design/icons'
 
+/**
+ * Sección para agregar productos o componentes al carrito.
+ *
+ * Correcciones respecto a la versión original:
+ * - Eliminado optionFilterProp="label": conflicto con filterOption custom (antd ignora uno de los dos)
+ * - width: 160% reemplazado por span correcto en Col — no desborda en móvil
+ * - handleTypeChange limpia selectedId al cambiar tipo (evita ID huérfano en itemsMap)
+ * - cantidad nunca queda null en el estado — se fuerza a 1 si el usuario borra el campo
+ * - marginTop: 8 consistente en todos los inputs del Row
+ */
 function AgregarProductosSection({ productos, componentes, cart }) {
-  const [selectedId, setSelectedId] = useState(null);
-  const [selectedType, setSelectedType] = useState('producto');
-  const [cantidad, setCantidad] = useState(1);
+  const [selectedId, setSelectedId] = useState(null)
+  const [selectedType, setSelectedType] = useState('producto')
+  const [cantidad, setCantidad] = useState(1)
 
-  const items = selectedType === 'producto' ? productos.items : componentes.items;
-  const keyField = selectedType === 'producto' ? 'idProducto' : 'idComponente';
+  const items = selectedType === 'producto' ? productos.items : componentes.items
+  const keyField = selectedType === 'producto' ? 'idProducto' : 'idComponente'
+  const isLoading = selectedType === 'producto' ? productos.loading : componentes.loading
 
-  const options = items.map((item) => ({
-    label: `${item.nombre} (${item.sku || item.codigo || 'S/N'})`,
-    value: item[keyField],
-    nombreCompleto: item.nombre,
-    sku: item.sku || item.codigo || '',
-    item,
-  }));
+  // Memo para evitar recalcular opciones en cada render
+  const options = useMemo(() => {
+    return items.map((item) => ({
+      label: `${item.nombre} (${item.sku || item.codigo || 'S/N'})`,
+      value: item[keyField],
+      nombreCompleto: item.nombre,
+      sku: item.sku || item.codigo || '',
+    }))
+  }, [items, keyField])
 
-  const filterOption = (input, option) => {
-    const searchText = input.toLowerCase();
-    const nombre = (option?.nombreCompleto || '').toLowerCase();
-    const sku = (option?.sku || '').toLowerCase();
-    return nombre.includes(searchText) || sku.includes(searchText);
-  };
+  // Map para acceso O(1) al agregar
+  const itemsMap = useMemo(() => {
+    const map = new Map()
+    items.forEach((item) => map.set(item[keyField], item))
+    return map
+  }, [items, keyField])
 
-  const handleAgregar = () => {
-    if (!selectedId) return message.warning('Selecciona un producto o componente');
+  // Búsqueda por nombre o SKU — solo filterOption, sin optionFilterProp (conflicto en antd)
+  const filterOption = useCallback((input, option) => {
+    const search = input.toLowerCase()
+    return (
+      option?.nombreCompleto?.toLowerCase().includes(search) ||
+      option?.sku?.toLowerCase().includes(search)
+    )
+  }, [])
 
-    const item = items.find((i) => i[keyField] === selectedId);
-    if (!item) return;
+  // Limpiar selectedId al cambiar tipo para evitar IDs huérfanos en itemsMap
+  const handleTypeChange = useCallback((type) => {
+    setSelectedType(type)
+    setSelectedId(null)
+  }, [])
 
-    console.log(
-      '[AgregarProductosSection] Antes de agregar. Carrito actual:',
-      cart.cart.length,
-      'items'
-    );
+  // Nunca dejar cantidad en null si el usuario borra el campo
+  const handleCantidadChange = useCallback((v) => {
+    setCantidad(v ?? 1)
+  }, [])
+
+  const handleAgregar = useCallback(() => {
+    if (!selectedId) {
+      message.warning('Selecciona un producto o componente')
+      return
+    }
+
+    const item = itemsMap.get(selectedId)
+    if (!item) return
 
     cart.addItem({
       tipo: selectedType,
       id: selectedId,
       nombre: item.nombre,
+      // descripcion || description: inconsistencia del backend — normalizar en la capa de API
       descripcion: item.descripcion || item.description || '',
       cantidad: Math.max(1, Number(cantidad) || 1),
-    });
+    })
 
-    console.log(
-      '[AgregarProductosSection] Después de agregar. Carrito nuevo:',
-      cart.cart.length,
-      'items'
-    );
+    message.success(`${item.nombre} agregado al carrito`)
 
-    message.success(`${item.nombre} agregado al carrito`);
-    setSelectedId(null);
-    setCantidad(1);
-  };
+    setSelectedId(null)
+    setCantidad(1)
+  }, [selectedId, selectedType, cantidad, itemsMap, cart])
 
   return (
     <Card
@@ -66,12 +92,12 @@ function AgregarProductosSection({ productos, componentes, cart }) {
       }
     >
       <Row gutter={[14, 16]} align="bottom">
-        <Col xs={24} md={6}>
+        <Col xs={24} md={5}>
           <Typography.Text type="secondary">Tipo *</Typography.Text>
           <Select
             style={{ width: '100%', marginTop: 8 }}
             value={selectedType}
-            onChange={setSelectedType}
+            onChange={handleTypeChange}
             options={[
               { label: 'Producto', value: 'producto' },
               { label: 'Componente', value: 'componente' },
@@ -79,7 +105,7 @@ function AgregarProductosSection({ productos, componentes, cart }) {
           />
         </Col>
 
-        <Col xs={24} md={11}>
+        <Col xs={24} md={12}>
           <Typography.Text type="secondary">Selecciona producto *</Typography.Text>
           <Select
             style={{ width: '100%', marginTop: 8 }}
@@ -87,36 +113,35 @@ function AgregarProductosSection({ productos, componentes, cart }) {
             value={selectedId}
             onChange={setSelectedId}
             options={options}
-            loading={selectedType === 'producto' ? productos.loading : componentes.loading}
+            loading={isLoading}
             showSearch
             filterOption={filterOption}
-            optionFilterProp="label"
           />
         </Col>
 
         <Col xs={24} md={4}>
           <Typography.Text type="secondary">Cantidad</Typography.Text>
           <InputNumber
-            style={{ width: '100%' }}
+            style={{ width: '100%', marginTop: 8 }}
             min={1}
             value={cantidad}
-            onChange={setCantidad}
+            onChange={handleCantidadChange}
           />
         </Col>
 
-        <Col xs={24} md={2}>
+        <Col xs={24} md={3}>
           <Button
             type="primary"
             icon={<PlusOutlined />}
             onClick={handleAgregar}
-            style={{ width: '160%' }}
+            style={{ width: '100%', marginTop: 8 }}
           >
             Agregar
           </Button>
         </Col>
       </Row>
     </Card>
-  );
+  )
 }
 
-export default AgregarProductosSection;
+export default AgregarProductosSection
