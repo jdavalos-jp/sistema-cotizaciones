@@ -1,10 +1,13 @@
-import { Card, Button, Table, Input, Popconfirm, message, Typography, Spin, Select } from 'antd'
+import { Card, Button, Table, Input, message, Typography, Spin, Select, Modal } from 'antd'
 import { PlusOutlined, SearchOutlined } from '@ant-design/icons'
 import { useEffect, useState } from 'react'
+import { useNavigate } from 'react-router-dom'
 import { useClientes } from '../hooks/useClientes'
+import * as clientesApi from '../api/clientesApi'
 
 function ClientesListPage() {
   const [searchTerm, setSearchTerm] = useState('')
+  const navigate = useNavigate()
   const { clientes, loading, pagination, loadClientes, deleteCliente, setPagination } = useClientes()
 
   useEffect(() => {
@@ -38,23 +41,34 @@ function ClientesListPage() {
   }
 
   const handleDelete = async (idCliente) => {
-    const confirmed = window.confirm('¿Está seguro que desea eliminar este cliente?')
-    if (!confirmed) return
-
-    try {
-      deleteCliente(idCliente)
-      message.success('Cliente eliminado')
-    } catch {
-      message.error('Error al eliminar cliente')
-    }
+    Modal.confirm({
+      title: '¿Eliminar cliente?',
+      content: '¿Está seguro que desea eliminar este cliente? Esta acción no se puede deshacer.',
+      okText: 'Eliminar',
+      okType: 'danger',
+      cancelText: 'Cancelar',
+      onOk: async () => {
+        try {
+          await clientesApi.deleteCliente(idCliente)
+          deleteCliente(idCliente)
+          message.success('Cliente eliminado exitosamente')
+        } catch (error) {
+          message.error(error.message || 'Error al eliminar cliente')
+        }
+      },
+    })
   }
 
   const handleActionChange = (value, record) => {
     if (value === 'editar') {
-      console.log('Editar cliente:', record.idCliente)
+      navigate(`/clientes/editar/${record.idCliente}`)
     } else if (value === 'eliminar') {
       handleDelete(record.idCliente)
     }
+  }
+
+  const handleOpenModal = () => {
+    navigate('/clientes/crear')
   }
 
   const columns = [
@@ -100,7 +114,7 @@ function ClientesListPage() {
               onChange={(e) => handleSearch(e.target.value)}
               style={{ maxWidth: 737, marginRight: 17 }}
             />
-            <Button type="primary" icon={<PlusOutlined />}>
+            <Button type="primary" icon={<PlusOutlined />} onClick={handleOpenModal}>
               Agregar Cliente
             </Button>
           </div>

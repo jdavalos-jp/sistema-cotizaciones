@@ -12,6 +12,7 @@ import ProductoFormPage from './pages/Catalogo/ProductoFormPage.jsx'
 import CategoriasPage from './pages/Catalogo/CategoriasPage.jsx'
 import ComponentesPage from './pages/Catalogo/ComponentesPage.jsx'
 import ClientesPage from './pages/Clientes/ClientesPage.jsx'
+import ClienteFormPage from './pages/Clientes/ClienteFormPage.jsx'
 import CotizacionNuevaPage from './pages/Cotizaciones/CotizacionNuevaPage.jsx'
 import HistorialCotizacionesPage from './pages/Cotizaciones/HistorialCotizacionesPage.jsx'
 import ProformasPage from './pages/Documentos/ProformasPage.jsx'
@@ -43,6 +44,8 @@ export default function App() {
 
               {/* Clientes */}
               <Route path="/clientes" element={<ClientesPage />} />
+              <Route path="/clientes/crear" element={<ClienteFormPage />} />
+              <Route path="/clientes/editar/:id" element={<ClienteFormPage />} />
 
               {/* Cotizaciones */}
               <Route path="/cotizaciones/nueva" element={<CotizacionNuevaPage />} />
