@@ -1,0 +1,1 @@
+explicame  este codigo paso a paso como si fuera  junior developer, indicando que hace cada parte y  por que y aclara los conceptos clave que deberia entender
