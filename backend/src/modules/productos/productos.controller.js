@@ -84,6 +84,7 @@ async function create(req, res) {
     sku: validated.sku,
     idCategoria: validated.idCategoria,
     idSubcategoria: validated.idSubcategoria,
+    componentes: validated.componentes,
   });
 
   console.log('✅ [PRODUCTOS] Producto creado con ID:', producto.idProducto);

@@ -16,14 +16,18 @@ const ComponenteSchema = z.object({
     .pipe(z.coerce.number().int().positive('Cantidad de componente debe ser positiva'))
     .default(1),
   precioReferencial: z
-    .union([z.number(), z.string()])
-    .pipe(z.coerce.number().int().positive('Precio referencial debe ser un número positivo'))
+    .union([z.number(), z.string(), z.null(), z.undefined()])
     .optional()
-    .nullable(),
+    .nullable()
+    .transform((val) => {
+      if (val === null || val === undefined) return null;
+      const num = Number(val);
+      if (isNaN(num) || num <= 0) throw new Error('Precio referencial debe ser un número positivo');
+      return num;
+    }),
   observaciones: z
     .string()
     .max(500, 'Observaciones no pueden exceder 500 caracteres')
-    .trim()
     .optional()
     .nullable(),
 });
@@ -66,7 +70,7 @@ const CreateProductoSchema = z.object({
     .array(ComponenteSchema)
     .optional()
     .nullable()
-    .default([]),
+    .transform((val) => val || []),
 });
 
 const UpdateProductoSchema = CreateProductoSchema.partial();
@@ -177,7 +181,7 @@ function validate(schema, data) {
   try {
     return schema.parse(data);
   } catch (error) {
-    if (error instanceof z.ZodError) {
+    if (error instanceof z.ZodError && error.errors) {
       const messages = error.errors.map((e) => `${e.path.join('.')}: ${e.message}`);
       const { HttpError } = require('./httpError');
       throw new HttpError(400, messages.join('; '));
