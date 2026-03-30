@@ -45,20 +45,30 @@ function ProductoForm({ onSuccess, onCancel, idProductoEdit = null }) {
     try {
       const options = await Promise.all(
         categorias.map(async (cat) => {
-          const subs = await productosApi.getSubcategoriasByCategoria(Number(cat.idCategoria)).catch(() => [])
-          return {
-            value: Number(cat.idCategoria),
-            label: cat.nombre,
-            ...(subs?.length && {
-              children: subs.map(sub => ({
-                value: Number(sub.idSubcategoria),
-                label: sub.nombre,
-              }))
-            })
+          try {
+            const subs = await productosApi.getSubcategoriasByCategoria(Number(cat.idCategoria))
+            return {
+              value: Number(cat.idCategoria),
+              label: cat.nombre,
+              ...(subs?.length && {
+                children: subs.map(sub => ({
+                  value: Number(sub.idSubcategoria),
+                  label: sub.nombre,
+                }))
+              })
+            }
+          } catch (err) {
+            console.error(`Error cargando subcategorías para ${cat.nombre}:`, err)
+            return {
+              value: Number(cat.idCategoria),
+              label: cat.nombre,
+            }
           }
         })
       )
       setCategoriaOptions(options)
+    } catch (err) {
+      message.error('Error al construir la jerarquía de categorías')
     } finally {
       setLoadingHierarchy(false)
     }
@@ -209,73 +219,71 @@ function ProductoForm({ onSuccess, onCancel, idProductoEdit = null }) {
             categoriaPath: [],
           }}
         >
-            <div style={{
-              marginBottom: token.marginMD,
-              padding: token.paddingSM,
-              background: token.colorBgElevated,
-              border: `1px solid ${token.colorPrimary}`,
-              borderRadius: token.borderRadiusLG,
-              display: uploadPhase ? 'flex' : 'none',
-              alignItems: 'center',
-              gap: token.marginSM,
-            }}>
-              <Spin size="small" />
-              <Text>{uploadPhase}</Text>
-            </div>
+          <div style={{
+            marginBottom: token.marginMD,
+            padding: token.paddingSM,
+            background: token.colorBgElevated,
+            border: `1px solid ${token.colorPrimary}`,
+            borderRadius: token.borderRadiusLG,
+            display: uploadPhase ? 'flex' : 'none',
+            alignItems: 'center',
+            gap: token.marginSM,
+          }}>
+            <Spin size="small" />
+            <Text>{uploadPhase}</Text>
+          </div>
 
-            <Row gutter={[16, 16]}>
-              <Col xs={24} sm={24} md={8} lg={8}>
-                <ProductoImagenYCategoria
-                  categoriaOptions={categoriaOptions}
-                  loadingCategorias={loadingCategorias}
-                  loadingHierarchy={loadingHierarchy}
-                  value={Form.useWatch('categoriaPath', form)}
-                  onChangeCategoria={(value) => form.setFieldsValue({ categoriaPath: value })}
-                  fileList={fileList}
-                  setFileList={setFileList}
-                  previewUrl={previewUrl}
-                  setPreviewUrl={setPreviewUrl}
-                  imageHovered={imageHovered}
-                  setImageHovered={setImageHovered}
-                  beforeUpload={beforeUpload}
-                  onDeleteImage={handleDeleteImage}
+          <Row gutter={[16, 16]}>
+            <Col xs={24} sm={24} md={8} lg={8}>
+              <ProductoImagenYCategoria
+                categoriaOptions={categoriaOptions}
+                loadingCategorias={loadingCategorias}
+                loadingHierarchy={loadingHierarchy}
+                fileList={fileList}
+                setFileList={setFileList}
+                previewUrl={previewUrl}
+                setPreviewUrl={setPreviewUrl}
+                imageHovered={imageHovered}
+                setImageHovered={setImageHovered}
+                beforeUpload={beforeUpload}
+                onDeleteImage={handleDeleteImage}
+              />
+            </Col>
+
+            <Col xs={24} sm={24} md={16} lg={16}>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: token.marginMD }}>
+                <ProductoInfoGeneral />
+                <ProductoInventarioPreciosMultimedia
+                  componentesAgregados={componentesAgregados}
+                  onAgregarComponente={(componente) =>
+                    setComponentesAgregados([...componentesAgregados, componente])
+                  }
+                  onEliminarComponente={(idComponente) =>
+                    setComponentesAgregados(componentesAgregados.filter((c) => c.idComponente !== idComponente))
+                  }
                 />
-              </Col>
+              </div>
+            </Col>
+          </Row>
 
-              <Col xs={24} sm={24} md={16} lg={16}>
-                <div style={{ display: 'flex', flexDirection: 'column', gap: token.marginMD }}>
-                  <ProductoInfoGeneral />
-                  <ProductoInventarioPreciosMultimedia
-                    componentesAgregados={componentesAgregados}
-                    onAgregarComponente={(componente) =>
-                      setComponentesAgregados([...componentesAgregados, componente])
-                    }
-                    onEliminarComponente={(idComponente) =>
-                      setComponentesAgregados(componentesAgregados.filter((c) => c.idComponente !== idComponente))
-                    }
-                  />
-                </div>
-              </Col>
-            </Row>
+          <Divider style={{ margin: `${token.marginLG}px 0` }} />
 
-            <Divider style={{ margin: `${token.marginLG}px 0` }} />
-
-            {/* Botones de acción */}
-            <Flex justify="flex-end" gap={token.marginMD}>
-              <Button onClick={onCancel} size="large" style={{ borderRadius: token.borderRadiusLG }}>
-                Cancelar
-              </Button>
-              <Button
-                type="primary"
-                htmlType="submit"
-                loading={submitting}
-                disabled={!canSubmit}
-                size="large"
-                style={{ borderRadius: token.borderRadiusLG, fontWeight: 600 }}
-              >
-                {idProductoEdit ? 'Actualizar Producto' : 'Crear Producto'}
-              </Button>
-            </Flex>
+          {/* Botones de acción */}
+          <Flex justify="flex-end" gap={token.marginMD}>
+            <Button onClick={onCancel} size="large" style={{ borderRadius: token.borderRadiusLG }} disabled={submitting}>
+              Cancelar
+            </Button>
+            <Button
+              type="primary"
+              htmlType="submit"
+              loading={submitting}
+              disabled={submitting || !canSubmit}
+              size="large"
+              style={{ borderRadius: token.borderRadiusLG, fontWeight: 600 }}
+            >
+              {idProductoEdit ? 'Actualizar Producto' : 'Crear Producto'}
+            </Button>
+          </Flex>
         </Form>
       )}
     </div>

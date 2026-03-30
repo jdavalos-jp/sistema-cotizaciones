@@ -2,9 +2,7 @@ import React, { useState, useEffect } from 'react'
 import {
   Button,
   Card,
-  Form,
   InputNumber,
-  Input,
   Table,
   Select,
   Space,
@@ -24,7 +22,8 @@ export default function ProductoComponentes({
   onEliminarComponente,
 }) {
   const { token } = theme.useToken()
-  const [form] = Form.useForm()
+  const [idComponente, setIdComponente] = useState(null)
+  const [cantidad, setCantidad] = useState(1)
   const [componentes, setComponentes] = useState([])
   const [loadingComponentes, setLoadingComponentes] = useState(false)
 
@@ -37,10 +36,10 @@ export default function ProductoComponentes({
         const list = Array.isArray(res) ? res : res?.data
         const options = Array.isArray(list)
           ? list.map((c) => ({
-              value: c.idComponente,
-              label: `${c.nombre} (${c.sku || 'N/A'})`,
-              ...c,
-            }))
+            value: c.idComponente,
+            label: `${c.nombre} (${c.sku || 'N/A'})`,
+            ...c,
+          }))
           : []
         setComponentes(options)
       } catch (err) {
@@ -53,36 +52,37 @@ export default function ProductoComponentes({
     cargarComponentes()
   }, [])
 
-  const handleAgregarComponente = async () => {
-    try {
-      const values = await form.validateFields()
-      const componenteSeleccionado = componentes.find((c) => c.value === values.idComponente)
-
-      if (!componenteSeleccionado) {
-        message.error('Componente no encontrado')
-        return
-      }
-
-      // Verificar si ya existe
-      if (componentesAgregados.some((c) => c.idComponente === values.idComponente)) {
-        message.warning('Este componente ya fue agregado')
-        return
-      }
-
-      const nuevoComponente = {
-        idComponente: values.idComponente,
-        nombre: componenteSeleccionado.nombre,
-        sku: componenteSeleccionado.sku,
-        precioBase: componenteSeleccionado.precio_base,
-        cantidad: values.cantidad || 1,
-      }
-
-      onAgregarComponente(nuevoComponente)
-      form.resetFields()
-      message.success('Componente agregado')
-    } catch (err) {
-      console.error(err)
+  const handleAgregarComponente = () => {
+    if (!idComponente) {
+      message.error('Selecciona un componente')
+      return
     }
+
+    const componenteSeleccionado = componentes.find((c) => c.value === idComponente)
+
+    if (!componenteSeleccionado) {
+      message.error('Componente no encontrado')
+      return
+    }
+
+    // Verificar si ya existe
+    if (componentesAgregados.some((c) => c.idComponente === idComponente)) {
+      message.warning('Este componente ya fue agregado')
+      return
+    }
+
+    const nuevoComponente = {
+      idComponente: idComponente,
+      nombre: componenteSeleccionado.nombre,
+      sku: componenteSeleccionado.sku,
+      precioBase: componenteSeleccionado.precio_base,
+      cantidad: cantidad || 1,
+    }
+
+    onAgregarComponente(nuevoComponente)
+    setIdComponente(null)
+    setCantidad(1)
+    message.success('Componente agregado')
   }
 
   const columns = [
@@ -155,46 +155,54 @@ export default function ProductoComponentes({
     >
       {/* Formulario para agregar componentes */}
       <div style={{ marginBottom: 24, padding: token.paddingSM, background: token.colorBgElevated, borderRadius: token.borderRadiusLG }}>
-        <Form form={form} layout="vertical">
-          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr auto', gap: 12 }}>
-            <Form.Item
-              label="Seleccionar Componente"
-              name="idComponente"
-              rules={[{ required: true, message: 'Selecciona un componente' }]}
-            >
-              <Select
-                placeholder="Buscar componente..."
-                loading={loadingComponentes}
-                showSearch
-                optionFilterProp="label"
-                filterOption={(input, option) => {
-                  const q = String(input || '').toLowerCase().trim()
-                  const label = String(option?.label || '').toLowerCase()
-                  const nombre = String(option?.nombre || '').toLowerCase()
-                  const sku = String(option?.sku || '').toLowerCase()
-                  return label.includes(q) || nombre.includes(q) || sku.includes(q)
-                }}
-                options={componentes}
-              />
-            </Form.Item>
-
-            <Form.Item label="Cantidad" name="cantidad" initialValue={1}>
-              <InputNumber min={1} style={{ width: '100%' }} />
-            </Form.Item>
-
-            <Form.Item label=" ">
-              <Button
-                type="primary"
-                icon={<PlusOutlined />}
-                onClick={handleAgregarComponente}
-                loading={loadingComponentes}
-                block
-              >
-                Agregar
-              </Button>
-            </Form.Item>
+        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr auto', gap: 12 }}>
+          <div>
+            <label style={{ display: 'block', marginBottom: 8, fontSize: 14, fontWeight: 500 }}>
+              Seleccionar Componente
+            </label>
+            <Select
+              placeholder="Buscar componente..."
+              loading={loadingComponentes}
+              showSearch
+              optionFilterProp="label"
+              filterOption={(input, option) => {
+                const q = String(input || '').toLowerCase().trim()
+                const label = String(option?.label || '').toLowerCase()
+                const nombre = String(option?.nombre || '').toLowerCase()
+                const sku = String(option?.sku || '').toLowerCase()
+                return label.includes(q) || nombre.includes(q) || sku.includes(q)
+              }}
+              options={componentes}
+              value={idComponente}
+              onChange={setIdComponente}
+              style={{ width: '100%' }}
+            />
           </div>
-        </Form>
+
+          <div>
+            <label style={{ display: 'block', marginBottom: 8, fontSize: 14, fontWeight: 500 }}>
+              Cantidad
+            </label>
+            <InputNumber
+              min={1}
+              style={{ width: '100%' }}
+              value={cantidad}
+              onChange={setCantidad}
+            />
+          </div>
+
+          <div style={{ display: 'flex', alignItems: 'flex-end' }}>
+            <Button
+              type="primary"
+              icon={<PlusOutlined />}
+              onClick={handleAgregarComponente}
+              loading={loadingComponentes}
+              block
+            >
+              Agregar
+            </Button>
+          </div>
+        </div>
       </div>
 
       {/* Tabla de componentes agregados */}

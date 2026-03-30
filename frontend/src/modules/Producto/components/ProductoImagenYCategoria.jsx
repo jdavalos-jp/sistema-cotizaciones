@@ -1,5 +1,5 @@
 import React, { useState } from 'react'
-import { Card, Cascader, Upload, Space, Typography, Button, message, theme, Skeleton, Flex } from 'antd'
+import { Card, Cascader, Form, Upload, Space, Typography, Button, message, theme, Skeleton, Flex } from 'antd'
 import { UploadOutlined, DeleteOutlined, PictureOutlined, FileImageOutlined } from '@ant-design/icons'
 
 const { Text } = Typography
@@ -9,43 +9,46 @@ export default function ProductoImagenYCategoria({
   categoriaOptions = [],
   loadingCategorias = false,
   loadingHierarchy = false,
-  value,
-  onChangeCategoria,
-  onImageChange,
+  fileList = [],
+  setFileList,
+  previewUrl = '',
+  setPreviewUrl,
+  beforeUpload,
+  onDeleteImage,
   initialFile = null,
 }) {
   const { token } = theme.useToken()
-  const [fileList, setFileList] = useState(initialFile ? [initialFile] : [])
-  const [previewUrl, setPreviewUrl] = useState(initialFile?.thumbUrl || '')
   const [hovered, setHovered] = useState(false)
 
   const handleUpload = ({ file, fileList: newList }) => {
     const newFileList = newList.slice(-1)
-    setFileList(newFileList)
-    
+    if (setFileList) setFileList(newFileList)
+
     if (file.status === 'removed') {
-      setPreviewUrl('')
-      onImageChange?.(null, null)
+      if (setPreviewUrl) setPreviewUrl('')
+      onDeleteImage?.()
       return
     }
-    
+
     if (file.originFileObj) {
       const reader = new FileReader()
       reader.onload = (e) => {
-        setPreviewUrl(e.target.result)
-        onImageChange?.(file.originFileObj, e.target.result)
+        if (setPreviewUrl) setPreviewUrl(e.target.result)
       }
       reader.readAsDataURL(file.originFileObj)
     }
   }
 
-  const beforeUpload = (file) => {
+  const internalBeforeUpload = (file) => {
+    if (beforeUpload) {
+      return beforeUpload(file)
+    }
     const isValidType = ['image/jpeg', 'image/png', 'image/webp'].includes(file.type)
     const isValidSize = file.size <= MAX_SIZE
-    
+
     if (!isValidType) message.error('Formato no permitido (JPG, PNG, WebP)')
     if (!isValidSize) message.error(`Máximo ${MAX_SIZE / 1024 / 1024}MB`)
-    
+
     return isValidType && isValidSize
   }
 
@@ -66,11 +69,11 @@ export default function ProductoImagenYCategoria({
             accept="image/jpeg,image/png,image/webp"
             maxCount={1}
             fileList={fileList}
-            beforeUpload={beforeUpload}
+            beforeUpload={() => false}
             onChange={handleUpload}
             showUploadList={false}
           >
-            <Space direction="vertical" align="center" style={{ width: '100%' }}>
+            <Space orientation="vertical" align="center" style={{ width: '100%' }}>
               <div style={{
                 width: 56, height: 56, borderRadius: '100%',
                 background: token.colorPrimaryBg, display: 'flex',
@@ -96,9 +99,9 @@ export default function ProductoImagenYCategoria({
               alignItems: 'center', justifyContent: 'center'
             }}>
               <Button danger icon={<DeleteOutlined />} onClick={() => {
-                setFileList([])
-                setPreviewUrl('')
-                onImageChange?.(null, null)
+                if (setFileList) setFileList([])
+                if (setPreviewUrl) setPreviewUrl('')
+                onDeleteImage?.()
               }}>Cambiar</Button>
             </div>
             <div style={{ display: fileList[0] ? 'block' : 'none' }}>
@@ -123,19 +126,30 @@ export default function ProductoImagenYCategoria({
         {(loadingCategorias || loadingHierarchy) ? (
           <Skeleton active paragraph={{ rows: 1 }} />
         ) : (
-          <Cascader
-            options={categoriaOptions}
-            placeholder="Selecciona una subcategoría"
-            loading={loadingCategorias || loadingHierarchy}
-            showSearch={{ filter: (input, path) => path.some(p => p.label.toLowerCase().includes(input.toLowerCase())) }}
-            allowClear
-            value={value}
-            onChange={onChangeCategoria}
-            style={{ width: '100%' }}
-          />
-        )}
-        {!loadingCategorias && !categoriaOptions?.length && (
-          <Text type="secondary">No hay categorías disponibles</Text>
+          <>
+            <Form.Item
+              name="categoriaPath"
+              rules={[
+                {
+                  required: true,
+                  message: 'Campo requerido - Selecciona una categoría y subcategoría',
+                },
+              ]}
+              style={{ marginBottom: 0 }}
+            >
+              <Cascader
+                options={categoriaOptions}
+                placeholder="Selecciona una subcategoría"
+                loading={loadingCategorias || loadingHierarchy}
+                showSearch={{ filter: (input, path) => path.some(p => p.label.toLowerCase().includes(input.toLowerCase())) }}
+                allowClear
+                style={{ width: '100%' }}
+              />
+            </Form.Item>
+            {!loadingCategorias && !categoriaOptions?.length && (
+              <Text type="secondary">No hay categorías disponibles</Text>
+            )}
+          </>
         )}
       </Card>
     </div>
