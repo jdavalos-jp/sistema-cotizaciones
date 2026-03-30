@@ -109,6 +109,7 @@ async function update(req, res) {
       sku: validated.sku,
       idCategoria: validated.idCategoria,
       idSubcategoria: validated.idSubcategoria,
+      componentes: validated.componentes,
     });
 
     res.json({ ok: true, data: producto });

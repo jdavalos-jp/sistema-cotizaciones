@@ -7,6 +7,27 @@ const { z } = require('zod');
 
 // ==================== PRODUCTOS ====================
 
+const ComponenteSchema = z.object({
+  idComponente: z
+    .union([z.number(), z.string(), z.bigint()])
+    .pipe(z.coerce.bigint().positive('idComponente debe ser un número positivo')),
+  cantidad: z
+    .union([z.number(), z.string()])
+    .pipe(z.coerce.number().int().positive('Cantidad de componente debe ser positiva'))
+    .default(1),
+  precioReferencial: z
+    .union([z.number(), z.string()])
+    .pipe(z.coerce.number().int().positive('Precio referencial debe ser un número positivo'))
+    .optional()
+    .nullable(),
+  observaciones: z
+    .string()
+    .max(500, 'Observaciones no pueden exceder 500 caracteres')
+    .trim()
+    .optional()
+    .nullable(),
+});
+
 const CreateProductoSchema = z.object({
   nombre: z
     .string()
@@ -41,6 +62,11 @@ const CreateProductoSchema = z.object({
     .optional()
     .nullable(),
   imagenPrincipal: z.string().url('imagenPrincipal debe ser una URL válida').optional().nullable(),
+  componentes: z
+    .array(ComponenteSchema)
+    .optional()
+    .nullable()
+    .default([]),
 });
 
 const UpdateProductoSchema = CreateProductoSchema.partial();

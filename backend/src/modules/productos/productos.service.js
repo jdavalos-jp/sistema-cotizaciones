@@ -215,6 +215,7 @@ async function createProducto({
   sku,
   idCategoria,
   idSubcategoria,
+  componentes = [],
 }) {
   if (!nombre?.trim()) {
     throw new HttpError(400, 'Nombre es requerido');
@@ -249,6 +250,24 @@ async function createProducto({
     }
   }
 
+  // Validar que los componentes existan antes de crear el producto
+  const componentesValidos = [];
+  if (Array.isArray(componentes) && componentes.length > 0) {
+    for (const comp of componentes) {
+      const compId = toBigInt(comp.idComponente, 'idComponente');
+      const componenteExistente = await prisma.componente.findUnique({
+        where: { idComponente: compId },
+      });
+      if (!componenteExistente) {
+        throw new HttpError(400, `Componente con ID ${comp.idComponente} no existe`);
+      }
+      componentesValidos.push({
+        ...comp,
+        idComponente: compId,
+      });
+    }
+  }
+
   const producto = await prisma.producto.create({
     data: {
       nombre: nombre.trim(),
@@ -259,6 +278,17 @@ async function createProducto({
       idCategoria: catId,
       idSubcategoria: subCatId,
       estado: 'activo',
+      // Crear relaciones con componentes si existen
+      ...(componentesValidos.length > 0 && {
+        componentes: {
+          create: componentesValidos.map((comp) => ({
+            idComponente: comp.idComponente,
+            cantidad: Number(comp.cantidad) || 1,
+            precioReferencial: comp.precioReferencial ? new Prisma.Decimal(comp.precioReferencial) : null,
+            observaciones: comp.observaciones?.trim() || null,
+          })),
+        },
+      }),
     },
     select: {
       idProducto: true,
@@ -279,6 +309,21 @@ async function createProducto({
       },
       categoria: { select: { nombre: true } },
       subcategoria: { select: { nombre: true } },
+      componentes: {
+        select: {
+          idProductoComponente: true,
+          cantidad: true,
+          precioReferencial: true,
+          observaciones: true,
+          componente: {
+            select: {
+              idComponente: true,
+              nombre: true,
+              precioBase: true,
+            },
+          },
+        },
+      },
     },
   });
 
@@ -293,6 +338,17 @@ async function createProducto({
     imagenes: producto.imagenes,
     categoria: producto.categoria,
     subcategoria: producto.subcategoria,
+    componentes: producto.componentes?.map((c) => ({
+      idProductoComponente: c.idProductoComponente,
+      cantidad: c.cantidad,
+      precioReferencial: c.precioReferencial,
+      observaciones: c.observaciones,
+      componente: {
+        idComponente: c.componente.idComponente,
+        nombre: c.componente.nombre,
+        precioBase: c.componente.precioBase,
+      },
+    })),
   });
 }
 
@@ -301,7 +357,7 @@ async function createProducto({
  */
 async function updateProducto(
   idProducto,
-  { nombre, descripcion, precioBase, cantidad, sku, idCategoria, idSubcategoria }
+  { nombre, descripcion, precioBase, cantidad, sku, idCategoria, idSubcategoria, componentes }
 ) {
   const prodId = toBigInt(idProducto, 'idProducto');
 
@@ -364,6 +420,41 @@ async function updateProducto(
     }
   }
 
+  // Procesar componentes si se proporcionan
+  if (componentes !== undefined) {
+    // Eliminar componentes actuales
+    await prisma.productoComponente.deleteMany({
+      where: { idProducto: prodId },
+    });
+
+    // Crear nuevos componentes si existen
+    if (Array.isArray(componentes) && componentes.length > 0) {
+      const componentesValidos = [];
+      for (const comp of componentes) {
+        const compId = toBigInt(comp.idComponente, 'idComponente');
+        const componenteExistente = await prisma.componente.findUnique({
+          where: { idComponente: compId },
+        });
+        if (!componenteExistente) {
+          throw new HttpError(400, `Componente con ID ${comp.idComponente} no existe`);
+        }
+        componentesValidos.push({
+          ...comp,
+          idComponente: compId,
+        });
+      }
+
+      data.componentes = {
+        create: componentesValidos.map((comp) => ({
+          idComponente: comp.idComponente,
+          cantidad: Number(comp.cantidad) || 1,
+          precioReferencial: comp.precioReferencial ? new Prisma.Decimal(comp.precioReferencial) : null,
+          observaciones: comp.observaciones?.trim() || null,
+        })),
+      };
+    }
+  }
+
   const producto = await prisma.producto.update({
     where: { idProducto: prodId },
     data,
@@ -385,6 +476,21 @@ async function updateProducto(
       },
       categoria: { select: { nombre: true } },
       subcategoria: { select: { nombre: true } },
+      componentes: {
+        select: {
+          idProductoComponente: true,
+          cantidad: true,
+          precioReferencial: true,
+          observaciones: true,
+          componente: {
+            select: {
+              idComponente: true,
+              nombre: true,
+              precioBase: true,
+            },
+          },
+        },
+      },
     },
   });
 
@@ -399,6 +505,17 @@ async function updateProducto(
     imagenes: producto.imagenes,
     categoria: producto.categoria,
     subcategoria: producto.subcategoria,
+    componentes: producto.componentes?.map((c) => ({
+      idProductoComponente: c.idProductoComponente,
+      cantidad: c.cantidad,
+      precioReferencial: c.precioReferencial,
+      observaciones: c.observaciones,
+      componente: {
+        idComponente: c.componente.idComponente,
+        nombre: c.componente.nombre,
+        precioBase: c.componente.precioBase,
+      },
+    })),
   });
 }
 
