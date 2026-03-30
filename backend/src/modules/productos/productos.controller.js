@@ -2,6 +2,7 @@ const { HttpError } = require('../../utils/httpError');
 const { validate, CreateProductoSchema, UpdateProductoSchema } = require('../../utils/validationSchemas');
 const {
   getCategorias,
+  getCategoriesWithSubcategories,
   getSubcategoriasByCategoria,
   listProductos,
   getProductoById,
@@ -16,6 +17,15 @@ const {
  */
 async function listCategorias(req, res) {
   const data = await getCategorias();
+  res.json({ ok: true, data });
+}
+
+/**
+ * GET /productos/categorias-con-subcategorias
+ * Obtener todas las categorías con sus subcategorías en una sola query (evita N+1 problem)
+ */
+async function listCategoriasConSubcategorias(req, res) {
+  const data = await getCategoriesWithSubcategories();
   res.json({ ok: true, data });
 }
 
@@ -136,6 +146,7 @@ async function deleteOne(req, res) {
 
 module.exports = {
   listCategorias,
+  listCategoriasConSubcategorias,
   listSubcategorias,
   list,
   getById,

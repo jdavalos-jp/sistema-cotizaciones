@@ -1,9 +1,13 @@
 const { prisma } = require('../../db/prisma');
 const { Prisma } = require('@prisma/client');
 const { HttpError } = require('../../utils/httpError');
-const { decimalToNumber } = require('../cotizaciones/decimal-converter');
+const { deleteImage } = require('../../services/storage/imageService');
 
-function toBigInt(value, fieldName) {
+/* ---------- HELPERS ---------- */
+
+// Convertir BigInt y validar
+function parseId(value, fieldName) {
+  if (value === undefined || value === null) return null;
   try {
     return BigInt(value);
   } catch {
@@ -11,262 +15,154 @@ function toBigInt(value, fieldName) {
   }
 }
 
-function toNumber(value, fieldName) {
+// Convertir número positivo
+function parseNumber(value, fieldName) {
   const n = Number(value);
-  if (!Number.isFinite(n) || n <= 0) {
-    throw new HttpError(400, `${fieldName} debe ser un número positivo`);
-  }
+  if (!Number.isFinite(n) || n <= 0) throw new HttpError(400, `${fieldName} debe ser un número positivo`);
   return n;
 }
 
-/**
- * Obtener todas las categorías
- */
+// Convertir Decimal de Prisma a Number recursivamente
+function convertDecimals(obj) {
+  if (Array.isArray(obj)) return obj.map(convertDecimals);
+  if (obj instanceof Prisma.Decimal) return Number(obj);
+  if (obj && typeof obj === 'object') {
+    return Object.fromEntries(Object.entries(obj).map(([k, v]) => [k, convertDecimals(v)]));
+  }
+  return obj;
+}
+
+/* ---------- SELECTOR REUTILIZABLE ---------- */
+
+const productoSelect = {
+  idProducto: true,
+  nombre: true,
+  descripcion: true,
+  precioBase: true,
+  cantidad: true,
+  sku: true,
+  estado: true,
+  imagenes: {
+    where: { estado: 'activo' },
+    select: { idImagen: true, urlImagen: true, principal: true, orden: true },
+    orderBy: [{ principal: 'desc' }, { orden: 'asc' }],
+  },
+  categoria: { select: { idCategoria: true, nombre: true } },
+  subcategoria: { select: { idSubcategoria: true, nombre: true } },
+  componentes: {
+    select: {
+      idProductoComponente: true,
+      cantidad: true,
+      precioReferencial: true,
+      observaciones: true,
+      componente: { select: { idComponente: true, nombre: true, precioBase: true } },
+    },
+  },
+};
+
+/* ---------- VALIDACIONES ---------- */
+
+async function validateCategoria(catId) {
+  const cat = await prisma.categoria.findUnique({ where: { idCategoria: catId } });
+  if (!cat) throw new HttpError(400, 'Categoría no existe');
+  return cat;
+}
+
+async function validateSubcategoria(subCatId, catId) {
+  if (!subCatId) return null;
+  const sub = await prisma.subcategoria.findUnique({ where: { idSubcategoria: subCatId } });
+  if (!sub || sub.idCategoria !== catId) throw new HttpError(400, 'Subcategoría no válida');
+  return sub;
+}
+
+async function validateComponentes(componentes = []) {
+  return Promise.all(componentes.map(async (c) => {
+    const compId = parseId(c.idComponente, 'idComponente');
+    const comp = await prisma.componente.findUnique({ where: { idComponente: compId } });
+    if (!comp) throw new HttpError(400, `Componente con ID ${c.idComponente} no existe`);
+    return { ...c, idComponente: compId };
+  }));
+}
+
+/* ---------- BUILD WHERE PARA FILTROS ---------- */
+
+function buildProductoWhere({ search, idCategoria, idSubcategoria }) {
+  const where = { estado: 'activo' };
+  if (search?.trim()) {
+    const q = search.trim();
+    where.OR = [
+      { nombre: { contains: q, mode: 'insensitive' } },
+      { sku: { contains: q, mode: 'insensitive' } },
+      { descripcion: { contains: q, mode: 'insensitive' } },
+    ];
+  }
+  if (idCategoria) where.idCategoria = parseId(idCategoria, 'idCategoria');
+  if (idSubcategoria) where.idSubcategoria = parseId(idSubcategoria, 'idSubcategoria');
+  return where;
+}
+
+/* ---------- FUNCIONES PRINCIPALES ---------- */
+
 async function getCategorias() {
+  return prisma.categoria.findMany({
+    where: { estado: 'activo' },
+    select: { idCategoria: true, nombre: true, descripcion: true },
+    orderBy: { nombre: 'asc' },
+  });
+}
+
+async function getCategoriesWithSubcategories() {
   return prisma.categoria.findMany({
     where: { estado: 'activo' },
     select: {
       idCategoria: true,
       nombre: true,
       descripcion: true,
+      subcategorias: { select: { idSubcategoria: true, nombre: true, descripcion: true }, orderBy: { nombre: 'asc' } },
     },
     orderBy: { nombre: 'asc' },
   });
 }
 
-/**
- * Obtener subcategorías por categoría
- */
 async function getSubcategoriasByCategoria(idCategoria) {
-  const catId = toBigInt(idCategoria, 'idCategoria');
-
+  const catId = parseId(idCategoria, 'idCategoria');
   return prisma.subcategoria.findMany({
-    where: {
-      idCategoria: catId,
-    },
-    select: {
-      idSubcategoria: true,
-      nombre: true,
-      descripcion: true,
-    },
+    where: { idCategoria: catId },
+    select: { idSubcategoria: true, nombre: true, descripcion: true },
     orderBy: { nombre: 'asc' },
   });
 }
 
-/**
- * Listar productos con filtros
- */
 async function listProductos({ take = 50, skip = 0, search, idCategoria, idSubcategoria } = {}) {
-  const q = search?.trim();
-  const where = {
-    ...(q && {
-      OR: [
-        { nombre: { contains: q, mode: 'insensitive' } },
-        { sku: { contains: q, mode: 'insensitive' } },
-        { descripcion: { contains: q, mode: 'insensitive' } },
-      ],
-    }),
-    ...(idCategoria && { idCategoria: toBigInt(idCategoria, 'idCategoria') }),
-    ...(idSubcategoria && {
-      idSubcategoria: toBigInt(idSubcategoria, 'idSubcategoria'),
-    }),
-  };
-
+  const where = buildProductoWhere({ search, idCategoria, idSubcategoria });
   const [productos, total] = await Promise.all([
-    prisma.producto.findMany({
-      take,
-      skip,
-      where,
-      orderBy: { idProducto: 'desc' },
-      select: {
-        idProducto: true,
-        nombre: true,
-        descripcion: true,
-        precioBase: true,
-        cantidad: true,
-        sku: true,
-        estado: true,
-        imagenes: {
-          where: { estado: 'activo' },
-          select: {
-            idImagen: true,
-            urlImagen: true,
-            principal: true,
-            orden: true,
-          },
-          orderBy: [{ principal: 'desc' }, { orden: 'asc' }],
-        },
-        categoria: {
-          select: { nombre: true },
-        },
-        subcategoria: {
-          select: { nombre: true },
-        },
-      },
-    }),
+    prisma.producto.findMany({ take, skip, where, orderBy: { idProducto: 'desc' }, select: productoSelect }),
     prisma.producto.count({ where }),
   ]);
 
-  // Convertir Decimales a números
-  const data = decimalToNumber(productos.map((p) => ({
-    idProducto: p.idProducto,
-    nombre: p.nombre,
-    descripcion: p.descripcion,
-    precioBase: p.precioBase,
-    cantidad: p.cantidad,
-    sku: p.sku,
-    estado: p.estado,
-    categoria: p.categoria,
-    subcategoria: p.subcategoria,
-    imagenes: p.imagenes,
-  })));
-
-  return { data, total };
+  return { data: convertDecimals(productos), total };
 }
 
-/**
- * Obtener producto por ID con todas sus relaciones
- */
 async function getProductoById(idProducto) {
-  const prodId = toBigInt(idProducto, 'idProducto');
-
-  const producto = await prisma.producto.findUnique({
-    where: { idProducto: prodId },
-    select: {
-      idProducto: true,
-      nombre: true,
-      descripcion: true,
-      precioBase: true,
-      cantidad: true,
-      sku: true,
-      estado: true,
-      imagenes: {
-        select: {
-          idImagen: true,
-          urlImagen: true,
-          orden: true,
-          principal: true,
-        },
-        orderBy: { orden: 'asc' },
-      },
-      categoria: {
-        select: {
-          idCategoria: true,
-          nombre: true,
-        },
-      },
-      subcategoria: {
-        select: {
-          idSubcategoria: true,
-          nombre: true,
-        },
-      },
-      componentes: {
-        select: {
-          idProductoComponente: true,
-          cantidad: true,
-          componente: {
-            select: {
-              idComponente: true,
-              nombre: true,
-              precioBase: true,
-            },
-          },
-        },
-      },
-    },
-  });
-
-  if (!producto) {
-    throw new HttpError(404, 'Producto no encontrado');
-  }
-
-  return decimalToNumber({
-    idProducto: producto.idProducto,
-    nombre: producto.nombre,
-    descripcion: producto.descripcion,
-    precio_base: producto.precioBase,
-    cantidad: producto.cantidad,
-    sku: producto.sku,
-    estado: producto.estado,
-    categoria: producto.categoria,
-    subcategoria: producto.subcategoria,
-    imagenes: producto.imagenes,
-    componentes: producto.componentes?.map((c) => ({
-      idProductoComponente: c.idProductoComponente,
-      cantidad: c.cantidad,
-      componente: {
-        idComponente: c.componente.idComponente,
-        nombre: c.componente.nombre,
-        precio_base: c.componente.precioBase,
-      },
-    })),
-  });
+  const prodId = parseId(idProducto, 'idProducto');
+  const producto = await prisma.producto.findUnique({ where: { idProducto: prodId }, select: productoSelect });
+  if (!producto) throw new HttpError(404, 'Producto no encontrado');
+  return convertDecimals(producto);
 }
 
-/**
- * Crear producto
- */
-async function createProducto({
-  nombre,
-  descripcion,
-  precioBase,
-  cantidad,
-  sku,
-  idCategoria,
-  idSubcategoria,
-  componentes = [],
-}) {
-  if (!nombre?.trim()) {
-    throw new HttpError(400, 'Nombre es requerido');
-  }
-  if (!precioBase) {
-    throw new HttpError(400, 'Precio es requerido');
-  }
-  if (!idCategoria) {
-    throw new HttpError(400, 'Categoría es requerida');
-  }
+async function createProducto({ nombre, descripcion, precioBase, cantidad, sku, idCategoria, idSubcategoria, componentes = [] }) {
+  if (!nombre?.trim()) throw new HttpError(400, 'Nombre es requerido');
+  if (!precioBase) throw new HttpError(400, 'Precio es requerido');
+  if (!idCategoria) throw new HttpError(400, 'Categoría es requerida');
 
+  const catId = parseId(idCategoria, 'idCategoria');
+  const subCatId = parseId(idSubcategoria, 'idSubcategoria');
   const precio = new Prisma.Decimal(precioBase);
   const cant = Number(cantidad) || 1;
-  const catId = toBigInt(idCategoria, 'idCategoria');
-  const subCatId = idSubcategoria ? toBigInt(idSubcategoria, 'idSubcategoria') : null;
 
-  // Verificar que la categoría existe
-  const categoria = await prisma.categoria.findUnique({
-    where: { idCategoria: catId },
-  });
-  if (!categoria) {
-    throw new HttpError(400, 'Categoría no existe');
-  }
-
-  // Verificar que la subcategoría existe si se proporciona
-  if (subCatId) {
-    const subcategoria = await prisma.subcategoria.findUnique({
-      where: { idSubcategoria: subCatId },
-    });
-    if (!subcategoria || subcategoria.idCategoria !== catId) {
-      throw new HttpError(400, 'Subcategoría no válida para esta categoría');
-    }
-  }
-
-  // Validar que los componentes existan antes de crear el producto
-  const componentesValidos = [];
-  if (Array.isArray(componentes) && componentes.length > 0) {
-    for (const comp of componentes) {
-      const compId = toBigInt(comp.idComponente, 'idComponente');
-      const componenteExistente = await prisma.componente.findUnique({
-        where: { idComponente: compId },
-      });
-      if (!componenteExistente) {
-        throw new HttpError(400, `Componente con ID ${comp.idComponente} no existe`);
-      }
-      componentesValidos.push({
-        ...comp,
-        idComponente: compId,
-      });
-    }
-  }
+  await validateCategoria(catId);
+  await validateSubcategoria(subCatId, catId);
+  const comps = await validateComponentes(componentes);
 
   const producto = await prisma.producto.create({
     data: {
@@ -278,305 +174,87 @@ async function createProducto({
       idCategoria: catId,
       idSubcategoria: subCatId,
       estado: 'activo',
-      // Crear relaciones con componentes si existen
-      ...(componentesValidos.length > 0 && {
-        componentes: {
-          create: componentesValidos.map((comp) => ({
-            idComponente: comp.idComponente,
-            cantidad: Number(comp.cantidad) || 1,
-            precioReferencial: comp.precioReferencial ? new Prisma.Decimal(comp.precioReferencial) : null,
-            observaciones: comp.observaciones?.trim() || null,
-          })),
-        },
-      }),
+      ...(comps.length && { componentes: { create: comps.map(c => ({
+        idComponente: c.idComponente,
+        cantidad: Number(c.cantidad) || 1,
+        precioReferencial: c.precioReferencial ? new Prisma.Decimal(c.precioReferencial) : null,
+        observaciones: c.observaciones?.trim() || null,
+      })) } }),
     },
-    select: {
-      idProducto: true,
-      nombre: true,
-      descripcion: true,
-      precioBase: true,
-      cantidad: true,
-      sku: true,
-      estado: true,
-      imagenes: {
-        select: {
-          idImagen: true,
-          urlImagen: true,
-          orden: true,
-          principal: true,
-        },
-        orderBy: [{ principal: 'desc' }, { orden: 'asc' }],
-      },
-      categoria: { select: { nombre: true } },
-      subcategoria: { select: { nombre: true } },
-      componentes: {
-        select: {
-          idProductoComponente: true,
-          cantidad: true,
-          precioReferencial: true,
-          observaciones: true,
-          componente: {
-            select: {
-              idComponente: true,
-              nombre: true,
-              precioBase: true,
-            },
-          },
-        },
-      },
-    },
+    select: productoSelect,
   });
 
-  return decimalToNumber({
-    idProducto: producto.idProducto,
-    nombre: producto.nombre,
-    descripcion: producto.descripcion,
-    precio_base: producto.precioBase,
-    cantidad: producto.cantidad,
-    sku: producto.sku,
-    estado: producto.estado,
-    imagenes: producto.imagenes,
-    categoria: producto.categoria,
-    subcategoria: producto.subcategoria,
-    componentes: producto.componentes?.map((c) => ({
-      idProductoComponente: c.idProductoComponente,
-      cantidad: c.cantidad,
-      precioReferencial: c.precioReferencial,
-      observaciones: c.observaciones,
-      componente: {
-        idComponente: c.componente.idComponente,
-        nombre: c.componente.nombre,
-        precioBase: c.componente.precioBase,
-      },
-    })),
-  });
+  return convertDecimals(producto);
 }
 
-/**
- * Actualizar producto
- */
-async function updateProducto(
-  idProducto,
-  { nombre, descripcion, precioBase, cantidad, sku, idCategoria, idSubcategoria, componentes }
-) {
-  const prodId = toBigInt(idProducto, 'idProducto');
-
-  // Verificar que existe
-  const productoExistente = await prisma.producto.findUnique({
-    where: { idProducto: prodId },
-  });
-  if (!productoExistente) {
-    throw new HttpError(404, 'Producto no encontrado');
-  }
+async function updateProducto(idProducto, updateData) {
+  const prodId = parseId(idProducto, 'idProducto');
+  const existing = await prisma.producto.findUnique({ where: { idProducto: prodId } });
+  if (!existing) throw new HttpError(404, 'Producto no encontrado');
 
   const data = {};
 
-  if (nombre !== undefined) {
-    if (!nombre?.trim()) {
-      throw new HttpError(400, 'Nombre no puede estar vacío');
-    }
-    data.nombre = nombre.trim();
+  if (updateData.nombre !== undefined) {
+    if (!updateData.nombre?.trim()) throw new HttpError(400, 'Nombre no puede estar vacío');
+    data.nombre = updateData.nombre.trim();
   }
+  if (updateData.descripcion !== undefined) data.descripcion = updateData.descripcion?.trim() || null;
+  if (updateData.precioBase !== undefined) data.precioBase = new Prisma.Decimal(updateData.precioBase);
+  if (updateData.cantidad !== undefined) data.cantidad = Math.max(1, Number(updateData.cantidad) || 1);
+  if (updateData.sku !== undefined) data.sku = updateData.sku?.trim() || null;
 
-  if (descripcion !== undefined) {
-    data.descripcion = descripcion?.trim() || null;
-  }
-
-  if (precioBase !== undefined) {
-    data.precioBase = new Prisma.Decimal(precioBase);
-  }
-
-  if (cantidad !== undefined) {
-    data.cantidad = Math.max(1, Number(cantidad) || 1);
-  }
-
-  if (sku !== undefined) {
-    data.sku = sku?.trim() || null;
-  }
-
-  if (idCategoria !== undefined) {
-    const catId = toBigInt(idCategoria, 'idCategoria');
-    const categoria = await prisma.categoria.findUnique({
-      where: { idCategoria: catId },
-    });
-    if (!categoria) {
-      throw new HttpError(400, 'Categoría no existe');
-    }
+  if (updateData.idCategoria !== undefined) {
+    const catId = parseId(updateData.idCategoria, 'idCategoria');
+    await validateCategoria(catId);
     data.idCategoria = catId;
   }
 
-  if (idSubcategoria !== undefined) {
-    if (idSubcategoria) {
-      const subCatId = toBigInt(idSubcategoria, 'idSubcategoria');
-      const subcategoria = await prisma.subcategoria.findUnique({
-        where: { idSubcategoria: subCatId },
-      });
-      if (!subcategoria) {
-        throw new HttpError(400, 'Subcategoría no existe');
-      }
-      data.idSubcategoria = subCatId;
-    } else {
-      data.idSubcategoria = null;
+  if (updateData.idSubcategoria !== undefined) {
+    const subCatId = updateData.idSubcategoria ? parseId(updateData.idSubcategoria, 'idSubcategoria') : null;
+    if (subCatId) await validateSubcategoria(subCatId, data.idCategoria || existing.idCategoria);
+    data.idSubcategoria = subCatId;
+  }
+
+  if (updateData.componentes !== undefined) {
+    await prisma.productoComponente.deleteMany({ where: { idProducto: prodId } });
+    if (Array.isArray(updateData.componentes) && updateData.componentes.length > 0) {
+      const comps = await validateComponentes(updateData.componentes);
+      data.componentes = { create: comps.map(c => ({
+        idComponente: c.idComponente,
+        cantidad: Number(c.cantidad) || 1,
+        precioReferencial: c.precioReferencial ? new Prisma.Decimal(c.precioReferencial) : null,
+        observaciones: c.observaciones?.trim() || null,
+      })) };
     }
   }
 
-  // Procesar componentes si se proporcionan
-  if (componentes !== undefined) {
-    // Eliminar componentes actuales
-    await prisma.productoComponente.deleteMany({
-      where: { idProducto: prodId },
-    });
-
-    // Crear nuevos componentes si existen
-    if (Array.isArray(componentes) && componentes.length > 0) {
-      const componentesValidos = [];
-      for (const comp of componentes) {
-        const compId = toBigInt(comp.idComponente, 'idComponente');
-        const componenteExistente = await prisma.componente.findUnique({
-          where: { idComponente: compId },
-        });
-        if (!componenteExistente) {
-          throw new HttpError(400, `Componente con ID ${comp.idComponente} no existe`);
-        }
-        componentesValidos.push({
-          ...comp,
-          idComponente: compId,
-        });
-      }
-
-      data.componentes = {
-        create: componentesValidos.map((comp) => ({
-          idComponente: comp.idComponente,
-          cantidad: Number(comp.cantidad) || 1,
-          precioReferencial: comp.precioReferencial ? new Prisma.Decimal(comp.precioReferencial) : null,
-          observaciones: comp.observaciones?.trim() || null,
-        })),
-      };
-    }
-  }
-
-  const producto = await prisma.producto.update({
-    where: { idProducto: prodId },
-    data,
-    select: {
-      idProducto: true,
-      nombre: true,
-      descripcion: true,
-      precioBase: true,
-      cantidad: true,
-      sku: true,
-      estado: true,
-      imagenes: {
-        select: {
-          idImagen: true,
-          urlImagen: true,
-          orden: true,
-          principal: true,
-        },
-      },
-      categoria: { select: { nombre: true } },
-      subcategoria: { select: { nombre: true } },
-      componentes: {
-        select: {
-          idProductoComponente: true,
-          cantidad: true,
-          precioReferencial: true,
-          observaciones: true,
-          componente: {
-            select: {
-              idComponente: true,
-              nombre: true,
-              precioBase: true,
-            },
-          },
-        },
-      },
-    },
-  });
-
-  return decimalToNumber({
-    idProducto: producto.idProducto,
-    nombre: producto.nombre,
-    descripcion: producto.descripcion,
-    precio_base: producto.precioBase,
-    cantidad: producto.cantidad,
-    sku: producto.sku,
-    estado: producto.estado,
-    imagenes: producto.imagenes,
-    categoria: producto.categoria,
-    subcategoria: producto.subcategoria,
-    componentes: producto.componentes?.map((c) => ({
-      idProductoComponente: c.idProductoComponente,
-      cantidad: c.cantidad,
-      precioReferencial: c.precioReferencial,
-      observaciones: c.observaciones,
-      componente: {
-        idComponente: c.componente.idComponente,
-        nombre: c.componente.nombre,
-        precioBase: c.componente.precioBase,
-      },
-    })),
-  });
+  const producto = await prisma.producto.update({ where: { idProducto: prodId }, data, select: productoSelect });
+  return convertDecimals(producto);
 }
 
-/**
- * Eliminar producto
- */
 async function deleteProducto(idProducto) {
-  const prodId = toBigInt(idProducto, 'idProducto');
+  const prodId = parseId(idProducto, 'idProducto');
+  const producto = await prisma.producto.findUnique({ where: { idProducto: prodId }, include: { imagenes: true } });
+  if (!producto) throw new HttpError(404, 'Producto no encontrado');
 
-  // Verificar que existe
-  const producto = await prisma.producto.findUnique({
-    where: { idProducto: prodId },
-  });
-  if (!producto) {
-    throw new HttpError(404, 'Producto no encontrado');
-  }
+  // Eliminar imágenes en paralelo
+  await Promise.all(
+    (producto.imagenes || []).map(async (img) => img.rutaBucket && deleteImage(img.rutaBucket).catch(console.error))
+  );
 
-  // Eliminar (cascade eliminará imágenes)
-  await prisma.producto.delete({
-    where: { idProducto: prodId },
-  });
-
+  await prisma.producto.delete({ where: { idProducto: prodId } });
   return { message: 'Producto eliminado' };
 }
 
-/**
- * Agregar imagen a producto [DEPRECADO - Usar POST /productos/:idProducto/imagenes en su lugar]
- * Esta función es un legacy. Las imágenes ahora se crean a través del endpoint de imagenes.routes.js
- */
-async function addImagenToProducto(idProducto, { urlImagen, principal = false, orden = 1 }) {
-  throw new HttpError(400, 'Esta función está deprecada. Use POST /productos/:idProducto/imagenes con multipart/form-data');
-}
-
-/**
- * Eliminar imagen de producto
- */
-async function deleteImagenFromProducto(idImagen) {
-  const imgId = toBigInt(idImagen, 'idImagen');
-
-  const imagen = await prisma.productoImagen.findUnique({
-    where: { idImagen: imgId },
-  });
-  if (!imagen) {
-    throw new HttpError(404, 'Imagen no encontrada');
-  }
-
-  await prisma.productoImagen.delete({
-    where: { idImagen: imgId },
-  });
-
-  return { message: 'Imagen eliminada' };
-}
+/* ---------- EXPORTS ---------- */
 
 module.exports = {
   getCategorias,
+  getCategoriesWithSubcategories,
   getSubcategoriasByCategoria,
   listProductos,
   getProductoById,
   createProducto,
   updateProducto,
   deleteProducto,
-  addImagenToProducto,
-  deleteImagenFromProducto,
 };

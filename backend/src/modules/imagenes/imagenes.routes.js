@@ -41,6 +41,7 @@ router.post('/productos/:idProducto/imagenes',
         data: {
           idProducto: BigInt(idProducto),
           urlImagen: dataImagen.urlImagen,
+          rutaBucket: dataImagen.rutaBucket,
         },
       })
 

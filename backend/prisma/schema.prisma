@@ -82,7 +82,7 @@ model Producto {
   descripcion    String?
   precioBase     Int                  @default(0) @map("precio_base")
   cantidad       Int                  @default(1)
-  sku            String?              @db.VarChar(100)
+  sku            String?              @unique @db.VarChar(100)
   estado         String?              @default("activo") @db.VarChar(20)
   cotizaciones   CotizacionProducto[]
   componentes    ProductoComponente[]
@@ -102,6 +102,7 @@ model ProductoImagen {
   
   // File info
   urlImagen     String    @map("url_imagen")
+  rutaBucket    String?   @map("ruta_bucket")
   
   // Metadata
   orden         Int?      @default(1)

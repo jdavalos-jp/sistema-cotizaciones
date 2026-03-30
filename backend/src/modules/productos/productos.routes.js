@@ -8,6 +8,9 @@ const router = express.Router();
 // Obtener categorías para filtros
 router.get('/categorias/list', asyncHandler(controller.listCategorias));
 
+// Obtener categorías con subcategorías (una sola query - evita N+1)
+router.get('/categorias-con-subcategorias', asyncHandler(controller.listCategoriasConSubcategorias));
+
 // Obtener subcategorías por categoría
 router.get('/subcategorias/:idCategoria', asyncHandler(controller.listSubcategorias));
 
