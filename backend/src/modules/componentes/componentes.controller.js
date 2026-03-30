@@ -1,13 +1,6 @@
 const { HttpError } = require('../../utils/httpError');
-const { listComponentes, getComponenteById } = require('./componentes.service');
-
-function parseId(param) {
-  try {
-    return BigInt(param);
-  } catch {
-    throw new HttpError(400, 'id_componente inválido');
-  }
-}
+const { validate, CreateComponenteSchema, UpdateComponenteSchema } = require('../../utils/validationSchemas');
+const { listComponentes, getComponenteById, createComponente, updateComponente, deleteComponente } = require('./componentes.service');
 
 async function list(req, res) {
   const take = req.query.take ? Number(req.query.take) : 50;
@@ -21,10 +14,25 @@ async function list(req, res) {
 }
 
 async function getById(req, res) {
-  const idComponente = parseId(req.params.id);
-  const data = await getComponenteById(idComponente);
-  if (!data) throw new HttpError(404, 'Componente no encontrado');
-  res.json({ ok: true, data });
+  const componente = await getComponenteById(BigInt(req.params.id));
+  res.json({ ok: true, data: componente });
 }
 
-module.exports = { list, getById };
+async function create(req, res) {
+  const validatedData = validate(CreateComponenteSchema, req.body);
+  const componente = await createComponente(validatedData);
+  res.status(201).json({ ok: true, data: componente });
+}
+
+async function update(req, res) {
+  const validatedData = validate(UpdateComponenteSchema, req.body);
+  const componente = await updateComponente(req.params.id, validatedData);
+  res.json({ ok: true, data: componente });
+}
+
+async function deleteOne(req, res) {
+  const result = await deleteComponente(req.params.id);
+  res.json({ ok: true, data: result });
+}
+
+module.exports = { list, getById, create, update, deleteOne };
