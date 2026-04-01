@@ -54,10 +54,57 @@ export async function deleteComponente(idComponente, fetchOptions = {}) {
   return unwrapData(await apiDelete(`${BASE_URL}/${idComponente}`, fetchOptions))
 }
 
+/**
+ * Agregar producto a componente (relación en producto_componentes)
+ * @param {number} idComponente - ID del componente
+ * @param {number} idProducto - ID del producto a asociar
+ * @param {object} options - { cantidad, precioReferencial, observaciones }
+ */
+export async function agregarProductoAlComponente(idComponente, idProducto, { cantidad = 1, precioReferencial = null, observaciones = null } = {}, fetchOptions = {}) {
+  return unwrapData(
+    await apiPost(`${BASE_URL}/${idComponente}/productos`, {
+      idProducto,
+      cantidad,
+      precioReferencial,
+      observaciones,
+    }, fetchOptions)
+  )
+}
+
+/**
+ * Obtener productos asociados a un componente
+ */
+export async function getProductosDelComponente(idComponente, fetchOptions = {}) {
+  return unwrapData(await apiGet(`${BASE_URL}/${idComponente}/productos`, fetchOptions))
+}
+
+/**
+ * Eliminar producto de componente
+ */
+export async function eliminarProductoDelComponente(idComponente, idProductoComponente, fetchOptions = {}) {
+  return unwrapData(await apiDelete(`${BASE_URL}/${idComponente}/productos/${idProductoComponente}`, fetchOptions))
+}
+
+/**
+ * Actualizar relación producto_componente
+ */
+export async function actualizarProductoDelComponente(idComponente, idProductoComponente, { cantidad, precioReferencial, observaciones } = {}, fetchOptions = {}) {
+  return unwrapData(
+    await apiPut(`${BASE_URL}/${idComponente}/productos/${idProductoComponente}`, {
+      cantidad,
+      precioReferencial,
+      observaciones,
+    }, fetchOptions)
+  )
+}
+
 export default {
   getComponentes,
   getComponente,
   createComponente,
   updateComponente,
   deleteComponente,
+  agregarProductoAlComponente,
+  eliminarProductoDelComponente,
+  getProductosDelComponente,
 }

@@ -244,17 +244,51 @@ export function useComponentesManager(idComponenteEdit = null) {
 
 /**
  * Hook compat para gestionar un componente individual
+ * Ahora también carga productos asociados cuando se edita
  */
 export function useComponente(idComponente = null) {
   const hook = useComponentesManager(idComponente)
+  const [productosComponente, setProductosComponente] = useState([])
+  const [loadingProductos, setLoadingProductos] = useState(false)
+
+  /**
+   * Cargar productos del componente (para edición)
+   */
+  useEffect(() => {
+    if (!idComponente) {
+      setProductosComponente([])
+      return
+    }
+
+    const fetchProductos = async () => {
+      try {
+        setLoadingProductos(true)
+        const productos = await componentesApi.getProductosDelComponente(idComponente)
+        setProductosComponente(productos || [])
+      } catch (err) {
+        console.error('Error cargando productos del componente:', err)
+        setProductosComponente([])
+      } finally {
+        setLoadingProductos(false)
+      }
+    }
+
+    fetchProductos()
+  }, [idComponente])
+
   return {
-    componente: hook.componente,
-    loading: hook.loadingComponente,
+    componente: {
+      ...hook.componente,
+      productos: productosComponente, // Agregar productos al objeto componente
+    },
+    loading: hook.loadingComponente || loadingProductos,
     error: hook.error,
     fetchComponente: hook.fetchComponente,
     setComponente: hook.setComponente,
     createComponente: hook.createComponente,
     updateComponente: hook.updateComponente,
     deleteComponente: hook.deleteComponente,
+    productosComponente,
+    loadingProductos,
   }
 }

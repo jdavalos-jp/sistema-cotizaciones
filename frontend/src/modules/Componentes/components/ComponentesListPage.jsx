@@ -1,17 +1,16 @@
-import { Card, Button, Table, Space, Input, Popconfirm, message, Typography, Spin, Modal } from 'antd'
+import { Card, Button, Table, Space, Input, Popconfirm, message, Typography, Spin } from 'antd'
 import { PlusOutlined, SearchOutlined, EditOutlined, DeleteOutlined } from '@ant-design/icons'
 import { useEffect, useState } from 'react'
+import { useNavigate } from 'react-router-dom'
 import { useComponentes } from '../hooks/useComponentes'
-import ComponenteForm from './ComponenteForm'
 
 /**
  * ComponentesListPage
  * Gestión de componentes con CRUD completo
  */
 export default function ComponentesListPage() {
+  const navigate = useNavigate()
   const [searchTerm, setSearchTerm] = useState('')
-  const [isModalVisible, setIsModalVisible] = useState(false)
-  const [editingId, setEditingId] = useState(null)
   const { componentes, loading, pagination, loadComponentes, deleteComponente, setPagination } = useComponentes()
 
   /**
@@ -75,40 +74,17 @@ export default function ComponentesListPage() {
   }
 
   /**
-   * Abrir modal para crear
+   * Abrir página para crear
    */
   const handleCreateClick = () => {
-    setEditingId(null)
-    setIsModalVisible(true)
+    navigate('/componentes/crear')
   }
 
   /**
-   * Abrir modal para editar
+   * Abrir página para editar
    */
   const handleEditClick = (idComponente) => {
-    setEditingId(idComponente)
-    setIsModalVisible(true)
-  }
-
-  /**
-   * Cerrar modal
-   */
-  const handleModalClose = () => {
-    setIsModalVisible(false)
-    setEditingId(null)
-  }
-
-  /**
-   * Refrescar lista después de crear/editar
-   */
-  const handleFormSuccess = async () => {
-    handleModalClose()
-    try {
-      await loadComponentes((pagination.current - 1) * pagination.pageSize, searchTerm)
-      message.success('Operación completada')
-    } catch (error) {
-      console.error('Error refreshing:', error)
-    }
+    navigate(`/componentes/editar/${idComponente}`)
   }
 
   const columns = [
@@ -229,22 +205,6 @@ export default function ComponentesListPage() {
           />
         </Spin>
       </Card>
-
-      {/* Modal Crear/Editar */}
-      <Modal
-        title={editingId ? 'Editar Componente' : 'Crear Componente'}
-        open={isModalVisible}
-        onCancel={handleModalClose}
-        footer={null}
-        width={600}
-        destroyOnClose
-      >
-        <ComponenteForm
-          idComponenteEdit={editingId}
-          onSuccess={handleFormSuccess}
-          onCancel={handleModalClose}
-        />
-      </Modal>
     </div>
   )
 }

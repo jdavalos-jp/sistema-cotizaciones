@@ -1,79 +1,227 @@
 import React, { useCallback, useEffect, useMemo, useState } from 'react'
-import { Button, Form, Input, InputNumber, message, Spin, Typography, theme, Flex, Divider } from 'antd'
+import { Button, Form, message, Row, Col, Spin, Typography, theme, Flex, Divider } from 'antd'
 import { useComponente } from '../hooks/useComponentesManager'
+import { useImagenesComponente } from '../../../hooks/useImagenes' // ← Hook para imágenes
+import { uploadImagenComponente } from '../../../services/api/imagenes' // ← API para subir
+import * as componentesApi from '../Services/api/componentesApi' // ← API para relación producto-componente
+
+import ComponenteImagenUpload from './ComponenteImagenUpload' //  ← Componente secundario
+import ComponenteInfoGeneral from './ComponenteInfoGeneral' // ← Componente secundario
+import ComponenteProductoSelector from './ComponenteProductoSelector' // ← Selector de productos
 
 const { Title, Text } = Typography
 
 /**
- * ComponenteForm - Formulario para crear/editar componentes
- * Interfaz limpia, directa a producción
+ * ComponenteForm
+ * 
+ * EL CONTENEDOR PRINCIPAL
+ * - Maneja todo el flujo del formulario
+ * - Importa componentes secundarios
+ * - Valida y envía datos al servidor
+ * 
+ * FLUJO:
+ * 1. Usuario escribe datos
+ * 2. Form.useWatch ve los cambios
+ * 3. canSubmit valida si puede enviar
+ * 4. Usuario hace click en "Crear"
+ * 5. handleSubmit procesa todo
  */
 function ComponenteForm({ onSuccess, onCancel, idComponenteEdit = null }) {
-  const [form] = Form.useForm()
-  const { token } = theme.useToken()
+  // ============ HOOKS DE ESTADO =============
+  const [form] = Form.useForm() // Form del Ant Design
+  const { token } = theme.useToken() // Estilos del tema
 
-  const [submitting, setSubmitting] = useState(false)
-  const { componente, loading, createComponente, updateComponente } = useComponente(idComponenteEdit)
+  // Estados del formulario
+  const [submitting, setSubmitting] = useState(false) // ¿Se está guardando?
+  const [fileList, setFileList] = useState([]) // Lista de archivos
+  const [previewUrl, setPreviewUrl] = useState('') // URL de preview
+  const [uploadPhase, setUploadPhase] = useState('') // "Subiendo imagen..."
+  const [productoSeleccionado, setProductoSeleccionado] = useState(null) // Producto del componente
 
+  // ============ HOOKS PERSONALIZADOS =============
+  const {
+    componente,
+    loading,
+    createComponente,
+    updateComponente,
+  } = useComponente(idComponenteEdit)
+
+  const { subirImagen: subirImagenComponenteHook } = useImagenesComponente(idComponenteEdit)
+
+  // ============ TÍTULOS DINÁMICOS =============
   const title = idComponenteEdit ? 'Editar Componente' : 'Crear Nuevo Componente'
   const subtitle = idComponenteEdit
     ? 'Actualiza la información del componente en el catálogo.'
     : 'Completa la información para registrar un nuevo componente.'
 
+  // ============ EFECTO: CARGAR DATOS EN EDICIÓN =============
   /**
-   * Cargar datos en modo edición
+   * Cuando editamos, cargar datos del componente existente en el formulario
+   * 
+   * useEffect = "cuando esto cambie, ejecutar esto"
    */
   useEffect(() => {
     if (!idComponenteEdit || !componente) return
 
+    // setFieldsValue = "asigna valores a los campos del formulario"
     form.setFieldsValue({
       nombre: componente.nombre || '',
       descripcion: componente.descripcion || '',
       precioBase: componente.precioBase ? Number(componente.precioBase) : undefined,
       sku: componente.sku || '',
     })
+
+    // Si tiene imagen, cargar
+    if (componente.imagenes && componente.imagenes.length > 0) {
+      const imagenPrincipal = componente.imagenes.find((img) => img.principal) || componente.imagenes[0]
+      if (imagenPrincipal?.urlImagen) {
+        setPreviewUrl(imagenPrincipal.urlImagen)
+        setFileList([
+          {
+            uid: imagenPrincipal.idImagen,
+            name: `imagen-${imagenPrincipal.idImagen}`,
+            status: 'done',
+            url: imagenPrincipal.urlImagen,
+          },
+        ])
+      }
+    } else {
+      setFileList([])
+      setPreviewUrl('')
+    }
+
+    // Si tiene producto asociado, cargar
+    if (componente.productos && componente.productos.length > 0) {
+      const producto = componente.productos[0] // En este caso, solo 1 producto
+      setProductoSeleccionado({
+        idProducto: producto.idProducto,
+        nombre: producto.nombre,
+        sku: producto.sku,
+      })
+    } else {
+      setProductoSeleccionado(null)
+    }
   }, [idComponenteEdit, componente, form])
 
+  // ============ WATCH: MONITOREAR CAMBIOS =============
   /**
-   * Watch fields para validación
+   * Form.useWatch = "dame los valores actuales de estos campos"
+   * Se actualiza en TIEMPO REAL mientras el usuario escribe
    */
   const watchedNombre = Form.useWatch('nombre', form)
   const watchedPrecioBase = Form.useWatch('precioBase', form)
 
+  // ============ VALIDACIÓN: ¿PUEDE ENVIAR? =============
   /**
-   * Verificar si se puede submit
+   * useMemo = "calcula esto solo cuando las dependencias cambien"
+   * 
+   * Reglas para permitir submit:
+   * 1. Nombre: al menos 3 caracteres
+   * 2. Precio: número >= 0
+   * 3. No está cargando
    */
   const canSubmit = useMemo(() => {
     const nombreOk = String(watchedNombre || '').trim().length >= 3
-    const precioOk = watchedPrecioBase !== null && watchedPrecioBase !== undefined && watchedPrecioBase >= 0
+    const precioOk =
+      watchedPrecioBase !== null &&
+      watchedPrecioBase !== undefined &&
+      watchedPrecioBase >= 0
+
     return nombreOk && precioOk && !loading
   }, [watchedNombre, watchedPrecioBase, loading])
 
+  // ============ VALIDACIÓN IMAGEN =============
+  const beforeUpload = useCallback((file) => {
+    const isValidType = ['image/jpeg', 'image/png', 'image/webp'].includes(file.type)
+    const isValidSize = file.size <= 5 * 1024 * 1024
+
+    if (!isValidType) message.error('Formato no permitido. USA JPG, PNG o WebP.')
+    if (!isValidSize) message.error('La imagen no puede superar 5MB.')
+
+    return isValidType && isValidSize
+  }, [])
+
+  // ============ BORRAR IMAGEN =============
+  const handleDeleteImage = useCallback(() => {
+    setFileList([])
+    setPreviewUrl('')
+  }, [])
+
+  // ============ SUBMIT: GUARDAR DATOS =============
   /**
-   * Manejar submit del formulario
+   * Lo que pasa cuando el usuario hace click en "Crear"
+   * 
+   * Lógica:
+   * 1. Crear/actualizar componente (nombre, SKU, precio, descripción)
+   * 2. Subir imagen si existe
+   * 3. Crear relación en producto_componente si hay producto seleccionado
    */
   const handleSubmit = async (values) => {
     setSubmitting(true)
     try {
-      const payload = {
+      // Preparar datos del componente (SIN idProductoAsociado)
+      const basePayload = {
         nombre: values.nombre?.trim(),
         descripcion: values.descripcion?.trim() || null,
-        precioBase: Number(values.precioBase),
         sku: values.sku?.trim() || null,
+        precioBase: Number(values.precioBase),
       }
+
+      // Obtener archivo si existe
+      const selectedFile = fileList?.[0]?.originFileObj || null
 
       if (idComponenteEdit) {
-        await updateComponente(payload)
+        // ========== MODO EDITAR ==========
+        setUploadPhase('Actualizando componente...')
+        await updateComponente(basePayload)
+
+        // Si hay imagen nueva, subirla
+        if (selectedFile) {
+          setUploadPhase('Subiendo imagen...')
+          await subirImagenComponenteHook(selectedFile)
+        }
+
+        // Si hay producto seleccionado, actualizar relación
+        if (productoSeleccionado?.idProducto) {
+          setUploadPhase('Actualizando producto del componente...')
+          await componentesApi.agregarProductoAlComponente(idComponenteEdit, productoSeleccionado.idProducto)
+        }
+
         message.success('Componente actualizado exitosamente')
       } else {
-        await createComponente(payload)
+        // ========== MODO CREAR ==========
+        setUploadPhase('Creando componente...')
+        const componenteCreado = await createComponente(basePayload)
+
+        // Si hay imagen y se creó el componente, subirla
+        if (selectedFile && componenteCreado?.idComponente) {
+          setUploadPhase('Subiendo imagen...')
+          await uploadImagenComponente(componenteCreado.idComponente, selectedFile)
+        }
+
+        // Si hay producto seleccionado, crear relación
+        if (productoSeleccionado?.idProducto && componenteCreado?.idComponente) {
+          setUploadPhase('Agregando producto al componente...')
+          await componentesApi.agregarProductoAlComponente(
+            componenteCreado.idComponente,
+            productoSeleccionado.idProducto
+          )
+        }
+
         message.success('Componente registrado exitosamente')
+
+        // Limpiar formulario
         form.resetFields()
+        setFileList([])
+        setPreviewUrl('')
+        setProductoSeleccionado(null)
       }
 
-      onSuccess?.()
+      setUploadPhase('')
+      onSuccess?.() // Ejecutar callback si existe
     } catch (err) {
-      const errorMsg = err?.response?.data?.message || err?.message || 'Error al guardar componente'
+      const errorMsg =
+        err?.response?.data?.message || err?.message || 'Error al guardar componente'
       message.error(errorMsg)
     } finally {
       setSubmitting(false)
@@ -81,8 +229,8 @@ function ComponenteForm({ onSuccess, onCancel, idComponenteEdit = null }) {
   }
 
   return (
-    <div style={{ width: '100%', maxWidth: 600 }}>
-      {/* Encabezado */}
+    <div style={{ width: '100%' }}>
+      {/* ============ ENCABEZADO ============ */}
       <div style={{ marginBottom: token.marginLG }}>
         <Title level={3} style={{ margin: 0 }}>
           {title}
@@ -92,16 +240,16 @@ function ComponenteForm({ onSuccess, onCancel, idComponenteEdit = null }) {
         </Text>
       </div>
 
-      {/* Loading state */}
-      {loading && idComponenteEdit ? (
+      {/* ============ LOADING STATE ============ */}
+      {loading ? (
         <Flex justify="center" style={{ padding: token.paddingXL }}>
           <Spin size="large" />
         </Flex>
       ) : (
         <Form
           form={form}
-          layout="vertical"
-          onFinish={handleSubmit}
+          layout="vertical" // Campos uno encima del otro
+          onFinish={handleSubmit} // Qué hacer al submit
           autoComplete="off"
           initialValues={{
             nombre: '',
@@ -110,92 +258,61 @@ function ComponenteForm({ onSuccess, onCancel, idComponenteEdit = null }) {
             sku: '',
           }}
         >
-          {/* Campo: Nombre */}
-          <Form.Item
-            label="Nombre del Componente"
-            name="nombre"
-            rules={[
-              { required: true, message: 'Nombre es requerido' },
-              { min: 3, message: 'Nombre debe tener al menos 3 caracteres' },
-              { max: 200, message: 'Nombre no puede exceder 200 caracteres' },
-            ]}
-          >
-            <Input
-              placeholder="Ej: Resistencia 10K Ohm"
-              size="large"
-              disabled={submitting}
-              maxLength={200}
-            />
-          </Form.Item>
+          {/* ============ INDICADOR DE SUBIDA ============ */}
+          {uploadPhase && (
+            <div
+              style={{
+                marginBottom: token.marginMD,
+                padding: token.paddingSM,
+                background: token.colorBgElevated,
+                border: `1px solid ${token.colorPrimary}`,
+                borderRadius: token.borderRadiusLG,
+                display: 'flex',
+                alignItems: 'center',
+                gap: token.marginSM,
+              }}
+            >
+              <Spin size="small" />
+              <Text>{uploadPhase}</Text>
+            </div>
+          )}
 
-          {/* Campo: SKU */}
-          <Form.Item
-            label="SKU (Código del Producto)"
-            name="sku"
-            rules={[
-              { max: 100, message: 'SKU no puede exceder 100 caracteres' },
-              {
-                pattern: /^[A-Z0-9\-_]*$/i,
-                message: 'SKU solo puede contener letras, números, guiones y guiones bajos',
-              },
-            ]}
-          >
-            <Input
-              placeholder="Ej: RES-10K-5W"
-              size="large"
-              disabled={submitting}
-              maxLength={100}
-            />
-          </Form.Item>
+          {/* ============ LAYOUT: DOS COLUMNAS ============ */}
+          <Row gutter={[16, 16]}>
+            {/* COLUMNA IZQUIERDA: IMAGEN */}
+            <Col xs={24} sm={24} md={8} lg={8}>
+              <ComponenteImagenUpload
+                fileList={fileList}
+                setFileList={setFileList}
+                previewUrl={previewUrl}
+                setPreviewUrl={setPreviewUrl}
+                beforeUpload={beforeUpload}
+                onDeleteImage={handleDeleteImage}
+              />
+            </Col>
 
-          {/* Campo: Precio Base */}
-          <Form.Item
-            label="Precio Base (Bs)"
-            name="precioBase"
-            rules={[
-              { required: true, message: 'Precio es requerido' },
-              {
-                type: 'number',
-                min: 0,
-                message: 'Precio debe ser un número no negativo',
-              },
-            ]}
-          >
-            <InputNumber
-              placeholder="0"
-              size="large"
-              disabled={submitting}
-              min={0}
-              step={1}
-              style={{ width: '100%' }}
-            />
-          </Form.Item>
+            {/* COLUMNA DERECHA: INFORMACIÓN */}
+            <Col xs={24} sm={24} md={16} lg={16}>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: token.marginMD }}>
+                <ComponenteInfoGeneral />
+                <ComponenteProductoSelector
+                  productoSeleccionado={productoSeleccionado}
+                  onProductoSeleccionado={setProductoSeleccionado}
+                />
+              </div>
+            </Col>
+          </Row>
 
-          {/* Campo: Descripción */}
-          <Form.Item
-            label="Descripción"
-            name="descripcion"
-            rules={[{ max: 1000, message: 'Descripción no puede exceder 1000 caracteres' }]}
-          >
-            <Input.TextArea
-              placeholder="Detalles adicionales del componente..."
-              rows={4}
-              size="large"
-              disabled={submitting}
-              maxLength={1000}
-              showCount
-            />
-          </Form.Item>
-
+          {/* ============ DIVISOR ============ */}
           <Divider style={{ margin: `${token.marginLG}px 0` }} />
 
-          {/* Botones de acción */}
+          {/* ============ BOTONES ============ */}
           <Flex justify="flex-end" gap={token.marginMD}>
             <Button
               onClick={onCancel}
               size="large"
-              style={{ borderRadius: token.borderRadiusLG }}
               disabled={submitting}
+              style={{ borderRadius: token.borderRadiusLG }}
             >
               Cancelar
             </Button>

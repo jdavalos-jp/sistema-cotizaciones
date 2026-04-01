@@ -2,16 +2,7 @@ import React, { useState, useMemo, useCallback } from 'react'
 import { Card, Select, InputNumber, Button, Row, Col, Typography, Space, message } from 'antd'
 import { PlusOutlined } from '@ant-design/icons'
 
-/**
- * Sección para agregar productos o componentes al carrito.
- *
- * Correcciones respecto a la versión original:
- * - Eliminado optionFilterProp="label": conflicto con filterOption custom (antd ignora uno de los dos)
- * - width: 160% reemplazado por span correcto en Col — no desborda en móvil
- * - handleTypeChange limpia selectedId al cambiar tipo (evita ID huérfano en itemsMap)
- * - cantidad nunca queda null en el estado — se fuerza a 1 si el usuario borra el campo
- * - marginTop: 8 consistente en todos los inputs del Row
- */
+
 function AgregarProductosSection({ productos, componentes, cart }) {
   const [selectedId, setSelectedId] = useState(null)
   const [selectedType, setSelectedType] = useState('producto')

@@ -11,6 +11,7 @@ import ProductosPage from './pages/Catalogo/ProductosPage.jsx'
 import ProductoFormPage from './pages/Catalogo/ProductoFormPage.jsx'
 import CategoriasPage from './pages/Catalogo/CategoriasPage.jsx'
 import ComponentesPage from './pages/Catalogo/ComponentesPage.jsx'
+import ComponenteFormPage from './pages/Catalogo/ComponenteFormPage.jsx'
 import ClientesPage from './pages/Clientes/ClientesPage.jsx'
 import ClienteFormPage from './pages/Clientes/ClienteFormPage.jsx'
 import CotizacionNuevaPage from './pages/Cotizaciones/CotizacionNuevaPage.jsx'
@@ -41,6 +42,8 @@ export default function App() {
               <Route path="/productos/crear" element={<ProductoFormPage />} />
               <Route path="/categorias" element={<CategoriasPage />} />
               <Route path="/componentes" element={<ComponentesPage />} />
+              <Route path="/componentes/crear" element={<ComponenteFormPage />} />
+              <Route path="/componentes/editar/:id" element={<ComponenteFormPage />} />
 
               {/* Clientes */}
               <Route path="/clientes" element={<ClientesPage />} />
