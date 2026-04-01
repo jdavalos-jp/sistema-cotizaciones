@@ -174,6 +174,176 @@ async function deleteComponente(idComponente) {
   return { ok: true, message: 'Componente eliminado' };
 }
 
+// ==================== PRODUCTO_COMPONENTE OPERATIONS ====================
+
+/**
+ * Agregar producto a un componente
+ * Crea relación en tabla producto_componentes
+ */
+async function addProductToComponente(idComponente, idProducto, { cantidad = 1, precioReferencial = null, observaciones = null } = {}) {
+  const compId = parseId(idComponente, 'idComponente');
+  const prodId = parseId(idProducto, 'idProducto');
+
+  // Verificar que existen ambos
+  const [componente, producto] = await Promise.all([
+    prisma.componente.findUnique({ where: { idComponente: compId }, select: { idComponente: true } }),
+    prisma.producto.findUnique({ where: { idProducto: prodId }, select: { idProducto: true } }),
+  ]);
+
+  if (!componente) throw new HttpError(404, 'Componente no encontrado');
+  if (!producto) throw new HttpError(404, 'Producto no encontrado');
+
+  // Verificar que no exista ya
+  const existing = await prisma.productoComponente.findFirst({
+    where: {
+      idComponente: compId,
+      idProducto: prodId,
+    },
+  });
+
+  if (existing) throw new HttpError(400, 'Este componente ya está asociado a este producto');
+
+  // Crear relación
+  const productoComponente = await prisma.productoComponente.create({
+    data: {
+      idComponente: compId,
+      idProducto: prodId,
+      cantidad: Math.max(1, cantidad),
+      precioReferencial: precioReferencial ? Number(precioReferencial) : null,
+      observaciones: observaciones?.trim() || null,
+    },
+    select: {
+      idProductoComponente: true,
+      idProducto: true,
+      idComponente: true,
+      cantidad: true,
+      precioReferencial: true,
+      observaciones: true,
+      producto: {
+        select: {
+          idProducto: true,
+          nombre: true,
+          sku: true,
+          precioBase: true,
+        },
+      },
+    },
+  });
+
+  return productoComponente;
+}
+
+/**
+ * Obtener productos asociados a un componente
+ */
+async function getProductsInComponente(idComponente) {
+  const compId = parseId(idComponente, 'idComponente');
+
+  // Verificar que existe el componente
+  const componente = await prisma.componente.findUnique({
+    where: { idComponente: compId },
+    select: { idComponente: true },
+  });
+
+  if (!componente) throw new HttpError(404, 'Componente no encontrado');
+
+  // Obtener relationships
+  const items = await prisma.productoComponente.findMany({
+    where: { idComponente: compId },
+    select: {
+      idProductoComponente: true,
+      idProducto: true,
+      cantidad: true,
+      precioReferencial: true,
+      observaciones: true,
+      producto: {
+        select: {
+          idProducto: true,
+          nombre: true,
+          sku: true,
+          precioBase: true,
+        },
+      },
+    },
+    orderBy: { idProductoComponente: 'desc' },
+  });
+
+  return items;
+}
+
+/**
+ * Remover producto de componente
+ */
+async function removeProductFromComponente(idProductoComponente) {
+  const relId = parseId(idProductoComponente, 'idProductoComponente');
+
+  const existing = await prisma.productoComponente.findUnique({
+    where: { idProductoComponente: relId },
+  });
+
+  if (!existing) throw new HttpError(404, 'Relación no encontrada');
+
+  await prisma.productoComponente.delete({
+    where: { idProductoComponente: relId },
+  });
+
+  return { ok: true, message: 'Producto removido del componente' };
+}
+
+/**
+ * Actualizar relación producto_componente
+ */
+async function updateProductInComponente(idProductoComponente, updateData) {
+  const relId = parseId(idProductoComponente, 'idProductoComponente');
+
+  const existing = await prisma.productoComponente.findUnique({
+    where: { idProductoComponente: relId },
+  });
+
+  if (!existing) throw new HttpError(404, 'Relación no encontrada');
+
+  const data = {};
+
+  if (updateData.cantidad !== undefined) {
+    const qty = Number(updateData.cantidad);
+    if (isNaN(qty) || qty < 1) throw new HttpError(400, 'Cantidad debe ser >= 1');
+    data.cantidad = qty;
+  }
+
+  if (updateData.precioReferencial !== undefined) {
+    data.precioReferencial = updateData.precioReferencial ? Number(updateData.precioReferencial) : null;
+  }
+
+  if (updateData.observaciones !== undefined) {
+    data.observaciones = updateData.observaciones?.trim() || null;
+  }
+
+  if (Object.keys(data).length === 0) return existing;
+
+  const updated = await prisma.productoComponente.update({
+    where: { idProductoComponente: relId },
+    data,
+    select: {
+      idProductoComponente: true,
+      idProducto: true,
+      idComponente: true,
+      cantidad: true,
+      precioReferencial: true,
+      observaciones: true,
+      producto: {
+        select: {
+          idProducto: true,
+          nombre: true,
+          sku: true,
+          precioBase: true,
+        },
+      },
+    },
+  });
+
+  return updated;
+}
+
 // ==================== EXPORTS ====================
 
 module.exports = {
@@ -182,4 +352,8 @@ module.exports = {
   createComponente,
   updateComponente,
   deleteComponente,
+  addProductToComponente,
+  getProductsInComponente,
+  removeProductFromComponente,
+  updateProductInComponente,
 };

@@ -1,6 +1,16 @@
 const { HttpError } = require('../../utils/httpError');
 const { validate, CreateComponenteSchema, UpdateComponenteSchema } = require('../../utils/validationSchemas');
-const { listComponentes, getComponenteById, createComponente, updateComponente, deleteComponente } = require('./componentes.service');
+const {
+  listComponentes,
+  getComponenteById,
+  createComponente,
+  updateComponente,
+  deleteComponente,
+  addProductToComponente,
+  getProductsInComponente,
+  removeProductFromComponente,
+  updateProductInComponente,
+} = require('./componentes.service');
 
 async function list(req, res) {
   const take = req.query.take ? Number(req.query.take) : 50;
@@ -35,4 +45,46 @@ async function deleteOne(req, res) {
   res.json({ ok: true, data: result });
 }
 
-module.exports = { list, getById, create, update, deleteOne };
+// ==================== PRODUCTO_COMPONENTE HANDLERS ====================
+
+async function addProduct(req, res) {
+  const { idProducto, cantidad, precioReferencial, observaciones } = req.body;
+  const idComponente = req.params.id;
+
+  if (!idProducto) throw new HttpError(400, 'idProducto es requerido');
+
+  const result = await addProductToComponente(idComponente, idProducto, {
+    cantidad,
+    precioReferencial,
+    observaciones,
+  });
+
+  res.status(201).json({ ok: true, data: result });
+}
+
+async function getProducts(req, res) {
+  const idComponente = req.params.id;
+  const products = await getProductsInComponente(idComponente);
+  res.json({ ok: true, data: products });
+}
+
+async function removeProduct(req, res) {
+  const idProductoComponente = req.params.relId;
+  const result = await removeProductFromComponente(idProductoComponente);
+  res.json({ ok: true, data: result });
+}
+
+async function updateProduct(req, res) {
+  const idProductoComponente = req.params.relId;
+  const { cantidad, precioReferencial, observaciones } = req.body;
+
+  const result = await updateProductInComponente(idProductoComponente, {
+    cantidad,
+    precioReferencial,
+    observaciones,
+  });
+
+  res.json({ ok: true, data: result });
+}
+
+module.exports = { list, getById, create, update, deleteOne, addProduct, getProducts, removeProduct, updateProduct };
