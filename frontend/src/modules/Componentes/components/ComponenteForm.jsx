@@ -1,8 +1,8 @@
 import React, { useCallback, useEffect, useMemo, useState } from 'react'
 import { Button, Form, message, Row, Col, Spin, Typography, theme, Flex, Divider } from 'antd'
-import { useComponente } from '../hooks/useComponentesManager'
+import { useComponentesManager } from '../hooks/useComponentesManager'
 import { useImagenesComponente } from '../../../hooks/useImagenes' // ← Hook para imágenes
-import { uploadImagenComponente } from '../../../services/api/imagenes' // ← API para subir
+import { uploadImagenComponente, deleteImagenComponente } from '../../../services/api/imagenes' // ← API para subir/borrar
 import * as componentesApi from '../Services/api/componentesApi' // ← API para relación producto-componente
 
 import ComponenteImagenUpload from './ComponenteImagenUpload' //  ← Componente secundario
@@ -37,14 +37,15 @@ function ComponenteForm({ onSuccess, onCancel, idComponenteEdit = null }) {
   const [previewUrl, setPreviewUrl] = useState('') // URL de preview
   const [uploadPhase, setUploadPhase] = useState('') // "Subiendo imagen..."
   const [productoSeleccionado, setProductoSeleccionado] = useState(null) // Producto del componente
+  const [imagenActualId, setImagenActualId] = useState(null) // ID de imagen existente (para edición)
 
   // ============ HOOKS PERSONALIZADOS =============
   const {
     componente,
-    loading,
+    loadingComponente: loading,
     createComponente,
     updateComponente,
-  } = useComponente(idComponenteEdit)
+  } = useComponentesManager(idComponenteEdit)
 
   const { subirImagen: subirImagenComponenteHook } = useImagenesComponente(idComponenteEdit)
 
@@ -76,6 +77,7 @@ function ComponenteForm({ onSuccess, onCancel, idComponenteEdit = null }) {
       const imagenPrincipal = componente.imagenes.find((img) => img.principal) || componente.imagenes[0]
       if (imagenPrincipal?.urlImagen) {
         setPreviewUrl(imagenPrincipal.urlImagen)
+        setImagenActualId(imagenPrincipal.idImagen) // ← Guardar ID para edición
         setFileList([
           {
             uid: imagenPrincipal.idImagen,
@@ -88,6 +90,7 @@ function ComponenteForm({ onSuccess, onCancel, idComponenteEdit = null }) {
     } else {
       setFileList([])
       setPreviewUrl('')
+      setImagenActualId(null)
     }
 
     // Si tiene producto asociado, cargar
@@ -142,10 +145,22 @@ function ComponenteForm({ onSuccess, onCancel, idComponenteEdit = null }) {
   }, [])
 
   // ============ BORRAR IMAGEN =============
-  const handleDeleteImage = useCallback(() => {
-    setFileList([])
-    setPreviewUrl('')
-  }, [])
+  const handleDeleteImage = useCallback(async () => {
+    try {
+      // Si es edición y hay imagen en BD, borrarla antes de limpiar
+      if (idComponenteEdit && imagenActualId) {
+        setUploadPhase('Eliminando imagen...')
+        await deleteImagenComponente(imagenActualId)
+      }
+      setFileList([])
+      setPreviewUrl('')
+      setImagenActualId(null)
+      setUploadPhase('')
+    } catch (err) {
+      console.error('Error eliminando imagen:', err)
+      message.error('Error al eliminar imagen')
+    }
+  }, [idComponenteEdit, imagenActualId])
 
   // ============ SUBMIT: GUARDAR DATOS =============
   /**

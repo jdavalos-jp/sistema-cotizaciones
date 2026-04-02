@@ -1,6 +1,7 @@
 import React from 'react'
 import { Card, Form, Input, Typography, theme } from 'antd'
 import { InfoCircleOutlined } from '@ant-design/icons'
+import RichTextEditor from '../../../shared/components/RichTextEditor'
 
 const { Text } = Typography
 
@@ -40,14 +41,11 @@ export default function ProductoInfoGeneral() {
         name="descripcion"
         rules={[{ max: 500, message: 'Máximo 500 caracteres' }]}
       >
-        <Input.TextArea
+        <RichTextEditor
           placeholder="Describe las características principales, beneficios y materiales..."
-          rows={4}
           maxLength={500}
-          showCount
-          allowClear
         />
       </Form.Item>
-     </Card>
+    </Card>
   )
 }

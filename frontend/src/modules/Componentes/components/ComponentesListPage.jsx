@@ -1,8 +1,7 @@
-import { Card, Button, Table, Space, Input, Popconfirm, message, Typography, Spin } from 'antd'
+import { Card, Button, Table, Space, Input, Popconfirm, message, Typography, Spin, Image } from 'antd'
 import { PlusOutlined, SearchOutlined, EditOutlined, DeleteOutlined } from '@ant-design/icons'
-import { useEffect, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { useComponentes } from '../hooks/useComponentes'
+import { useComponentesManager } from '../hooks/useComponentesManager'
 
 /**
  * ComponentesListPage
@@ -10,55 +9,27 @@ import { useComponentes } from '../hooks/useComponentes'
  */
 export default function ComponentesListPage() {
   const navigate = useNavigate()
-  const [searchTerm, setSearchTerm] = useState('')
-  const { componentes, loading, pagination, loadComponentes, deleteComponente, setPagination } = useComponentes()
+  const { componentes, loading, pagination, filters, handleFilterChange, handlePagination, deleteComponente } = useComponentesManager()
 
   /**
-   * Cargar componentes al montar
+   * Manejar búsqueda
    */
-  useEffect(() => {
-    loadComponentes(0, searchTerm).catch(() => {
-      message.error('Error al cargar componentes')
-    })
-  }, [])
-
-  /**
-   * Manejar búsqueda con debounce
-   */
-  const handleSearch = async (value) => {
-    setSearchTerm(value)
-    setPagination((prev) => ({ ...prev, current: 1 }))
-    try {
-      await loadComponentes(0, value)
-    } catch (error) {
-      console.error('Error searching:', error)
-    }
+  const handleSearch = (value) => {
+    handleFilterChange({ search: value })
   }
 
   /**
    * Cambiar página
    */
-  const handlePaginationChange = async (page) => {
-    const skip = (page - 1) * pagination.pageSize
-    setPagination((prev) => ({ ...prev, current: page }))
-    try {
-      await loadComponentes(skip, searchTerm)
-    } catch (error) {
-      console.error('Error paginating:', error)
-    }
+  const handlePaginationChange = (page) => {
+    handlePagination(page, pagination.take)
   }
 
   /**
    * Cambiar tamaño de página
    */
-  const handleShowSizeChange = async (current, pageSize) => {
-    const skip = (current - 1) * pageSize
-    setPagination((prev) => ({ ...prev, current, pageSize }))
-    try {
-      await loadComponentes(skip, searchTerm)
-    } catch (error) {
-      console.error('Error changing size:', error)
-    }
+  const handleShowSizeChange = (current, pageSize) => {
+    handlePagination(current, pageSize)
   }
 
   /**
@@ -93,7 +64,38 @@ export default function ComponentesListPage() {
       dataIndex: 'nombre',
       key: 'nombre',
       width: 250,
-      render: (text) => <span style={{ fontWeight: 500 }}>{text}</span>,
+      render: (nombre, record) => (
+        <div style={{ display: 'flex', gap: 12, alignItems: 'flex-start' }}>
+          <div
+            style={{
+              width: 60,
+              height: 60,
+              flexShrink: 0,
+              background: '#f5f5f5',
+              borderRadius: 5,
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              overflow: 'hidden',
+            }}
+          >
+            {record.imagenes && record.imagenes.length > 0 ? (
+              <Image
+                src={record.imagenes[0]?.urlImagen}
+                alt={nombre}
+                style={{ width: '100%', height: '100%', objectFit: 'cover' }}
+                preview={{ mask: 'Ver' }}
+              />
+            ) : (
+              <span style={{ fontSize: '11px', color: '#999' }}>Sin imagen</span>
+            )}
+          </div>
+
+          <div style={{ flex: 1 }}>
+            <div style={{ fontWeight: '500', marginBottom: 4 }}>{nombre}</div>
+          </div>
+        </div>
+      ),
     },
     {
       title: 'SKU',
@@ -114,7 +116,7 @@ export default function ComponentesListPage() {
       key: 'precioBase',
       width: 120,
       render: (price) => (
-        <span style={{ fontWeight: 500, color: '#1890ff' }}>
+        <span style={{ fontWeight: 500, color: '#030303' }}>
           Bs {Number(price).toLocaleString()}
         </span>
       ),
@@ -161,15 +163,6 @@ export default function ComponentesListPage() {
           </Typography.Title>
           <Typography.Text type="secondary">Gestión de componentes y piezas</Typography.Text>
         </div>
-        <Button
-          type="primary"
-          icon={<PlusOutlined />}
-          size="large"
-          onClick={handleCreateClick}
-          style={{ fontWeight: 600 }}
-        >
-          Crear Componente
-        </Button>
       </div>
 
       {/* Tabla */}
@@ -179,12 +172,19 @@ export default function ComponentesListPage() {
             <Input
               placeholder="Buscar componente por nombre o SKU..."
               prefix={<SearchOutlined />}
-              value={searchTerm}
+              value={filters.search}
               onChange={(e) => handleSearch(e.target.value)}
-              style={{ maxWidth: 400 }}
+              style={{ maxWidth: 716 , marginRight: 16 }}
               allowClear
-              size="large"
             />
+            <Button
+              type="primary"
+              icon={<PlusOutlined />}
+              onClick={handleCreateClick}
+              style={{ fontWeight: 600 }}
+            >
+              Crear Componente
+            </Button>
           </div>
 
           <Table
@@ -193,7 +193,7 @@ export default function ComponentesListPage() {
             loading={loading}
             pagination={{
               current: pagination.current,
-              pageSize: pagination.pageSize,
+              pageSize: pagination.take,
               total: pagination.total,
               onChange: handlePaginationChange,
               onShowSizeChange: handleShowSizeChange,

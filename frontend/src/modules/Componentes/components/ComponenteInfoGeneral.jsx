@@ -1,6 +1,7 @@
 import React from 'react'
 import { Card, Form, Input, InputNumber, Typography, theme } from 'antd'
 import { InfoCircleOutlined } from '@ant-design/icons'
+import RichTextEditor from '../../../shared/components/RichTextEditor'
 
 const { Text } = Typography
 
@@ -97,16 +98,11 @@ export default function ComponenteInfoGeneral() {
       <Form.Item
         label="Descripción"
         name="descripcion"
-        rules={[
-          { max: 1000, message: 'Máximo 1000 caracteres' },
-        ]}
+        rules={[{ max: 1000, message: 'Máximo 1000 caracteres' }]}
       >
-        <Input.TextArea
+        <RichTextEditor
           placeholder="Detalles adicionales del componente..."
-          rows={4}
           maxLength={1000}
-          showCount
-          allowClear
         />
       </Form.Item>
     </Card>
