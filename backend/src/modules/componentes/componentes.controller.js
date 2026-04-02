@@ -10,6 +10,7 @@ const {
   getProductsInComponente,
   removeProductFromComponente,
   updateProductInComponente,
+  deleteComponenteImage,
 } = require('./componentes.service');
 
 async function list(req, res) {
@@ -87,4 +88,16 @@ async function updateProduct(req, res) {
   res.json({ ok: true, data: result });
 }
 
-module.exports = { list, getById, create, update, deleteOne, addProduct, getProducts, removeProduct, updateProduct };
+// ==================== IMAGEN HANDLERS ====================
+
+/**
+ * DELETE /componentes/imagenes/:idImagen
+ * ✅ BUG FIX #4: Eliminar imagen de componente
+ */
+async function deleteImage(req, res) {
+  const idImagen = req.params.idImagen;
+  const result = await deleteComponenteImage(idImagen);
+  res.json({ ok: true, data: result });
+}
+
+module.exports = { list, getById, create, update, deleteOne, addProduct, getProducts, removeProduct, updateProduct, deleteImage };

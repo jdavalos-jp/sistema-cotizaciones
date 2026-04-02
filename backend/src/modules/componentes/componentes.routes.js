@@ -19,4 +19,7 @@ router.post('/:id/productos', asyncHandler(controller.addProduct));
 router.delete('/:id/productos/:relId', asyncHandler(controller.removeProduct));
 router.put('/:id/productos/:relId', asyncHandler(controller.updateProduct));
 
+// ✅ BUG FIX #4: Ruta para eliminar imagen de componente
+router.delete('/imagenes/:idImagen', asyncHandler(controller.deleteImage));
+
 module.exports = { router };

@@ -10,6 +10,28 @@ const componenteSelect = {
   precioBase: true,
   sku: true,
   estado: true,
+  imagenes: {
+    where: { estado: 'activo' },
+    select: { idImagen: true, urlImagen: true, principal: true, orden: true },
+    orderBy: [{ principal: 'desc' }, { orden: 'asc' }],
+  },
+  productos: {
+    select: {
+      idProductoComponente: true,
+      idProducto: true,
+      cantidad: true,
+      precioReferencial: true,
+      observaciones: true,
+      producto: {
+        select: {
+          idProducto: true,
+          nombre: true,
+          sku: true,
+          precioBase: true,
+        },
+      },
+    },
+  },
 };
 
 // ==================== HELPERS ====================
@@ -129,6 +151,7 @@ async function updateComponente(idComponente, updateData) {
     data.precioBase = precio;
   }
 
+  // ✅ BUG FIX #5: Mejorar validación de SKU en edición
   if (updateData.sku !== undefined) {
     const newSku = updateData.sku?.trim() || null;
     if (newSku && newSku !== existing.sku) {
@@ -138,7 +161,7 @@ async function updateComponente(idComponente, updateData) {
           idComponente: { not: compId },
         },
       });
-      if (conflicts) throw new HttpError(400, 'SKU ya existe');
+      if (conflicts) throw new HttpError(400, `SKU '${newSku}' ya está en uso por otro componente`);
     }
     data.sku = newSku;
   }
@@ -344,6 +367,28 @@ async function updateProductInComponente(idProductoComponente, updateData) {
   return updated;
 }
 
+// ==================== IMAGEN OPERATIONS ====================
+
+/**
+ * ✅ BUG FIX #4: Eliminar imagen de componente
+ * Elimina registro en BASE DE DATOS (storage se maneja en otro lado)
+ */
+async function deleteComponenteImage(idImagen) {
+  const imgId = parseId(idImagen, 'idImagen');
+
+  const existing = await prisma.componenteImagen.findUnique({
+    where: { idImagen: imgId },
+  });
+
+  if (!existing) throw new HttpError(404, 'Imagen no encontrada');
+
+  await prisma.componenteImagen.delete({
+    where: { idImagen: imgId },
+  });
+
+  return { ok: true, message: 'Imagen eliminada' };
+}
+
 // ==================== EXPORTS ====================
 
 module.exports = {
@@ -356,4 +401,5 @@ module.exports = {
   getProductsInComponente,
   removeProductFromComponente,
   updateProductInComponente,
+  deleteComponenteImage,
 };
