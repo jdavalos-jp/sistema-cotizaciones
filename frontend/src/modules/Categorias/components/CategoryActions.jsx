@@ -1,11 +1,15 @@
-import { Button, Popconfirm, Space, Dropdown } from 'antd'
-import { EditOutlined, DeleteOutlined, EllipsisOutlined } from '@ant-design/icons'
+import { Button, Popconfirm, Dropdown } from 'antd'
+import { EditOutlined, DeleteOutlined, DownOutlined } from '@ant-design/icons'
 
 /**
  * Componente CategoryActions
- * Acciones para una categoría (editar, eliminar)
+ * Acciones para una categoría (editar, eliminar) en formato dropdown
  */
 export default function CategoryActions({ category, onEdit, onDelete }) {
+  const handleDelete = () => {
+    onDelete(category.idCategoria)
+  }
+
   const items = [
     {
       key: 'edit',
@@ -14,34 +18,62 @@ export default function CategoryActions({ category, onEdit, onDelete }) {
       onClick: () => onEdit(category),
     },
     {
+      type: 'divider',
+    },
+    {
       key: 'delete',
       label: 'Eliminar',
       icon: <DeleteOutlined />,
       danger: true,
+      onClick: () => {
+        // El Popconfirm se manejará a través del dropdown
+      },
     },
   ]
 
-  const handleDelete = () => {
-    onDelete(category.idCategoria)
-  }
+  // Crear un dropdown con el Popconfirm para eliminar
+  const dropdownItems = [
+    {
+      key: 'edit',
+      label: 'Editar',
+      icon: <EditOutlined />,
+      onClick: () => onEdit(category),
+    },
+    {
+      type: 'divider',
+    },
+    {
+      key: 'delete',
+      label: (
+        <Popconfirm
+          title="Eliminar categoría"
+          description="¿Estás seguro que deseas eliminar esta categoría?"
+          onConfirm={handleDelete}
+          okText="Sí"
+          cancelText="No"
+          okButtonProps={{ danger: true }}
+          onOpenChange={(open) => {
+            if (!open) {
+              // Prevenir que se cierre el dropdown si se cancela
+            }
+          }}
+        >
+          <span style={{ color: 'red' }}>Eliminar</span>
+        </Popconfirm>
+      ),
+      danger: true,
+    },
+  ]
 
   return (
-    <Space>
-      <Button type="text" size="small" icon={<EditOutlined />} onClick={() => onEdit(category)} title="Editar">
-        Editar
+    <Dropdown
+      menu={{ items: dropdownItems }}
+      trigger={['click']}
+      placement="bottomRight"
+    >
+      <Button type="text" size="small">
+        Acciones <DownOutlined style={{ fontSize: '12px' }} />
       </Button>
-      <Popconfirm
-        title="Eliminar categoría"
-        description="¿Estás seguro que deseas eliminar esta categoría?"
-        onConfirm={handleDelete}
-        okText="Sí"
-        cancelText="No"
-        okButtonProps={{ danger: true }}
-      >
-        <Button type="text" size="small" danger icon={<DeleteOutlined />} title="Eliminar">
-          Eliminar
-        </Button>
-      </Popconfirm>
-    </Space>
+    </Dropdown>
   )
 }

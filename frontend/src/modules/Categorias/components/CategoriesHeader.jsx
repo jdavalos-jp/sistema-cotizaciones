@@ -14,9 +14,7 @@ export default function CategoriesHeader({ onAddCategory }) {
         </Typography.Title>
         <Typography.Text type="secondary">Gestión de categorías de productos</Typography.Text>
       </div>
-      <Button type="primary" icon={<PlusOutlined />} onClick={onAddCategory}>
-        Añadir categoría 
-      </Button>
+
     </div>
   )
 }

@@ -7,6 +7,7 @@ import { SearchOutlined } from '@ant-design/icons'
  */
 export default function CategoriesSearchBar({ value, onChange }) {
   return (
+    <div>
     <div style={{ marginBottom: 16 }}>
       <Input
         placeholder="Buscar categoría..."
@@ -16,6 +17,10 @@ export default function CategoriesSearchBar({ value, onChange }) {
         style={{ maxWidth: 400 }}
         
       />
+    </div>
+      <Button type="primary" icon={<PlusOutlined />} onClick={onAddCategory}>
+        Añadir categoría 
+      </Button>
     </div>
     
   )

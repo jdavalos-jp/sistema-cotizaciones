@@ -6,17 +6,17 @@ import MainLayout from './layout/MainLayout.jsx'
 
 // Páginas
 import DashboardPage from './pages/Dashboard/DashboardPage.jsx'
-import CatalogoPage from './pages/Catalogo/CatalogoPage.jsx'
-import ProductosPage from './pages/Catalogo/ProductosPage.jsx'
-import ProductoFormPage from './pages/Catalogo/ProductoFormPage.jsx'
-import CategoriasPage from './pages/Catalogo/CategoriasPage.jsx'
-import ComponentesPage from './pages/Catalogo/ComponentesPage.jsx'
-import ComponenteFormPage from './pages/Catalogo/ComponenteFormPage.jsx'
-import ClientesPage from './pages/Clientes/ClientesPage.jsx'
-import ClienteFormPage from './pages/Clientes/ClienteFormPage.jsx'
-import CotizacionNuevaPage from './pages/Cotizaciones/CotizacionNuevaPage.jsx'
-import HistorialCotizacionesPage from './pages/Cotizaciones/HistorialCotizacionesPage.jsx'
-import ProformasPage from './pages/Documentos/ProformasPage.jsx'
+import CatalogoPage from './modules/Catalogo/CatalogoPage.jsx'
+import ProductosPage from './modules/Producto/ProductosPage.jsx'
+import ProductoFormPage from './modules/Producto/ProductoFormPage.jsx'
+import CategoriasPage from './modules/Categorias/CategoriasPage.jsx'
+import ComponentesPage from './modules/Componentes/ComponentesPage.jsx'
+import ComponenteFormPage from './modules/Componentes/ComponenteFormPage.jsx'
+import ClientesPage from './modules/Clientes/ClientesPage.jsx'
+import ClienteFormPage from './modules/Clientes/ClienteFormPage.jsx'
+import CotizacionNuevaPage from './modules/cotizacion/CotizacionNuevaPage.jsx'
+import HistorialCotizacionesPage from './modules/Historial_cotizaciones/HistorialCotizacionesPage.jsx'
+import ProformasPage from './modules/Proformas/ProformasPage.jsx'
 import NotFoundPage from './pages/NotFoundPage.jsx'
 
 /**
@@ -41,6 +41,8 @@ export default function App() {
               <Route path="/productos" element={<ProductosPage />} />
               <Route path="/productos/crear" element={<ProductoFormPage />} />
               <Route path="/categorias" element={<CategoriasPage />} />
+              <Route path="/categorias/crear" element={<CategoriasPage mode="crear" />} />
+              <Route path="/categorias/editar/:id" element={<CategoriasPage mode="editar" />} />
               <Route path="/componentes" element={<ComponentesPage />} />
               <Route path="/componentes/crear" element={<ComponenteFormPage />} />
               <Route path="/componentes/editar/:id" element={<ComponenteFormPage />} />

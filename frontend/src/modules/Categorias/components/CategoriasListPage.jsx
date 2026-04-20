@@ -1,23 +1,19 @@
-import { Card, message, Spin } from 'antd'
+import { message, Spin } from 'antd'
 import { useEffect, useState } from 'react'
+import { useNavigate } from 'react-router-dom'
 import { useCategorias } from '../hooks/useCategorias'
-import CategoriesHeader from './CategoriesHeader'
-import CategoriesSearchBar from './CategoriesSearchBar'
-import CategoriesTable from './CategoriesTable'
+import CategoriesList from './CategoriesList'
 
 /**
- * Componente CategoriasListPage - Página principal de gestión de categorías
- * Componentes modulares:
- * - CategoriesHeader: Encabezado con título y botón agregar
- * - CategoriesSearchBar: Buscador de categorías
- * - CategoriesTable: Tabla de categorías con todas las columnas
+ * CategoriasListPage - Página principal de gestión de categorías
+ * Container que orquesta la lógica de lista, búsqueda y acciones
  */
 export default function CategoriasListPage() {
+  const navigate = useNavigate()
   const [searchTerm, setSearchTerm] = useState('')
   const { categorias, loading, pagination, loadCategorias, deleteCategoria, setPagination } = useCategorias()
-  const [selectedCategory, setSelectedCategory] = useState(null)
 
-  // Cargar categorías al montar el componente
+  // Cargar categorías al montar
   useEffect(() => {
     loadCategorias(0, searchTerm).catch(() => {
       message.error('Error al cargar categorías')
@@ -45,16 +41,13 @@ export default function CategoriasListPage() {
   }
 
   const handleEdit = (categoria) => {
-    setSelectedCategory(categoria)
-    // TODO: Abrir modal de edición
-    message.info(`Editar: ${categoria.nombre}`)
+    navigate(`/categorias/editar/${categoria.idCategoria}`)
   }
 
   const handleDelete = async (idCategoria) => {
     try {
-      deleteCategoria(idCategoria)
+      await deleteCategoria(idCategoria)
       message.success('Categoría eliminada correctamente')
-      // Recargar la lista
       await loadCategorias(0, searchTerm)
     } catch (error) {
       message.error('Error al eliminar la categoría')
@@ -62,29 +55,22 @@ export default function CategoriasListPage() {
   }
 
   const handleAddCategory = () => {
-    setSelectedCategory(null)
-    // TODO: Abrir modal de creación
-    message.info('Abrir formulario para agregar categoría')
+    navigate('/categorias/crear')
   }
 
   return (
-    <div style={{ padding: '0' }}>
-      <CategoriesHeader onAddCategory={handleAddCategory} />
-
-      <Card>
-        <Spin spinning={loading}>
-          <CategoriesSearchBar value={searchTerm} onChange={handleSearch} />
-
-          <CategoriesTable
-            categorias={categorias}
-            loading={loading}
-            pagination={pagination}
-            onPaginationChange={handlePaginationChange}
-            onEdit={handleEdit}
-            onDelete={handleDelete}
-          />
-        </Spin>
-      </Card>
-    </div>
+    <Spin spinning={loading}>
+      <CategoriesList
+        categorias={categorias}
+        loading={loading}
+        pagination={pagination}
+        searchValue={searchTerm}
+        onSearch={handleSearch}
+        onPaginationChange={handlePaginationChange}
+        onAddCategory={handleAddCategory}
+        onEdit={handleEdit}
+        onDelete={handleDelete}
+      />
+    </Spin>
   )
 }

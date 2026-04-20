@@ -1,4 +1,4 @@
-import ProformasListPage from '../../modules/Proformas/components/ProformasListPage'
+import ProformasListPage from './components/ProformasListPage'
 
 /**
  * Página Wrapper - Proformas

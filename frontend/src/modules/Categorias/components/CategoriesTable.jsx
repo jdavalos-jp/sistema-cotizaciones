@@ -1,5 +1,6 @@
 import { Table, Empty } from 'antd'
 import CategoryCell from './CategoryCell'
+import SubcategoriesCell from './SubcategoriesCell'
 import StatusBadge from './StatusBadge'
 import CategoryActions from './CategoryActions'
 
@@ -20,15 +21,15 @@ export default function CategoriesTable({
       title: 'Categoría',
       dataIndex: 'nombre',
       key: 'categoria',
-      width: '40%',
+      width: '25%',
       render: (_, record) => <CategoryCell categoria={record} />,
     },
     {
-      title: 'Descripción',
-      dataIndex: 'descripcion',
-      key: 'descripcion',
-      width: '25%',
-      render: (text) => text || '-',
+      title: 'Subcategorías',
+      dataIndex: 'subcategorias',
+      key: 'subcategorias',
+      width: '35%',
+      render: (subcategorias) => <SubcategoriesCell subcategorias={subcategorias} />,
     },
     {
       title: 'Estado',
@@ -41,7 +42,7 @@ export default function CategoriesTable({
     {
       title: 'Acciones',
       key: 'acciones',
-      width: '20%',
+      width: '25%',
       align: 'right',
       render: (_, record) => (
         <CategoryActions category={record} onEdit={onEdit} onDelete={onDelete} />

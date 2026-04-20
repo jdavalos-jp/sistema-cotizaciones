@@ -106,23 +106,10 @@ function ComponenteForm({ onSuccess, onCancel, idComponenteEdit = null }) {
     }
   }, [idComponenteEdit, componente, form])
 
-  // ============ WATCH: MONITOREAR CAMBIOS =============
-  /**
-   * Form.useWatch = "dame los valores actuales de estos campos"
-   * Se actualiza en TIEMPO REAL mientras el usuario escribe
-   */
+   
   const watchedNombre = Form.useWatch('nombre', form)
   const watchedPrecioBase = Form.useWatch('precioBase', form)
 
-  // ============ VALIDACIÓN: ¿PUEDE ENVIAR? =============
-  /**
-   * useMemo = "calcula esto solo cuando las dependencias cambien"
-   * 
-   * Reglas para permitir submit:
-   * 1. Nombre: al menos 3 caracteres
-   * 2. Precio: número >= 0
-   * 3. No está cargando
-   */
   const canSubmit = useMemo(() => {
     const nombreOk = String(watchedNombre || '').trim().length >= 3
     const precioOk =
