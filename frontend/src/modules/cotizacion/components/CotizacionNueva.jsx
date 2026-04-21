@@ -18,6 +18,8 @@ import { useCotizacionPreview } from '../hooks/useCotizacionPreview';
 import { fetchProductos, fetchComponentes } from '../services/api/catalogoApi';
 import { createAndDownloadPdf } from '../services/api/cotizacionesApi';
 
+const { Title, Text } = Typography;
+
 function CotizacionNueva() {
   const [idCliente, setIdCliente] = useState(null);
   const [clienteLabel, setClienteLabel] = useState('');
@@ -132,7 +134,7 @@ function CotizacionNueva() {
   };
 
   return (
-    <div>
+    <div style={{ backgroundColor: '#f5f5f5', padding: '24px', minHeight: '100vh', margin: '-24px' }}>
       {showSuccess && (
         <Card>
           <div style={{ textAlign: 'center', padding: '60px 20px' }}>
@@ -144,12 +146,12 @@ function CotizacionNueva() {
       )}
 
       <div style={{ display: showSuccess ? 'none' : 'block' }} aria-hidden={showSuccess}>
-        <Space orientation="vertical" size={24} style={{ width: '100%' }}>
-          <div>
-            <Typography.Title level={3} style={{ marginTop: 0, marginBottom: 0 }}>
+        <Space orientation="vertical" size={24} style={{ width: '100%', paddingBottom: '80px' }}>
+          <div style={{ marginBottom: 24 }}>
+            <Typography.Title level={3} style={{ margin: 0, fontWeight: 600 }}>
               Nueva Cotización
             </Typography.Title>
-            <Typography.Text type="secondary">Completa los datos para crear una cotización</Typography.Text>
+            <Typography.Text type="secondary" style={{ fontSize: '14px' }}>Inicio / Cotizaciones / Crear cotización</Typography.Text>
           </div>
 
           <ClienteDatosSection
@@ -260,27 +262,29 @@ function CotizacionNueva() {
             </Row>
           </Card>
 
-          <Divider style={{ margin: '8px 0' }} />
+          <Divider style={{ margin: '8px 0', display: 'none' }} />
 
-          <Row justify="space-between" align="middle">
-            <Col>
-              <Typography.Text type="secondary">{cart.cart.length} producto(s) en cotización</Typography.Text>
-            </Col>
-            <Col>
-              <Space>
-                <Button onClick={() => cart.clear()}>Limpiar</Button>
-                <Button
-                  type="primary"
-                  icon={<PlusOutlined />}
-                  loading={loadingSubmit}
-                  onClick={handleGenerarCotizacion}
-                  disabled={!idCliente || !cart.cart.length || !diasValidez || !diasEntrega}
-                >
-                  Generar Cotización
-                </Button>
-              </Space>
-            </Col>
-          </Row>
+          <div style={{
+            position: 'fixed', bottom: 0, left: 0, width: '100%',
+            background: '#fff', borderTop: '1px solid #f0f0f0',
+            padding: '16px 24px', zIndex: 10, display: 'flex', justifyContent: 'space-between', alignItems: 'center'
+          }}>
+            <Typography.Text type="secondary">{cart.cart.length} producto(s) en cotización</Typography.Text>
+            <Space gap={16}>
+              <Button size="large" onClick={() => cart.clear()} style={{ borderRadius: 8, minWidth: 100 }}>Limpiar</Button>
+              <Button
+                type="primary"
+                size="large"
+                icon={<PlusOutlined />}
+                loading={loadingSubmit}
+                onClick={handleGenerarCotizacion}
+                disabled={!idCliente || !cart.cart.length || !diasValidez || !diasEntrega}
+                style={{ borderRadius: 8, minWidth: 100, fontWeight: 600 }}
+              >
+                Generar Cotización
+              </Button>
+            </Space>
+          </div>
         </Space>
 
         <ModalNuevoCliente

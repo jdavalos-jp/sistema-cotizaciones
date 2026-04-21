@@ -1,7 +1,6 @@
 import { useParams } from 'react-router-dom'
-import CategoriasListPage from '../../modules/Categorias/components/CategoriasListPage'
-import CategoriaFormPage from '../../modules/Categorias/components/CategoriaFormPage'
-
+import CategoriasListPage from './components/listaCategorias/CategoriasListPage'
+import CategoriaFormPage from './components/crearCategorias/CategoriaFormPage'
 /**
  * Página Wrapper - Categorías
  * Maneja la lógica de ruteo entre lista y formulario

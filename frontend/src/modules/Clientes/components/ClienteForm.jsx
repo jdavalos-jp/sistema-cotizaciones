@@ -19,10 +19,10 @@ function ClienteForm({ onSuccess, onCancel, idClienteEdit = null }) {
 
   const { cliente, loading: loadingCliente, createCliente, updateCliente } = useClientesManager(idClienteEdit)
 
-  const title = idClienteEdit ? 'Editar Cliente' : 'Agregar Cliente'
-  const subtitle = idClienteEdit
-    ? 'Actualiza la información del cliente.'
-    : 'Completa la información del nuevo cliente.'
+  const title = idClienteEdit ? 'Editar Cliente' : 'Crear Cliente'
+  const breadcrumb = idClienteEdit
+    ? 'Inicio / Clientes / Editar cliente'
+    : 'Inicio / Clientes / Añadir cliente'
 
   /**
    * Cargar datos del cliente en el formulario (modo edición)
@@ -93,22 +93,25 @@ function ClienteForm({ onSuccess, onCancel, idClienteEdit = null }) {
   }
 
   return (
-    <Spin spinning={loadingCliente}>
-      <div style={{ marginBottom: 24 }}>
-        <Title level={2} style={{ marginTop: 0, marginBottom: 8 }}>
-          {title}
-        </Title>
-        <Text type="secondary">{subtitle}</Text>
-      </div>
+    <div style={{ backgroundColor: '#f5f5f5', padding: '24px', minHeight: '100vh', margin: '-24px' }}>
+      <div style={{ flex: 1, maxWidth: 1200, margin: '0 auto', width: '100%', paddingBottom: '80px' }}>
+        <Spin spinning={loadingCliente}>
+          <div style={{ marginBottom: 24 }}>
+            <Title level={3} style={{ margin: 0, fontWeight: 600 }}>
+              {title}
+            </Title>
+            <Text type="secondary" style={{ fontSize: '14px' }}>{breadcrumb}</Text>
+          </div>
 
-      <Form
-        form={form}
-        layout="vertical"
-        onFinish={handleSubmit}
-        autoComplete="off"
-        requiredMark
-      >
-          {/* Nombre Completo - Campo requerido */}
+          <div style={{ background: '#fff', padding: 24, borderRadius: 8, boxShadow: '0 1px 2px rgba(0,0,0,0.05)' }}>
+            <Form
+              form={form}
+              layout="vertical"
+              onFinish={handleSubmit}
+              autoComplete="off"
+              requiredMark
+            >
+              {/* Nombre Completo - Campo requerido */}
           <Form.Item
             label="Nombre Completo"
             name="nombreCompleto"
@@ -213,20 +216,29 @@ function ClienteForm({ onSuccess, onCancel, idClienteEdit = null }) {
             />
           </Form.Item>
 
-          {/* Botones */}
-          <div style={{ marginTop: 32, display: 'flex', gap: 8, justifyContent: 'flex-end' }}>
-            <Button onClick={onCancel}>Cancelar</Button>
-            <Button
-              type="primary"
-              htmlType="submit"
-              loading={submitting}
-              disabled={!canSubmit}
-            >
-              {idClienteEdit ? 'Actualizar' : 'Crear Cliente'}
-            </Button>
+            {/* Botones */}
+            <div style={{
+              position: 'fixed', bottom: 0, left: 0, width: '100%',
+              background: '#fff', borderTop: '1px solid #f0f0f0',
+              padding: '16px 24px', zIndex: 10, display: 'flex', justifyContent: 'flex-end', gap: 16
+            }}>
+              <Button
+                type="primary"
+                htmlType="submit"
+                loading={submitting}
+                disabled={!canSubmit}
+                size="large"
+                style={{ borderRadius: 8, minWidth: 100, fontWeight: 600 }}
+              >
+                Guardar
+              </Button>
+              <Button onClick={onCancel} size="large" style={{ borderRadius: 8, minWidth: 100 }}>Cancelar</Button>
+            </div>
+          </Form>
           </div>
-        </Form>
-    </Spin>
+        </Spin>
+      </div>
+    </div>
   )
 }
 

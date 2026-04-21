@@ -34,7 +34,7 @@ function CotizacionesTable({
 }) {
   const columns = [
     {
-      title: '#',
+      title: 'Nº Cotización',
       dataIndex: 'numeroCotizacion',
       render: (t) => <strong>{t}</strong>,
     },

@@ -66,7 +66,7 @@ function CotizacionesFiltros({ cotizaciones, filtro, setFiltro, busqueda, setBus
   const aceptadas = cotizaciones.filter(c => c.estado === 'aceptada').length
 
   return (
-    <div style={{ marginBottom: 20, display: 'flex', flexDirection: 'column', gap: 16 }}>
+    <div style={{ marginBottom: 24, display: 'flex', flexDirection: 'column', gap: 16 }}>
       {/* Stats mejorados */}
       <Row gutter={[12, 12]}>
         <Col xs={24} sm={12} md={8} lg={6}>
@@ -96,26 +96,20 @@ function CotizacionesFiltros({ cotizaciones, filtro, setFiltro, busqueda, setBus
       </Row>
 
       {/* Buscador y Filtro */}
-      <Space style={{ width: '100%', justifyContent: 'space-between', flexWrap: 'wrap' }} wrap>
+      <div style={{ display: 'flex', gap: '16px', width: '100%', alignItems: 'center' }}>
         <Input
           placeholder="Buscar por número o nombre de cliente..."
-          prefix={<SearchOutlined />}
           value={busqueda}
           onChange={(e) => setBusqueda(e.target.value)}
-          style={{
-            borderRadius: 8,
-            minWidth: 300,
-          }}
+          style={{ flex: 1 }}
+          suffix={<SearchOutlined style={{ color: 'rgba(0,0,0,.45)' }} />}
           allowClear
         />
 
         <Select
           value={filtro}
           onChange={setFiltro}
-          style={{
-            width: 200,
-            borderRadius: 8,
-          }}
+          style={{ width: 200 }}
           options={[
             { label: 'Todas', value: 'todos' },
             { label: 'Borradores', value: 'borrador' },
@@ -124,7 +118,7 @@ function CotizacionesFiltros({ cotizaciones, filtro, setFiltro, busqueda, setBus
             { label: 'Rechazadas', value: 'rechazada' },
           ]}
         />
-      </Space>
+      </div>
     </div>
   )
 }

@@ -94,28 +94,33 @@ function ClientesListPage() {
   ]
 
   return (
-    <div>
-      <div style={{ marginBottom: 24, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-        <div>
-          <Typography.Title level={1} style={{ marginTop: 0, marginBottom: 8 }}>
-            Clientes
-          </Typography.Title>
-          <Typography.Text type="secondary">Gestión de clientes y contactos</Typography.Text>
-        </div>
+    <div style={{ backgroundColor: '#f5f5f5', padding: '24px', minHeight: '100vh', margin: '-24px' }}>
+      {/* ALINEACIÓN TIPO BREADCRUMB */}
+      <div style={{ marginBottom: 24 }}>
+        <Typography.Title level={3} style={{ margin: 0 }}>
+          Clientes
+        </Typography.Title>
+        <Typography.Text type="secondary" style={{ fontSize: '14px' }}>
+          Inicio / Clientes
+        </Typography.Text>
       </div>
 
-      <Card>
+      <Card bodyStyle={{ padding: '24px' }} bordered={false} style={{ borderRadius: '8px', boxShadow: '0 1px 2px rgba(0,0,0,0.05)' }}>
         <Spin spinning={loading}>
-          <div style={{ marginBottom: 16 }}>
+          {/* TOP BAR: BUSCADOR Y BOTÓN */}
+          <div style={{ display: 'flex', gap: '16px', marginBottom: '24px' }}>
             <Input
               placeholder="Buscar por nombre o email..."
-              prefix={<SearchOutlined />}
               value={searchTerm}
               onChange={(e) => handleSearch(e.target.value)}
-              style={{ maxWidth: 737, marginRight: 17 }}
+              style={{ flex: 1 }}
+              suffix={<SearchOutlined style={{ color: 'rgba(0,0,0,.45)' }} />}
             />
-            <Button type="primary" icon={<PlusOutlined />} onClick={handleOpenModal}>
-              Agregar Cliente
+            <Button
+              type="primary"
+              onClick={handleOpenModal}
+            >
+              Añadir cliente
             </Button>
           </div>
 

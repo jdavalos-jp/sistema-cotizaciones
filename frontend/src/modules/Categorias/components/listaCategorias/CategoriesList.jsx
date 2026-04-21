@@ -173,30 +173,30 @@ export default function CategoriesList({
   ]
 
   return (
-    <>
-      {/* HEADER */}
-      <div style={{ marginBottom: 24, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-        <div>
-          <Typography.Title level={2} style={{ marginTop: 0, marginBottom: 8 }}>
-            Categorías
-          </Typography.Title>
-          <Typography.Text type="secondary">Gestión de categorías de productos</Typography.Text>
-        </div>
-        <Button type="primary" icon={<PlusOutlined />} onClick={onAddCategory} size="large">
-          Añadir categoría
-        </Button>
+    <div style={{ backgroundColor: '#f5f5f5', padding: '24px', minHeight: '100vh', margin: '-24px' }}>
+      {/* ALINEACIÓN TIPO BREADCRUMB */}
+      <div style={{ marginBottom: 24 }}>
+        <Typography.Title level={3} style={{ margin: 0 }}>
+          Categorías
+        </Typography.Title>
+        <Typography.Text type="secondary" style={{ fontSize: '14px' }}>
+          Inicio / Categorías
+        </Typography.Text>
       </div>
 
-      <Card>
-        {/* SEARCH BAR */}
-        <div style={{ marginBottom: 16 }}>
+      <Card bodyStyle={{ padding: '24px' }} bordered={false} style={{ borderRadius: '8px', boxShadow: '0 1px 2px rgba(0,0,0,0.05)' }}>
+        {/* TOP BAR: BUSCADOR Y BOTÓN */}
+        <div style={{ display: 'flex', gap: '16px', marginBottom: '24px' }}>
           <Input
-            placeholder="Buscar categoría..."
-            prefix={<SearchOutlined />}
+            placeholder="Buscar categoria"
             value={searchValue}
             onChange={(e) => onSearch(e.target.value)}
-            style={{ maxWidth: 400 }}
+            style={{ flex: 1 }}
+            suffix={<SearchOutlined style={{ color: 'rgba(0,0,0,.45)' }} />}
           />
+          <Button type="primary" onClick={onAddCategory}>
+            Añadir categoria
+          </Button>
         </div>
 
         {/* TABLA */}
@@ -217,6 +217,6 @@ export default function CategoriesList({
           locale={{ emptyText: <Empty description="No hay categorías" /> }}
         />
       </Card>
-    </>
+    </div>
   )
 }

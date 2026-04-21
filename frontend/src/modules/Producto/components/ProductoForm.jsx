@@ -29,10 +29,10 @@ function ProductoForm({ onSuccess, onCancel, idProductoEdit = null }) {
   const { producto, loading: loadingProducto, createProducto, updateProducto } = useProducto(idProductoEdit)
   const { subirImagen: subirImagenProductoHook } = useImagenesProducto(idProductoEdit)
 
-  const title = idProductoEdit ? 'Editar Producto' : 'Crear Nuevo Producto'
-  const subtitle = idProductoEdit
-    ? 'Actualiza la información del producto en el catálogo.'
-    : 'Completa la información detallada para publicar el producto en el catálogo.'
+  const title = idProductoEdit ? 'Editar Producto' : 'Crear Producto'
+  const breadcrumb = idProductoEdit
+    ? 'Inicio / Productos / Editar producto'
+    : 'Inicio / Productos / Añadir producto'
 
   // Rebuild hierarchy - optimizado (una sola query)
   const rebuildHierarchy = useCallback(async () => {
@@ -202,11 +202,13 @@ function ProductoForm({ onSuccess, onCancel, idProductoEdit = null }) {
   }
 
   return (
-    <div style={{ width: '100%' }}>
-      <div style={{ marginBottom: token.marginLG }}>
-        <Title level={3} style={{ margin: 0 }}>{title}</Title>
-        <Text type="secondary" style={{ fontSize: 14 }}>{subtitle}</Text>
-      </div>
+    <div style={{ backgroundColor: '#f5f5f5', padding: '24px', minHeight: '100vh', margin: '-24px' }}>
+      <div style={{ flex: 1, maxWidth: 1200, margin: '0 auto', width: '100%', paddingBottom: '80px' }}>
+        {/* Header Breadcrumb & Title */}
+        <div style={{ marginBottom: 24 }}>
+          <Title level={3} style={{ margin: 0, fontWeight: 600 }}>{title}</Title>
+          <Text type="secondary" style={{ fontSize: '14px' }}>{breadcrumb}</Text>
+        </div>
 
       {loadingProducto ? (
         <Flex justify="center" style={{ padding: token.paddingXL }}>
@@ -274,26 +276,31 @@ function ProductoForm({ onSuccess, onCancel, idProductoEdit = null }) {
             </Col>
           </Row>
 
-          <Divider style={{ margin: `${token.marginLG}px 0` }} />
+          <Divider style={{ margin: `${token.marginLG}px 0`, display: 'none' }} />
 
-          {/* Botones de acción */}
-          <Flex justify="flex-end" gap={token.marginMD}>
-            <Button onClick={onCancel} size="large" style={{ borderRadius: token.borderRadiusLG }} disabled={submitting}>
-              Cancelar
-            </Button>
+          {/* Footer fixed */}
+          <div style={{
+            position: 'fixed', bottom: 0, left: 0, width: '100%',
+            background: '#fff', borderTop: '1px solid #f0f0f0',
+            padding: '16px 24px', zIndex: 10, display: 'flex', justifyContent: 'flex-end', gap: 16
+          }}>
             <Button
               type="primary"
               htmlType="submit"
               loading={submitting}
               disabled={submitting || !canSubmit}
               size="large"
-              style={{ borderRadius: token.borderRadiusLG, fontWeight: 600 }}
+              style={{ borderRadius: 8, minWidth: 100, fontWeight: 600 }}
             >
-              {idProductoEdit ? 'Actualizar Producto' : 'Crear Producto'}
+              {idProductoEdit ? 'Guardar' : 'Guardar'}
             </Button>
-          </Flex>
+            <Button onClick={onCancel} size="large" style={{ borderRadius: 8, minWidth: 100 }} disabled={submitting}>
+              Cancelar
+            </Button>
+          </div>
         </Form>
       )}
+      </div>
     </div>
   )
 }

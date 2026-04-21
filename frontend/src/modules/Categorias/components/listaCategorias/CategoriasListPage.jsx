@@ -1,7 +1,7 @@
 import { message, Spin } from 'antd'
 import { useEffect, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { useCategorias } from '../hooks/useCategorias'
+import { useCategorias } from '../../hooks/useCategorias'
 import CategoriesList from './CategoriesList'
 
 /**

@@ -41,14 +41,10 @@ export default function ClienteFormPage() {
   ]
 
   return (
-    <>
-      <Breadcrumb items={breadcrumbItems} style={{ marginBottom: 24 }} />
-
-      <ClienteForm
-        onSuccess={handleSuccess}
-        onCancel={handleCancel}
-        idClienteEdit={id ? BigInt(id) : null}
-      />
-    </>
+    <ClienteForm
+      onSuccess={handleSuccess}
+      onCancel={handleCancel}
+      idClienteEdit={id ? BigInt(id) : null}
+    />
   )
 }

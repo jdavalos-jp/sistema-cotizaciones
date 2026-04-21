@@ -50,10 +50,10 @@ function ComponenteForm({ onSuccess, onCancel, idComponenteEdit = null }) {
   const { subirImagen: subirImagenComponenteHook } = useImagenesComponente(idComponenteEdit)
 
   // ============ TÍTULOS DINÁMICOS =============
-  const title = idComponenteEdit ? 'Editar Componente' : 'Crear Nuevo Componente'
-  const subtitle = idComponenteEdit
-    ? 'Actualiza la información del componente en el catálogo.'
-    : 'Completa la información para registrar un nuevo componente.'
+  const title = idComponenteEdit ? 'Editar Componente' : 'Crear Componente'
+  const breadcrumb = idComponenteEdit
+    ? 'Inicio / Componentes / Editar componente'
+    : 'Inicio / Componentes / Añadir componente'
 
   // ============ EFECTO: CARGAR DATOS EN EDICIÓN =============
   /**
@@ -77,7 +77,7 @@ function ComponenteForm({ onSuccess, onCancel, idComponenteEdit = null }) {
       const imagenPrincipal = componente.imagenes.find((img) => img.principal) || componente.imagenes[0]
       if (imagenPrincipal?.urlImagen) {
         setPreviewUrl(imagenPrincipal.urlImagen)
-        setImagenActualId(imagenPrincipal.idImagen) // ← Guardar ID para edición
+        setImagenActualId(imagenPrincipal.idImagen) 
         setFileList([
           {
             uid: imagenPrincipal.idImagen,
@@ -106,7 +106,7 @@ function ComponenteForm({ onSuccess, onCancel, idComponenteEdit = null }) {
     }
   }, [idComponenteEdit, componente, form])
 
-   
+
   const watchedNombre = Form.useWatch('nombre', form)
   const watchedPrecioBase = Form.useWatch('precioBase', form)
 
@@ -149,15 +149,8 @@ function ComponenteForm({ onSuccess, onCancel, idComponenteEdit = null }) {
     }
   }, [idComponenteEdit, imagenActualId])
 
-  // ============ SUBMIT: GUARDAR DATOS =============
-  /**
-   * Lo que pasa cuando el usuario hace click en "Crear"
-   * 
-   * Lógica:
-   * 1. Crear/actualizar componente (nombre, SKU, precio, descripción)
-   * 2. Subir imagen si existe
-   * 3. Crear relación en producto_componente si hay producto seleccionado
-   */
+
+   
   const handleSubmit = async (values) => {
     setSubmitting(true)
     try {
@@ -231,16 +224,17 @@ function ComponenteForm({ onSuccess, onCancel, idComponenteEdit = null }) {
   }
 
   return (
-    <div style={{ width: '100%' }}>
-      {/* ============ ENCABEZADO ============ */}
-      <div style={{ marginBottom: token.marginLG }}>
-        <Title level={3} style={{ margin: 0 }}>
-          {title}
-        </Title>
-        <Text type="secondary" style={{ fontSize: 14 }}>
-          {subtitle}
-        </Text>
-      </div>
+    <div style={{ backgroundColor: '#f5f5f5', padding: '24px', minHeight: '100vh', margin: '-24px' }}>
+      <div style={{ flex: 1, maxWidth: 1200, margin: '0 auto', width: '100%', paddingBottom: '80px' }}>
+        {/* ============ ENCABEZADO ============ */}
+        <div style={{ marginBottom: 24 }}>
+          <Title level={3} style={{ margin: 0, fontWeight: 600 }}>
+            {title}
+          </Title>
+          <Text type="secondary" style={{ fontSize: '14px' }}>
+            {breadcrumb}
+          </Text>
+        </div>
 
       {/* ============ LOADING STATE ============ */}
       {loading ? (
@@ -306,31 +300,36 @@ function ComponenteForm({ onSuccess, onCancel, idComponenteEdit = null }) {
           </Row>
 
           {/* ============ DIVISOR ============ */}
-          <Divider style={{ margin: `${token.marginLG}px 0` }} />
+          <Divider style={{ margin: `${token.marginLG}px 0`, display: 'none' }} />
 
           {/* ============ BOTONES ============ */}
-          <Flex justify="flex-end" gap={token.marginMD}>
-            <Button
-              onClick={onCancel}
-              size="large"
-              disabled={submitting}
-              style={{ borderRadius: token.borderRadiusLG }}
-            >
-              Cancelar
-            </Button>
+          <div style={{
+            position: 'fixed', bottom: 0, left: 0, width: '100%',
+            background: '#fff', borderTop: '1px solid #f0f0f0',
+            padding: '16px 24px', zIndex: 10, display: 'flex', justifyContent: 'flex-end', gap: 16
+          }}>
             <Button
               type="primary"
               htmlType="submit"
               loading={submitting}
               disabled={submitting || !canSubmit}
               size="large"
-              style={{ borderRadius: token.borderRadiusLG, fontWeight: 600 }}
+              style={{ borderRadius: 8, minWidth: 100, fontWeight: 600 }}
             >
-              {idComponenteEdit ? 'Actualizar' : 'Crear'}
+              Guardar
             </Button>
-          </Flex>
+            <Button
+              onClick={onCancel}
+              size="large"
+              disabled={submitting}
+              style={{ borderRadius: 8, minWidth: 100 }}
+            >
+              Cancelar
+            </Button>
+          </div>
         </Form>
       )}
+      </div>
     </div>
   )
 }

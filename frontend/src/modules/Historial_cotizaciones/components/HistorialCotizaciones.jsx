@@ -73,27 +73,29 @@ function HistorialCotizaciones() {
   if (error) return <div style={{ color: 'red' }}>{error}</div>
 
   return (
-    <>
+    <div style={{ backgroundColor: '#f5f5f5', padding: '24px', minHeight: '100vh', margin: '-24px' }}>
       <CotizacionesHeader />
 
-      <CotizacionesFiltros
-        cotizaciones={cotizaciones}
-        filtro={filtro}
-        setFiltro={setFiltro}
-        busqueda={busqueda}
-        setBusqueda={setBusqueda}
-      />
-
-      <Spin spinning={loading}>
-        <CotizacionesTable
-          cotizaciones={cotizacionesFiltradas}
-          paginacion={paginacion}
-          setPaginacion={setPaginacion}
-          onVer={handleVerDetalles}
-          onEliminar={handleEliminar}
-          onCambiarEstado={handleCambiarEstado}
+      <div style={{ background: '#fff', padding: 24, borderRadius: 8, boxShadow: '0 1px 2px rgba(0,0,0,0.05)' }}>
+        <CotizacionesFiltros
+          cotizaciones={cotizaciones}
+          filtro={filtro}
+          setFiltro={setFiltro}
+          busqueda={busqueda}
+          setBusqueda={setBusqueda}
         />
-      </Spin>
+
+        <Spin spinning={loading}>
+          <CotizacionesTable
+            cotizaciones={cotizacionesFiltradas}
+            paginacion={paginacion}
+            setPaginacion={setPaginacion}
+            onVer={handleVerDetalles}
+            onEliminar={handleEliminar}
+            onCambiarEstado={handleCambiarEstado}
+          />
+        </Spin>
+      </div>
 
       <Modal
         open={modalVisible}
@@ -108,7 +110,7 @@ function HistorialCotizaciones() {
           />
         )}
       </Modal>
-    </>
+    </div>
   )
 }
 

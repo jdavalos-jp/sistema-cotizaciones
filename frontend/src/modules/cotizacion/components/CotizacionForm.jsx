@@ -112,21 +112,29 @@ export default function CotizacionForm({
         onSetDescripcion={cart.setDescripcion}
       />
       <Divider />
-      <Row justify="end">
+      <Row justify="end" style={{ marginBottom: 80 }}>
         <Col>
-          <Space>
-            {onCancel && <Button onClick={onCancel}>Cancelar</Button>}
-            <Button onClick={() => cart.clear()}>Limpiar</Button>
+          <div style={{
+            position: 'fixed', bottom: 0, left: 0, width: '100%',
+            background: '#fff', borderTop: '1px solid #f0f0f0',
+            padding: '16px 24px', zIndex: 10, display: 'flex', justifyContent: 'flex-end', gap: 16
+          }}>
             <Button
               type="primary"
+              size="large"
               icon={<PlusOutlined />}
               onClick={handleSubmit}
               loading={submitting}
               disabled={!idCliente || !cart.cart.length || lineasConEdiciones.length === 0}
+              style={{ borderRadius: 8, minWidth: 100, fontWeight: 600 }}
             >
-              {submitLabel}
+              Guradar
             </Button>
-          </Space>
+            <Button size="large" onClick={() => cart.clear()} style={{ borderRadius: 8 }}>
+              Limpiar
+            </Button>
+            {onCancel && <Button size="large" onClick={onCancel} style={{ borderRadius: 8 }}>Cancelar</Button>}
+          </div>
         </Col>
       </Row>
       <ModalNuevoCliente
