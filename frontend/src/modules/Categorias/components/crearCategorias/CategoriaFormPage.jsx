@@ -2,7 +2,7 @@ import React, { useState, useEffect, useCallback, useMemo } from 'react'
 import { Button, Form, message, Row, Col, Spin, Typography, theme, Card, Space, Select } from 'antd'
 import { CheckCircleFilled } from '@ant-design/icons'
 import { useNavigate } from 'react-router-dom'
-import CategoriaImagenUpload from './CategoriaImagenUpload'
+import ImageUpload from '../../../../shared/components/ImageUpload'
 import CategoriaInfoGeneral from './CategoriaInfoGeneral'
 import * as categoriasApi from '../../services/categoriasApi'
 
@@ -41,6 +41,7 @@ export default function CategoriaFormPage({ idCategoriaEdit = null }) {
           nombre: data.nombre || '',
           descripcion: data.descripcion || '',
           estado: data.estado || 'Activo',
+          subcategorias: data.subcategorias || []
         })
 
         if (data.imagen) {
@@ -65,24 +66,16 @@ export default function CategoriaFormPage({ idCategoriaEdit = null }) {
     loadCategoria()
   }, [idCategoriaEdit, form, navigate])
 
-  // ============ ESCUCHAR EVENTO DE PREVIEW =============
-  useEffect(() => {
-    const handleImagePreview = (e) => {
-      setPreviewUrl(e.detail)
-    }
-
-    document.addEventListener('image-preview', handleImagePreview)
-    return () => document.removeEventListener('image-preview', handleImagePreview)
-  }, [])
-
   // ============ WATCH: MONITOREAR CAMBIOS =============
   const watchedNombre = Form.useWatch('nombre', form)
   const watchedDescripcion = Form.useWatch('descripcion', form)
 
   // ============ VALIDACIÓN: ¿PUEDE ENVIAR? =============
+  // ============ VALIDACIÓN: ¿PUEDE ENVIAR? =============
   const canSubmit = useMemo(() => {
     const nombreOk = String(watchedNombre || '').trim().length >= 3
-    const descripcionOk = String(watchedDescripcion || '').trim().length >= 10
+    const desc = String(watchedDescripcion || '').trim()
+    const descripcionOk = desc.length === 0 || desc.length >= 10 // Opcional, pero si hay texto, min 10
 
     return nombreOk && descripcionOk && !loading
   }, [watchedNombre, watchedDescripcion, loading])
@@ -102,23 +95,17 @@ export default function CategoriaFormPage({ idCategoriaEdit = null }) {
   const handleSubmit = async (values) => {
     try {
       setSubmitting(true)
-
       const formData = new FormData()
       formData.append('nombre', values.nombre)
-      formData.append('descripcion', values.descripcion)
+      formData.append('descripcion', values.descripcion || '')
       formData.append('estado', values.estado || 'Activo')
-
-      // Agregar imagen si existe
-      if (fileList.length > 0 && fileList[0].originFileObj) {
-        formData.append('imagen', fileList[0].originFileObj)
-      }
-
+      formData.append('subcategorias', JSON.stringify(values.subcategorias || []))
       if (idCategoriaEdit) {
         await categoriasApi.updateCategoria(idCategoriaEdit, formData)
         message.success('Categoría actualizada correctamente')
       } else {
         await categoriasApi.createCategoria(formData)
-        message.success('Categoría creada correctamente')
+        message.success('Categoría y subcategorías creadas correctamente')
       }
 
       navigate(-1)
@@ -151,12 +138,13 @@ export default function CategoriaFormPage({ idCategoriaEdit = null }) {
             <Row gutter={[24, 24]}>
               {/* Left Column */}
               <Col xs={24} lg={8}>
-                <Space direction="vertical" size="middle" style={{ width: '100%' }}>
-                  <CategoriaImagenUpload
+                <Space orientation="vertical" size="middle" style={{ width: '100%' }}>
+                  <ImageUpload
+                    title="Miniatura"
                     fileList={fileList}
                     onFileChange={handleFileChange}
-                    onDeleteImage={handleDeleteImage}
-                    previewUrl={previewUrl}
+                    maxCount={1}
+                    hint="Puedes agregar una maximo de 1 imagen,cada una no puede ser mayor a 5 MB. "
                   />
 
                   {/* Card de Estado */}
@@ -167,7 +155,7 @@ export default function CategoriaFormPage({ idCategoriaEdit = null }) {
                         <CheckCircleFilled style={{ color: '#52c41a' }} />
                       </div>
                     }
-                    bodyStyle={{ padding: 24 }}
+                    styles={{ padding: 24 }}
                     style={{ borderRadius: 12, border: 'none', boxShadow: '0 2px 8px rgba(0,0,0,0.04)' }}
                   >
                     <Form.Item
@@ -176,7 +164,7 @@ export default function CategoriaFormPage({ idCategoriaEdit = null }) {
                       rules={[{ required: true, message: 'Campo requerido' }]}
                       style={{ marginBottom: 8 }}
                     >
-                      <Select size="large">
+                      <Select >
                         <Select.Option value="Activo">Activo</Select.Option>
                         <Select.Option value="Inactivo">Inactivo</Select.Option>
                       </Select>

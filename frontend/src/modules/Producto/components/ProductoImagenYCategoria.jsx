@@ -1,9 +1,8 @@
-import React, { useState } from 'react'
-import { Card, Cascader, Form, Upload, Space, Typography, Button, message, theme, Skeleton, Flex } from 'antd'
-import { UploadOutlined, DeleteOutlined, PictureOutlined, FileImageOutlined } from '@ant-design/icons'
+import React from 'react'
+import { Card, Cascader, Form, Space, Typography, theme, Skeleton } from 'antd'
+import ImageUpload from '../../../shared/components/ImageUpload'
 
 const { Text } = Typography
-const MAX_SIZE = 5 * 1024 * 1024
 
 export default function ProductoImagenYCategoria({
   categoriaOptions = [],
@@ -11,128 +10,28 @@ export default function ProductoImagenYCategoria({
   loadingHierarchy = false,
   fileList = [],
   setFileList,
-  previewUrl = '',
-  setPreviewUrl,
-  beforeUpload,
   onDeleteImage,
-  initialFile = null,
 }) {
   const { token } = theme.useToken()
-  const [hovered, setHovered] = useState(false)
 
-  const handleUpload = ({ file, fileList: newList }) => {
-    console.log('🔍 handleUpload - file:', file.name, file.status)
-    
-    if (file.status === 'removed') {
-      if (setFileList) setFileList([])
-      if (setPreviewUrl) setPreviewUrl('')
-      onDeleteImage?.()
-      return
+  const handleFileChange = (newFileList) => {
+    setFileList(newFileList)
+    if (newFileList.length === 0 && onDeleteImage) {
+      onDeleteImage()
     }
-
-    // Mantener el archivo en la lista
-    const validList = newList.filter(f => f.originFileObj || f.url)
-    if (setFileList) setFileList(validList.slice(-1))
-
-    // Leer y mostrar preview solo si está pendiente o es un nuevo archivo
-    if (file.originFileObj && !file.url) {
-      const reader = new FileReader()
-      reader.onload = (e) => {
-        console.log('📸 Preview cargado exitosamente')
-        const result = e.target?.result
-        if (result && setPreviewUrl) {
-          setPreviewUrl(result)
-        }
-      }
-      reader.onerror = () => {
-        console.error('❌ Error leyendo archivo')
-      }
-      reader.readAsDataURL(file.originFileObj)
-    }
-  }
-
-  const internalBeforeUpload = (file) => {
-    if (beforeUpload) {
-      return beforeUpload(file)
-    }
-    const isValidType = ['image/jpeg', 'image/png', 'image/webp'].includes(file.type)
-    const isValidSize = file.size <= MAX_SIZE
-
-    if (!isValidType) message.error('Formato no permitido (JPG, PNG, WebP)')
-    if (!isValidSize) message.error(`Máximo ${MAX_SIZE / 1024 / 1024}MB`)
-
-    return isValidType && isValidSize
   }
 
   return (
-    <div style={{ width: '100%' }}>
-      <Card
-        title={<Space><PictureOutlined style={{ color: token.colorPrimary, fontSize: 18 }} />Foto del producto</Space>}
-        size="small"
-        style={{
-          marginBottom: token.marginMD,
-          borderRadius: token.borderRadiusLG,
-          border: `1px solid ${token.colorBorder}`,
-          boxShadow: `0 2px 8px ${token.colorBorder}`,
-        }}
-      >
-        {!previewUrl ? (
-          <Upload.Dragger
-            accept="image/jpeg,image/png,image/webp"
-            maxCount={1}
-            fileList={fileList}
-            beforeUpload={internalBeforeUpload}
-            onChange={handleUpload}
-            showUploadList={false}
-            customRequest={({ file, onSuccess, onError }) => {
-              try {
-                // No hacer HTTP request, solo simular éxito
-                setTimeout(() => onSuccess('ok'), 0)
-              } catch (err) {
-                onError(err)
-              }
-            }}
-          >
-            <Space orientation="vertical" align="center" style={{ width: '100%' }}>
-              <div style={{
-                width: 56, height: 56, borderRadius: '100%',
-                background: token.colorPrimaryBg, display: 'flex',
-                alignItems: 'center', justifyContent: 'center'
-              }}>
-                <UploadOutlined style={{ fontSize: 24, color: token.colorPrimary }} />
-              </div>
-              <Text strong>Arrastra o haz clic</Text>
-              <Text type="secondary" style={{ fontSize: 12 }}>JPG, PNG, WebP (Máx. 5MB)</Text>
-              <Button type="primary" ghost>Seleccionar</Button>
-            </Space>
-          </Upload.Dragger>
-        ) : (
-          <div
-            style={{ position: 'relative', borderRadius: token.borderRadiusLG, overflow: 'hidden' }}
-            onMouseEnter={() => setHovered(true)}
-            onMouseLeave={() => setHovered(false)}
-          >
-            <img src={previewUrl} alt="Preview" style={{ width: '100%', aspectRatio: '1/1', objectFit: 'cover' }} />
-            <div style={{
-              position: 'absolute', inset: 0, background: 'rgba(0,0,0,0.6)',
-              display: hovered ? 'flex' : 'none',
-              alignItems: 'center', justifyContent: 'center'
-            }}>
-              <Button danger icon={<DeleteOutlined />} onClick={() => {
-                if (setFileList) setFileList([])
-                if (setPreviewUrl) setPreviewUrl('')
-                onDeleteImage?.()
-              }}>Cambiar</Button>
-            </div>
-            <div style={{ display: fileList[0] ? 'block' : 'none' }}>
-              <Flex justify="space-between" style={{ marginTop: 8, padding: 4, background: token.colorFillSecondary, borderRadius: 4 }}>
-                <Space size={4}><FileImageOutlined /><Text ellipsis style={{ maxWidth: 180 }}>{fileList[0]?.name}</Text></Space>
-                <Text type="secondary">{((fileList[0]?.size || 0) / 1024).toFixed(0)} KB</Text>
-              </Flex>
-            </div>
-          </div>
-        )}
-      </Card>
+    <div style={{ width: '100%', display: 'flex', flexDirection: 'column', gap: token.marginMD }}>
+      <ImageUpload
+        title="Foto del producto"
+        fileList={fileList}
+        onFileChange={handleFileChange}
+        maxCount={1}
+        maxSizeMB={5}
+        uploadLabel="Seleccionar"
+        hint="Puedes agregar una maximo de 1 imagen,cada una no puede ser mayor a 5 MB. "
+      />
 
       <Card
         title="Categoría del producto"
@@ -140,7 +39,7 @@ export default function ProductoImagenYCategoria({
         style={{
           borderRadius: token.borderRadiusLG,
           border: `1px solid ${token.colorBorder}`,
-          boxShadow: `0 2px 8px ${token.colorBorder}`,
+          boxShadow: `0 2px 8px rgba(0,0,0,0.06)`,
         }}
       >
         {(loadingCategorias || loadingHierarchy) ? (

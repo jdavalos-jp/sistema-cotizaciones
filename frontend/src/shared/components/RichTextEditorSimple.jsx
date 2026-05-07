@@ -71,30 +71,30 @@ function Toolbar() {
       }}
     >
       <Space size={2}>
-        <Button type="text" icon={<UndoOutlined />} onClick={handleUndo} size="small" />
-        <Button type="text" icon={<RedoOutlined />} onClick={handleRedo} size="small" />
+        <Button orientation="text" icon={<UndoOutlined />} onClick={handleUndo} size="small" />
+        <Button orientation="text" icon={<RedoOutlined />} onClick={handleRedo} size="small" />
       </Space>
 
       <Divider type="vertical" style={{ margin: 0 }} />
 
       <Space size={2}>
-        <Button type="text" icon={<BoldOutlined />} onClick={handleBold} size="small" />
-        <Button type="text" icon={<ItalicOutlined />} onClick={handleItalic} size="small" />
-        <Button type="text" icon={<UnderlineOutlined />} onClick={handleUnderline} size="small" />
-        <Button type="text" icon={<StrikethroughOutlined />} onClick={handleStrike} size="small" />
+        <Button orientation="text" icon={<BoldOutlined />} onClick={handleBold} size="small" />
+        <Button orientation="text" icon={<ItalicOutlined />} onClick={handleItalic} size="small" />
+        <Button orientation="text" icon={<UnderlineOutlined />} onClick={handleUnderline} size="small" />
+        <Button orientation="text" icon={<StrikethroughOutlined />} onClick={handleStrike} size="small" />
       </Space>
 
       <Divider type="vertical" style={{ margin: 0 }} />
 
       <Space size={2}>
         <Button
-          type="text"
+          orientation="text"
           icon={<UnorderedListOutlined />}
           onClick={handleUnorderedList}
           size="small"
         />
         <Button
-          type="text"
+          orientation="text"
           icon={<OrderedListOutlined />}
           onClick={handleOrderedList}
           size="small"
@@ -103,7 +103,7 @@ function Toolbar() {
 
       <Divider type="vertical" style={{ margin: 0 }} />
 
-      <Button type="text" icon={<DeleteOutlined />} onClick={handleClear} danger size="small" />
+      <Button orientation="text" icon={<DeleteOutlined />} onClick={handleClear} danger size="small" />
     </div>
   )
 }

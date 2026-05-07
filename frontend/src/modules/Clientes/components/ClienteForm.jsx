@@ -100,7 +100,7 @@ function ClienteForm({ onSuccess, onCancel, idClienteEdit = null }) {
             <Title level={3} style={{ margin: 0, fontWeight: 600 }}>
               {title}
             </Title>
-            <Text type="secondary" style={{ fontSize: '14px' }}>{breadcrumb}</Text>
+            <Text orientation="secondary" style={{ fontSize: '14px' }}>{breadcrumb}</Text>
           </div>
 
           <div style={{ background: '#fff', padding: 24, borderRadius: 8, boxShadow: '0 1px 2px rgba(0,0,0,0.05)' }}>
@@ -223,7 +223,7 @@ function ClienteForm({ onSuccess, onCancel, idClienteEdit = null }) {
               padding: '16px 24px', zIndex: 10, display: 'flex', justifyContent: 'flex-end', gap: 16
             }}>
               <Button
-                type="primary"
+                orientation="primary"
                 htmlType="submit"
                 loading={submitting}
                 disabled={!canSubmit}

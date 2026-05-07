@@ -36,8 +36,21 @@ export function useCategorias() {
     }
   }, [pagination.pageSize])
 
-  const deleteCategoria = useCallback((idCategoria) => {
-    setCategorias((prev) => prev.filter((c) => c.idCategoria !== idCategoria))
+  const deleteCategoria = useCallback(async (idCategoria) => {
+    setLoading(true)
+    try {
+      // 1. Llamar VERDADERAMENTE a la API (Esto faltaba)
+      await categoriasApi.deleteCategoria(idCategoria)
+      
+      // 2. Si la API responde OK, lo quitamos de la memoria de React
+      setCategorias((prev) => prev.filter((c) => c.idCategoria !== idCategoria))
+    } catch (error) {
+      // Lanzamos el error hacia la vista para que el mensaje (Categoría en uso) sea visible
+      console.error('Error en hook deleteCategoria:', error)
+      throw error 
+    } finally {
+      setLoading(false)
+    }
   }, [])
 
   return {

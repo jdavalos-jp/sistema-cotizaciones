@@ -48,9 +48,10 @@ export default function CategoriasListPage() {
     try {
       await deleteCategoria(idCategoria)
       message.success('Categoría eliminada correctamente')
-      await loadCategorias(0, searchTerm)
+      // Ya no hace falta llamar loadCategorias, el hook ya filtró el local
     } catch (error) {
-      message.error('Error al eliminar la categoría')
+      // Ahora usamos error.message que viene limpio desde nuestro backend
+      message.error(error.message || 'Error al eliminar la categoría')
     }
   }
 

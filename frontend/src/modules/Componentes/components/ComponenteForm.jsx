@@ -5,7 +5,7 @@ import { useImagenesComponente } from '../../../hooks/useImagenes' // ← Hook p
 import { uploadImagenComponente, deleteImagenComponente } from '../../../services/api/imagenes' // ← API para subir/borrar
 import * as componentesApi from '../Services/api/componentesApi' // ← API para relación producto-componente
 
-import ComponenteImagenUpload from './ComponenteImagenUpload' //  ← Componente secundario
+import ImageUpload from '../../../shared/components/ImageUpload' // ← Componente compartido
 import ComponenteInfoGeneral from './ComponenteInfoGeneral' // ← Componente secundario
 import ComponenteProductoSelector from './ComponenteProductoSelector' // ← Selector de productos
 
@@ -120,7 +120,7 @@ function ComponenteForm({ onSuccess, onCancel, idComponenteEdit = null }) {
     return nombreOk && precioOk && !loading
   }, [watchedNombre, watchedPrecioBase, loading])
 
-  // ============ VALIDACIÓN IMAGEN =============
+ 
   const beforeUpload = useCallback((file) => {
     const isValidType = ['image/jpeg', 'image/png', 'image/webp'].includes(file.type)
     const isValidSize = file.size <= 5 * 1024 * 1024
@@ -131,10 +131,10 @@ function ComponenteForm({ onSuccess, onCancel, idComponenteEdit = null }) {
     return isValidType && isValidSize
   }, [])
 
-  // ============ BORRAR IMAGEN =============
+
   const handleDeleteImage = useCallback(async () => {
     try {
-      // Si es edición y hay imagen en BD, borrarla antes de limpiar
+
       if (idComponenteEdit && imagenActualId) {
         setUploadPhase('Eliminando imagen...')
         await deleteImagenComponente(imagenActualId)
@@ -148,6 +148,14 @@ function ComponenteForm({ onSuccess, onCancel, idComponenteEdit = null }) {
       message.error('Error al eliminar imagen')
     }
   }, [idComponenteEdit, imagenActualId])
+
+  // Adapter para el componente unificado ImageUpload
+  const handleFileChange = (newFileList) => {
+    setFileList(newFileList)
+    if (newFileList.length === 0) {
+      handleDeleteImage()
+    }
+  }
 
 
    
@@ -277,13 +285,14 @@ function ComponenteForm({ onSuccess, onCancel, idComponenteEdit = null }) {
           <Row gutter={[16, 16]}>
             {/* COLUMNA IZQUIERDA: IMAGEN */}
             <Col xs={24} sm={24} md={8} lg={8}>
-              <ComponenteImagenUpload
+              <ImageUpload
+                title="Imagen del Componente"
                 fileList={fileList}
-                setFileList={setFileList}
-                previewUrl={previewUrl}
-                setPreviewUrl={setPreviewUrl}
-                beforeUpload={beforeUpload}
-                onDeleteImage={handleDeleteImage}
+                onFileChange={handleFileChange}
+                maxCount={1}
+                maxSizeMB={5}
+                uploadLabel="Seleccionar"
+                hint="Puedes agregar una maximo de 1 imagen,cada una no puede ser mayor a 5 MB. "
               />
             </Col>
 
@@ -309,7 +318,7 @@ function ComponenteForm({ onSuccess, onCancel, idComponenteEdit = null }) {
             padding: '16px 24px', zIndex: 10, display: 'flex', justifyContent: 'flex-end', gap: 16
           }}>
             <Button
-              type="primary"
+              orientation="primary"
               htmlType="submit"
               loading={submitting}
               disabled={submitting || !canSubmit}

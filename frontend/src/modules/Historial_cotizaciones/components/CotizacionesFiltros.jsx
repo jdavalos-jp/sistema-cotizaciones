@@ -1,10 +1,17 @@
-import React from 'react'
-import { Badge, Select, Space, Typography, Input, Card, Statistic, Row, Col } from 'antd'
-import { SearchOutlined, FileTextOutlined, CheckOutlined, CheckCircleOutlined } from '@ant-design/icons'
+import React, { useMemo } from 'react'
+import { Select, Typography, Input, Card, Row, Col } from 'antd'
+import {
+  SearchOutlined,
+  FileTextOutlined,
+  CheckOutlined,
+  CheckCircleOutlined,
+} from '@ant-design/icons'
 
 function StatItem({ label, count, color, icon }) {
   return (
     <Card
+      variant="borderless"
+      className="cotizacion-stat-card"
       style={{
         borderLeft: `4px solid ${color}`,
         boxShadow: '0 2px 8px rgba(0,0,0,0.08)',
@@ -13,22 +20,26 @@ function StatItem({ label, count, color, icon }) {
         flex: 1,
         minWidth: 180,
       }}
-      onMouseEnter={(e) => {
-        e.currentTarget.style.boxShadow = `0 4px 12px ${color}33`
-        e.currentTarget.style.transform = 'translateY(-2px)'
+      onMouseEnter={(event) => {
+        event.currentTarget.style.boxShadow = `0 4px 12px ${color}33`
+        event.currentTarget.style.transform = 'translateY(-2px)'
       }}
-      onMouseLeave={(e) => {
-        e.currentTarget.style.boxShadow = '0 2px 8px rgba(0,0,0,0.08)'
-        e.currentTarget.style.transform = 'translateY(0)'
+      onMouseLeave={(event) => {
+        event.currentTarget.style.boxShadow = '0 2px 8px rgba(0,0,0,0.08)'
+        event.currentTarget.style.transform = 'translateY(0)'
       }}
-      bodyStyle={{ padding: 12 }}
+      styles={{
+        body: {
+          padding: 16,
+        },
+      }}
     >
-      <Row gutter={12} align="middle">
+      <Row gutter={12} align="middle" wrap={false}>
         <Col>
           <div
             style={{
               fontSize: 24,
-              color: color,
+              color,
               display: 'flex',
               alignItems: 'center',
               justifyContent: 'center',
@@ -37,22 +48,22 @@ function StatItem({ label, count, color, icon }) {
             {icon}
           </div>
         </Col>
+
         <Col flex="auto">
+          <Typography.Text type="secondary" style={{ fontSize: 12 }}>
+            {label}
+          </Typography.Text>
+
           <div>
-            <Typography.Text type="secondary" style={{ fontSize: 12 }}>
-              {label}
+            <Typography.Text
+              strong
+              style={{
+                fontSize: 20,
+                color,
+              }}
+            >
+              {count}
             </Typography.Text>
-            <div>
-              <Typography.Text
-                style={{
-                  fontSize: 20,
-                  fontWeight: 'bold',
-                  color: color,
-                }}
-              >
-                {count}
-              </Typography.Text>
-            </div>
           </div>
         </Col>
       </Row>
@@ -60,47 +71,81 @@ function StatItem({ label, count, color, icon }) {
   )
 }
 
-function CotizacionesFiltros({ cotizaciones, filtro, setFiltro, busqueda, setBusqueda }) {
-  const borradores = cotizaciones.filter(c => c.estado === 'borrador').length
-  const enviadas = cotizaciones.filter(c => c.estado === 'enviada').length
-  const aceptadas = cotizaciones.filter(c => c.estado === 'aceptada').length
+function CotizacionesFiltros({
+  cotizaciones = [],
+  filtro,
+  setFiltro,
+  busqueda,
+  setBusqueda,
+}) {
+  const estadisticas = useMemo(() => {
+    return {
+      borradores: cotizaciones.filter((item) => item.estado === 'borrador').length,
+      enviadas: cotizaciones.filter((item) => item.estado === 'enviada').length,
+      aceptadas: cotizaciones.filter((item) => item.estado === 'aceptada').length,
+    }
+  }, [cotizaciones])
+
+  const opcionesFiltro = useMemo(() => {
+    return [
+      { label: 'Todas', value: 'todos' },
+      { label: 'Borradores', value: 'borrador' },
+      { label: 'Enviadas', value: 'enviada' },
+      { label: 'Aceptadas', value: 'aceptada' },
+      { label: 'Rechazadas', value: 'rechazada' },
+    ]
+  }, [])
 
   return (
-    <div style={{ marginBottom: 24, display: 'flex', flexDirection: 'column', gap: 16 }}>
-      {/* Stats mejorados */}
+    <div
+      style={{
+        marginBottom: 24,
+        display: 'flex',
+        flexDirection: 'column',
+        gap: 16,
+      }}
+    >
       <Row gutter={[12, 12]}>
         <Col xs={24} sm={12} md={8} lg={6}>
           <StatItem
             label="Borradores"
-            count={borradores}
+            count={estadisticas.borradores}
             color="#fa8c16"
             icon={<FileTextOutlined />}
           />
         </Col>
+
         <Col xs={24} sm={12} md={8} lg={6}>
           <StatItem
             label="Enviadas"
-            count={enviadas}
+            count={estadisticas.enviadas}
             color="#1890ff"
             icon={<CheckOutlined />}
           />
         </Col>
+
         <Col xs={24} sm={12} md={8} lg={6}>
           <StatItem
             label="Aceptadas"
-            count={aceptadas}
+            count={estadisticas.aceptadas}
             color="#52c41a"
             icon={<CheckCircleOutlined />}
           />
         </Col>
       </Row>
 
-      {/* Buscador y Filtro */}
-      <div style={{ display: 'flex', gap: '16px', width: '100%', alignItems: 'center' }}>
+      <div
+        style={{
+          display: 'flex',
+          gap: 16,
+          width: '100%',
+          alignItems: 'center',
+        }}
+      >
         <Input
           placeholder="Buscar por número o nombre de cliente..."
           value={busqueda}
-          onChange={(e) => setBusqueda(e.target.value)}
+          onChange={(event) => setBusqueda(event.target.value)}
           style={{ flex: 1 }}
           suffix={<SearchOutlined style={{ color: 'rgba(0,0,0,.45)' }} />}
           allowClear
@@ -110,13 +155,7 @@ function CotizacionesFiltros({ cotizaciones, filtro, setFiltro, busqueda, setBus
           value={filtro}
           onChange={setFiltro}
           style={{ width: 200 }}
-          options={[
-            { label: 'Todas', value: 'todos' },
-            { label: 'Borradores', value: 'borrador' },
-            { label: 'Enviadas', value: 'enviada' },
-            { label: 'Aceptadas', value: 'aceptada' },
-            { label: 'Rechazadas', value: 'rechazada' },
-          ]}
+          options={opcionesFiltro}
         />
       </div>
     </div>

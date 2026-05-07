@@ -150,7 +150,7 @@ export default function ProductosListPage() {
         </Typography.Text>
       </div>
 
-      <Card bodyStyle={{ padding: '24px' }} bordered={false} style={{ borderRadius: '8px', boxShadow: '0 1px 2px rgba(0,0,0,0.05)' }}>
+      <Card variant = {{ padding: '24px' }} styles={false} style={{ borderRadius: '8px', boxShadow: '0 1px 2px rgba(0,0,0,0.05)' }}>
         <Spin spinning={loading}>
           {/* TOP BAR: BUSCADOR Y BOTÓN */}
           <div style={{ display: 'flex', gap: '16px', marginBottom: '24px' }}>

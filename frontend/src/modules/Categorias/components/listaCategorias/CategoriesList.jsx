@@ -3,13 +3,7 @@ import { PlusOutlined, SearchOutlined, EditOutlined, DeleteOutlined, DownOutline
 
 const { Text } = Typography
 
-/**
- * ============================================
- * TABLA DE CATEGORÍAS - COMPONENTES INTERNOS
- * ============================================
- */
 
-// ============= CELDA: Categoría =============
 function CategoryCell({ categoria }) {
   const colors = [
     '#1890ff', '#722ed1', '#fa8c16', '#eb2f96', '#13c2c2',
@@ -42,7 +36,6 @@ function CategoryCell({ categoria }) {
   )
 }
 
-// ============= CELDA: Subcategorías =============
 function SubcategoriesCell({ subcategorias }) {
   if (!subcategorias || subcategorias.length === 0) {
     return <Empty description="Sin subcategorías" style={{ margin: 0 }} />
@@ -114,19 +107,14 @@ function CategoryActions({ category, onEdit, onDelete }) {
 
   return (
     <Dropdown menu={{ items: dropdownItems }} trigger={['click']} placement="bottomRight">
-      <Button type="text" size="small">
+      <Button orientation="text" size="small">
         Acciones <DownOutlined style={{ fontSize: '12px' }} />
       </Button>
     </Dropdown>
   )
 }
 
-/**
- * ============================================
- * COMPONENTE PRINCIPAL: CategoriesList
- * ============================================
- * Consolida Header + SearchBar + Table
- */
+
 export default function CategoriesList({
   categorias,
   loading,
@@ -184,7 +172,18 @@ export default function CategoriesList({
         </Typography.Text>
       </div>
 
-      <Card bodyStyle={{ padding: '24px' }} bordered={false} style={{ borderRadius: '8px', boxShadow: '0 1px 2px rgba(0,0,0,0.05)' }}>
+      <Card
+        variant="borderless"
+        style={{
+          borderRadius: 8,
+          boxShadow: '0 1px 2px rgba(0,0,0,0.05)',
+        }}
+        styles={{
+          body: {
+            padding: 24,
+          },
+        }}
+      >
         {/* TOP BAR: BUSCADOR Y BOTÓN */}
         <div style={{ display: 'flex', gap: '16px', marginBottom: '24px' }}>
           <Input

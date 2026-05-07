@@ -21,7 +21,7 @@ function ClientesListPage() {
     setPagination((prev) => ({ ...prev, current: 1 }))
     try {
       await loadClientes(0, value)
-    } catch {}
+    } catch { }
   }
 
   const handlePaginationChange = async (page) => {
@@ -29,7 +29,7 @@ function ClientesListPage() {
     setPagination((prev) => ({ ...prev, current: page }))
     try {
       await loadClientes(skip, searchTerm)
-    } catch {}
+    } catch { }
   }
 
   const handleShowSizeChange = async (current, pageSize) => {
@@ -37,7 +37,7 @@ function ClientesListPage() {
     setPagination((prev) => ({ ...prev, current, pageSize }))
     try {
       await loadClientes(skip, searchTerm)
-    } catch {}
+    } catch { }
   }
 
   const handleDelete = async (idCliente) => {
@@ -100,12 +100,23 @@ function ClientesListPage() {
         <Typography.Title level={3} style={{ margin: 0 }}>
           Clientes
         </Typography.Title>
-        <Typography.Text type="secondary" style={{ fontSize: '14px' }}>
+        <Typography.Text orientation="secondary" style={{ fontSize: '14px' }}>
           Inicio / Clientes
         </Typography.Text>
       </div>
 
-      <Card bodyStyle={{ padding: '24px' }} bordered={false} style={{ borderRadius: '8px', boxShadow: '0 1px 2px rgba(0,0,0,0.05)' }}>
+      <Card
+        variant="borderless"
+        style={{
+          borderRadius: 8,
+          boxShadow: '0 1px 2px rgba(0,0,0,0.05)',
+        }}
+        styles={{
+          body: {
+            padding: 24,
+          },
+        }}
+      >
         <Spin spinning={loading}>
           {/* TOP BAR: BUSCADOR Y BOTÓN */}
           <div style={{ display: 'flex', gap: '16px', marginBottom: '24px' }}>

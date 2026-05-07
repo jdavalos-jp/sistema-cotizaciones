@@ -1,69 +1,136 @@
-import { Card, Form, Input, Typography, Button } from 'antd'
-import { PlusOutlined } from '@ant-design/icons'
+import { Card, Form, Input, Typography, Button, Space, Divider } from 'antd'
+import { PlusOutlined, MinusCircleOutlined } from '@ant-design/icons'
 
 const { Text } = Typography
 
-/**
- * CategoriaInfoGeneral
- * Campos: nombre, descripción, y subcategorías
- */
 export default function CategoriaInfoGeneral({ form }) {
   const nombreValue = Form.useWatch('nombre', form) || ''
   const descValue = Form.useWatch('descripcion', form) || ''
 
   return (
     <Card
-      title={<span style={{ fontWeight: 600, fontSize: 16 }}>Información General</span>}
-      style={{ borderRadius: 12, border: 'none', boxShadow: '0 2px 8px rgba(0,0,0,0.04)', height: '100%' }}
-      bodyStyle={{ padding: '24px 32px' }}
+      title="Información General"
+      variant="borderless"
+      styles={{
+        body: { padding: 24 }
+      }}
     >
+      {/* Nombre */}
       <Form.Item
-        label={<span style={{ fontWeight: 500 }}>Nombre de la Categoría</span>}
+        label="Nombre de la Categoría"
         name="nombre"
+        tooltip="Este nombre será visible para los usuarios"
         rules={[
-          { required: true, message: 'Campo requerido' },
+          { required: true, message: 'Ingresa un nombre' },
           { min: 3, message: 'Mínimo 3 caracteres' },
           { max: 40, message: 'Máximo 40 caracteres' },
         ]}
       >
         <Input
-          placeholder="Ej: Electrónicos"
+          placeholder="SUELOS DE LABORATORIO"
           maxLength={40}
-          size="large"
-          suffix={<Text type="secondary" style={{ fontSize: 12 }}>{nombreValue.length} / 40</Text>}
-          style={{ borderRadius: 8 }}
+          showCount
         />
       </Form.Item>
 
+            {/* Descripción */}
       <Form.Item
-        label={<span style={{ fontWeight: 500 }}>Descripción</span>}
+        label={
+          <Space>
+            <span>Descripción</span>
+            <Text type="secondary" style={{ fontSize: '12px', fontWeight: 'normal' }}>(Opcional)</Text>
+          </Space>
+        }
         name="descripcion"
+        tooltip="Describe brevemente esta categoría"
         rules={[
-          { required: true, message: 'Campo requerido' },
-          { min: 10, message: 'Mínimo 10 caracteres' },
+          {
+            validator: async (_, value) => {
+              if (value && value.trim().length > 0 && value.trim().length < 10) {
+                return Promise.reject(new Error('Si ingresas una descripción, debe tener al menos 10 caracteres'));
+              }
+              return Promise.resolve();
+            }
+          },
           { max: 200, message: 'Máximo 200 caracteres' }
         ]}
-        style={{ marginTop: 24 }}
       >
         <Input.TextArea
-          placeholder="Descripción de la categoría... (mínimo 10 caracteres)"
+          placeholder="Describe la categoría..."
           rows={4}
           maxLength={200}
           showCount
-          style={{ borderRadius: 8 }}
         />
       </Form.Item>
 
-      <div style={{ marginTop: 24 }}>
-        <div style={{ marginBottom: 8, fontWeight: 500 }}><span style={{ color: '#ff4d4f', marginRight: 4, fontFamily: 'SimSun, sans-serif' }}>*</span>Subcategorías</div>
-        <Button 
-          type="dashed" 
-          block 
-          icon={<PlusOutlined />} 
-          style={{ height: 48, borderRadius: 8, color: '#8c8c8c' }}
-        >
-          Agregar Subcategoría
-        </Button>
+      <Divider />
+
+      {/* Subcategorías */}
+      <div>
+        <Space style={{ marginBottom: 8 }}>
+          <Text strong>Subcategorías</Text>
+          <Text type="secondary">(Opcional)</Text>
+        </Space>
+
+        <Form.List name="subcategorias">
+          {(fields, { add, remove }) => (
+            <>
+              {fields.map(({ key, name, ...restField }) => (
+                <div
+                  key={key}
+                  style={{
+                    display: 'flex',
+                    alignItems: 'flex-start',
+                    gap: '8px', // Espacio entre input y botón borrar
+                    marginBottom: 12
+                  }}
+                >
+                  {/* Este campo ID oculto es crucial para que el Backend sepa si debe actualizar o crear */}
+                  <Form.Item
+                    {...restField}
+                    name={[name, 'idSubcategoria']}
+                    hidden
+                  >
+                    <Input />
+                  </Form.Item>
+
+                  <Form.Item
+                    {...restField}
+                    name={[name, 'nombre']}
+                    rules={[
+                      { required: true, message: 'Ingresa un nombre' },
+                      { min: 2, message: 'Muy corto' }
+                    ]}
+                    style={{ flex: 1, marginBottom: 0 }} // flex: 1 hace que crezca todo lo posible
+                  >
+                    <Input
+                      placeholder="Ej: Smartphones"
+                      allowClear
+                      maxLength={40}
+                    />
+                  </Form.Item>
+
+                  <Button
+                    danger
+                    type="text"
+                    icon={<MinusCircleOutlined />}
+                    onClick={() => remove(name)}
+                    style={{ height: '32px' }} // Alineación visual con el input
+                  />
+                </div>
+              ))}
+
+              <Button
+                type="dashed"
+                onClick={() => add()}
+                icon={<PlusOutlined />}
+                block
+              >
+                Agregar subcategoría
+              </Button>
+            </>
+          )}
+        </Form.List>
       </div>
     </Card>
   )
