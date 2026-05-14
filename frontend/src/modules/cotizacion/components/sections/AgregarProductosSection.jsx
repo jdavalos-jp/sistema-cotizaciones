@@ -75,6 +75,15 @@ function AgregarProductosSection({ productos, componentes, cart }) {
 
   return (
     <Card
+      variant="borderless"
+      style={{
+        borderRadius: 8,
+        boxShadow: '0 1px 2px rgba(0,0,0,0.05)',
+      }}
+      styles={{
+        header: { padding: '16px 24px', borderBottom: '1px solid #f0f0f0' },
+        body: { padding: 24 },
+      }}
       title={
         <Space>
           <PlusOutlined />
@@ -125,7 +134,7 @@ function AgregarProductosSection({ productos, componentes, cart }) {
             type="primary"
             icon={<PlusOutlined />}
             onClick={handleAgregar}
-            style={{ width: '100%', marginTop: 8 }}
+            style={{ width: '100%', marginTop: 8, borderRadius: 6 }}
           >
             Agregar
           </Button>

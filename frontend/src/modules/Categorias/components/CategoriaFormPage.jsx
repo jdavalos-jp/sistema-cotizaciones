@@ -5,7 +5,8 @@ import { ArrowLeftOutlined } from '@ant-design/icons'
 import CategoriaImagenUpload from './CategoriaImagenUpload'
 import CategoriaInfoGeneral from './CategoriaInfoGeneral'
 import * as categoriasApi from '../services/categoriasApi'
-
+import {Breadcrumb} from "antd";
+import { useNavigate, link } from 'react-router-dom'
 const { Title, Text } = Typography
 
 /**

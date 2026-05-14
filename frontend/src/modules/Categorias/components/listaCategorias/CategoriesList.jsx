@@ -1,5 +1,5 @@
 import { Table, Empty, Button, Input, Typography, Card, Avatar, Space, Tag, Popconfirm, Dropdown } from 'antd'
-import { PlusOutlined, SearchOutlined, EditOutlined, DeleteOutlined, DownOutlined } from '@ant-design/icons'
+import { PlusOutlined, SearchOutlined, EditOutlined, DeleteOutlined, DownOutlined, MoreOutlined } from '@ant-design/icons'
 
 const { Text } = Typography
 
@@ -107,9 +107,7 @@ function CategoryActions({ category, onEdit, onDelete }) {
 
   return (
     <Dropdown menu={{ items: dropdownItems }} trigger={['click']} placement="bottomRight">
-      <Button orientation="text" size="small">
-        Acciones <DownOutlined style={{ fontSize: '12px' }} />
-      </Button>
+      <Button type="text" icon={<MoreOutlined style={{ fontSize: '18px' }} />} />
     </Dropdown>
   )
 }
@@ -128,7 +126,7 @@ export default function CategoriesList({
 }) {
   const columns = [
     {
-      title: 'Categoría',
+      title: 'Categoria',
       dataIndex: 'nombre',
       key: 'categoria',
       width: '25%',

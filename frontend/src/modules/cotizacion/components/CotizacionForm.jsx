@@ -36,6 +36,7 @@ export default function CotizacionForm({
     idCliente,
     moneda,
     cart: cart.cart,
+    removeItem: cart.removeItem,
   });
 
   const lineas = preview.data?.lineas ?? [];

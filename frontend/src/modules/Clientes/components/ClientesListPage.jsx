@@ -1,9 +1,20 @@
-import { Card, Button, Table, Input, message, Typography, Spin, Select, Modal } from 'antd'
-import { PlusOutlined, SearchOutlined } from '@ant-design/icons'
+import { Avatar, Button, Card, Dropdown, Empty, Input, message, Popconfirm, Space, Table, Tag, Typography } from 'antd'
+import { DeleteOutlined, EditOutlined, MoreOutlined, SearchOutlined, UserOutlined } from '@ant-design/icons'
 import { useEffect, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useClientes } from '../hooks/useClientes'
 import * as clientesApi from '../api/clientesApi'
+
+const { Title, Text } = Typography
+
+function getInitials(name = '') {
+  return name
+    .split(' ')
+    .filter(Boolean)
+    .slice(0, 2)
+    .map((part) => part[0]?.toUpperCase())
+    .join('') || null
+}
 
 function ClientesListPage() {
   const [searchTerm, setSearchTerm] = useState('')
@@ -11,98 +22,154 @@ function ClientesListPage() {
   const { clientes, loading, pagination, loadClientes, deleteCliente, setPagination } = useClientes()
 
   useEffect(() => {
-    loadClientes(0, searchTerm).catch(() => {
+    loadClientes(0, '').catch(() => {
       message.error('Error al cargar clientes')
     })
-  }, [])
+  }, [loadClientes])
 
   const handleSearch = async (value) => {
     setSearchTerm(value)
     setPagination((prev) => ({ ...prev, current: 1 }))
+
     try {
       await loadClientes(0, value)
-    } catch { }
+    } catch {
+      message.error('Error al buscar clientes')
+    }
   }
 
   const handlePaginationChange = async (page) => {
     const skip = (page - 1) * pagination.pageSize
     setPagination((prev) => ({ ...prev, current: page }))
+
     try {
       await loadClientes(skip, searchTerm)
-    } catch { }
+    } catch {
+      message.error('Error al cargar clientes')
+    }
   }
 
   const handleShowSizeChange = async (current, pageSize) => {
     const skip = (current - 1) * pageSize
     setPagination((prev) => ({ ...prev, current, pageSize }))
+
     try {
       await loadClientes(skip, searchTerm)
-    } catch { }
-  }
-
-  const handleDelete = async (idCliente) => {
-    Modal.confirm({
-      title: '¿Eliminar cliente?',
-      content: '¿Está seguro que desea eliminar este cliente? Esta acción no se puede deshacer.',
-      okText: 'Eliminar',
-      okType: 'danger',
-      cancelText: 'Cancelar',
-      onOk: async () => {
-        try {
-          await clientesApi.deleteCliente(idCliente)
-          deleteCliente(idCliente)
-          message.success('Cliente eliminado exitosamente')
-        } catch (error) {
-          message.error(error.message || 'Error al eliminar cliente')
-        }
-      },
-    })
-  }
-
-  const handleActionChange = (value, record) => {
-    if (value === 'editar') {
-      navigate(`/clientes/editar/${record.idCliente}`)
-    } else if (value === 'eliminar') {
-      handleDelete(record.idCliente)
+    } catch {
+      message.error('Error al cargar clientes')
     }
   }
 
-  const handleOpenModal = () => {
-    navigate('/clientes/crear')
+  const handleDelete = async (idCliente) => {
+    try {
+      await clientesApi.deleteCliente(idCliente)
+      deleteCliente(idCliente)
+      message.success('Cliente eliminado')
+    } catch (error) {
+      message.error(error.message || 'Error al eliminar cliente')
+    }
   }
 
   const columns = [
-    { title: 'Nombre', dataIndex: 'nombreCompleto', key: 'nombreCompleto' },
-    { title: 'Email', dataIndex: 'email', key: 'email' },
-    { title: 'Teléfono', dataIndex: 'telefono', key: 'telefono' },
-    { title: 'Institución', dataIndex: 'institucion', key: 'institucion' },
     {
-      title: 'Acciones',
-      key: 'acciones',
+      title: 'Cliente',
+      dataIndex: 'nombreCompleto',
+      key: 'nombreCompleto',
+      render: (name, record) => (
+        <Space size={12}>
+          <Avatar icon={getInitials(name) ? null : <UserOutlined />}>
+            {getInitials(name)}
+          </Avatar>
+          <div>
+            <Text strong>{name || 'Sin nombre'}</Text>
+            <div>
+              <Text type="secondary" style={{ fontSize: 12 }}>
+                {record.cargo || 'Sin cargo'}
+              </Text>
+            </div>
+          </div>
+        </Space>
+      ),
+    },
+    {
+      title: 'Contacto',
+      key: 'contacto',
       render: (_, record) => (
-        <Select
-          placeholder="Acciones"
-          style={{ width: 100, textAlign: 'left' }}
-          onChange={(value) => handleActionChange(value, record)}
-          options={[
-            { label: 'Editar', value: 'editar' },
-            { label: 'Eliminar', value: 'eliminar' },
-          ]}
-        />
+        <div>
+          <Text>{record.email || '-'}</Text>
+          <div>
+            <Text type="secondary" style={{ fontSize: 12 }}>
+              {record.telefono || 'Sin telefono'}
+            </Text>
+          </div>
+        </div>
+      ),
+    },
+    {
+      title: 'Institucion',
+      dataIndex: 'institucion',
+      key: 'institucion',
+      render: (institucion) => institucion ? <Tag>{institucion}</Tag> : <Text type="secondary">-</Text>,
+    },
+    {
+      title: 'Ciudad',
+      dataIndex: 'ciudad',
+      key: 'ciudad',
+      render: (ciudad) => ciudad || '-',
+    },
+    {
+      title: '',
+      key: 'acciones',
+      width: 64,
+      align: 'right',
+      render: (_, record) => (
+        <Dropdown
+          menu={{
+            items: [
+              {
+                key: 'edit',
+                label: 'Editar',
+                icon: <EditOutlined />,
+                onClick: () => navigate(`/clientes/editar/${record.idCliente}`),
+              },
+              { type: 'divider' },
+              {
+                key: 'delete',
+                label: (
+                  <Popconfirm
+                    title="Eliminar cliente"
+                    description="Esta accion no se puede deshacer."
+                    onConfirm={() => handleDelete(record.idCliente)}
+                    okText="Eliminar"
+                    cancelText="Cancelar"
+                    okButtonProps={{ danger: true }}
+                  >
+                    <span style={{ color: '#ff4d4f' }}>Eliminar</span>
+                  </Popconfirm>
+                ),
+                icon: <DeleteOutlined style={{ color: '#ff4d4f' }} />,
+                danger: true,
+              },
+            ],
+          }}
+          trigger={['click']}
+          placement="bottomRight"
+        >
+          <Button type="text" icon={<MoreOutlined />} />
+        </Dropdown>
       ),
     },
   ]
 
   return (
-    <div style={{ backgroundColor: '#f5f5f5', padding: '24px', minHeight: '100vh', margin: '-24px' }}>
-      {/* ALINEACIÓN TIPO BREADCRUMB */}
+    <div style={{ backgroundColor: '#f5f5f5', minHeight: '100vh', margin: '-24px', padding: 24 }}>
       <div style={{ marginBottom: 24 }}>
-        <Typography.Title level={3} style={{ margin: 0 }}>
+        <Title level={3} style={{ margin: 0 }}>
           Clientes
-        </Typography.Title>
-        <Typography.Text orientation="secondary" style={{ fontSize: '14px' }}>
+        </Title>
+        <Text type="secondary" style={{ fontSize: 14 }}>
           Inicio / Clientes
-        </Typography.Text>
+        </Text>
       </div>
 
       <Card
@@ -111,48 +178,40 @@ function ClientesListPage() {
           borderRadius: 8,
           boxShadow: '0 1px 2px rgba(0,0,0,0.05)',
         }}
-        styles={{
-          body: {
-            padding: 24,
-          },
-        }}
+        styles={{ body: { padding: 24 } }}
       >
-        <Spin spinning={loading}>
-          {/* TOP BAR: BUSCADOR Y BOTÓN */}
-          <div style={{ display: 'flex', gap: '16px', marginBottom: '24px' }}>
-            <Input
-              placeholder="Buscar por nombre o email..."
-              value={searchTerm}
-              onChange={(e) => handleSearch(e.target.value)}
-              style={{ flex: 1 }}
-              suffix={<SearchOutlined style={{ color: 'rgba(0,0,0,.45)' }} />}
-            />
-            <Button
-              type="primary"
-              onClick={handleOpenModal}
-            >
-              Añadir cliente
-            </Button>
-          </div>
-
-          <Table
-            columns={columns}
-            dataSource={clientes}
-            rowKey="idCliente"
-            pagination={{
-              pageSize: pagination.pageSize,
-              current: pagination.current,
-              total: pagination.total,
-              onChange: handlePaginationChange,
-              onShowSizeChange: handleShowSizeChange,
-              showSizeChanger: true,
-              showQuickJumper: true,
-              pageSizeOptions: ['5', '10', '20', '50'],
-              showTotal: (total) => `Total: ${total} clientes`,
-            }}
-            loading={loading}
+        <div style={{ display: 'flex', gap: 16, marginBottom: 24 }}>
+          <Input
+            allowClear
+            placeholder="Buscar cliente"
+            value={searchTerm}
+            onChange={(event) => handleSearch(event.target.value)}
+            style={{ flex: 1 }}
+            suffix={<SearchOutlined style={{ color: 'rgba(0,0,0,.45)' }} />}
           />
-        </Spin>
+          <Button type="primary" onClick={() => navigate('/clientes/crear')}>
+            Anadir cliente
+          </Button>
+        </div>
+
+        <Table
+          columns={columns}
+          dataSource={clientes}
+          rowKey="idCliente"
+          loading={loading}
+          pagination={{
+            pageSize: pagination.pageSize,
+            current: pagination.current,
+            total: pagination.total,
+            onChange: handlePaginationChange,
+            onShowSizeChange: handleShowSizeChange,
+            showSizeChanger: false,
+            showQuickJumper: true,
+            showTotal: (total) => `Total: ${total} cliente${total !== 1 ? 's' : ''}`,
+          }}
+          locale={{ emptyText: <Empty description="No hay clientes" /> }}
+          scroll={{ x: true }}
+        />
       </Card>
     </div>
   )

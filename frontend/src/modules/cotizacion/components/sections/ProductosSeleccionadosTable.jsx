@@ -120,6 +120,15 @@ function ProductosSeleccionadosTable({
 
   return (
     <Card
+      variant="borderless"
+      style={{
+        borderRadius: 8,
+        boxShadow: '0 1px 2px rgba(0,0,0,0.05)',
+      }}
+      styles={{
+        header: { padding: '16px 24px', borderBottom: '1px solid #f0f0f0' },
+        body: { padding: 24 },
+      }}
       title={
         <Space>
           <Typography.Title level={5} style={{ margin: 0 }}>
@@ -141,6 +150,7 @@ function ProductosSeleccionadosTable({
             dataSource={lineas}
             pagination={false}
             size="small"
+            scroll={{ x: true }}
           />
           <Row justify="end" style={{ marginTop: 16 }} gutter={[16, 16]}>
             <Col xs={24} md={6}>

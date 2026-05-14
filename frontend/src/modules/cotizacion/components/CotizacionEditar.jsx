@@ -56,6 +56,7 @@ export default function CotizacionEditar({ idCotizacion, onSuccess, onCancel }) 
     idCliente: cotizacion?.idCliente,
     moneda: cotizacion?.moneda || 'Bs',
     cart: cart.cart,
+    removeItem: cart.removeItem,
   })
 
   const lineas = preview.data?.lineas ?? []

@@ -36,7 +36,7 @@ export default function Sidebar() {
   const routeToMenuKey = {
     '/': 'dashboard',
     '/dashboard': 'dashboard',
-    '/catalogo': 'catalogo',
+    
     '/productos': 'productos',
     '/categorias': 'categorias',
     '/componentes': 'componentes',
@@ -52,7 +52,7 @@ export default function Sidebar() {
     getItem('Dashboard', 'dashboard', <DashboardOutlined />),
 
     getItem('Catálogo', 'catalogo-group', <ShoppingOutlined />, [
-      getItem('Ver Catálogo', 'catalogo', <ShoppingOutlined />),
+      //getItem('Ver Catálogo', 'catalogo', <ShoppingOutlined />),
       getItem('Productos', 'productos', <ShoppingOutlined />),
       getItem('Componentes', 'componentes', <ShoppingOutlined />),
       getItem('Categorías', 'categorias', <BgColorsOutlined />),
@@ -61,7 +61,7 @@ export default function Sidebar() {
     getItem('Clientes', 'clientes', <UserOutlined />),
 
     getItem('Documentos', 'documentos', <FileTextOutlined />, [
-      getItem('Proformas', 'proformas', <FileTextOutlined />),
+     // getItem('Proformas', 'proformas', <FileTextOutlined />),
       getItem('Nueva Cotización', 'nueva-cotizacion', <ShoppingOutlined />),
       getItem('Historial de Cotizaciones', 'historial-cotizaciones', <FileTextOutlined />),
     ]),
@@ -123,7 +123,7 @@ export default function Sidebar() {
           textAlign: 'center',
         }}
       >
-        {collapsed ? '📦' : '📦 JDBLab'}
+        {collapsed ? 'JDB' : ' JDBLab'}
       </div>
 
       {/* Menú */}

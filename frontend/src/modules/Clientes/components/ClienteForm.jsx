@@ -1,14 +1,6 @@
 import React, { useEffect, useMemo, useState } from 'react'
-import {
-  Button,
-  Form,
-  Input,
-  message,
-  Typography,
-  Spin,
-  Row,
-  Col,
-} from 'antd'
+import { Button, Card, Col, Form, Input, message, Row, Space, Spin, Typography } from 'antd'
+import { SaveOutlined } from '@ant-design/icons'
 import { useClientesManager } from '../hooks/useClientesManager'
 
 const { Title, Text } = Typography
@@ -16,17 +8,13 @@ const { Title, Text } = Typography
 function ClienteForm({ onSuccess, onCancel, idClienteEdit = null }) {
   const [form] = Form.useForm()
   const [submitting, setSubmitting] = useState(false)
-
   const { cliente, loading: loadingCliente, createCliente, updateCliente } = useClientesManager(idClienteEdit)
 
   const title = idClienteEdit ? 'Editar Cliente' : 'Crear Cliente'
   const breadcrumb = idClienteEdit
     ? 'Inicio / Clientes / Editar cliente'
-    : 'Inicio / Clientes / Añadir cliente'
+    : 'Inicio / Clientes / Nuevo cliente'
 
-  /**
-   * Cargar datos del cliente en el formulario (modo edición)
-   */
   useEffect(() => {
     if (!idClienteEdit || !cliente) return
 
@@ -42,21 +30,15 @@ function ClienteForm({ onSuccess, onCancel, idClienteEdit = null }) {
     })
   }, [idClienteEdit, cliente, form])
 
-  /**
-   * Validar si el formulario puede ser enviado
-   */
   const watchedNombre = Form.useWatch('nombreCompleto', form)
 
   const canSubmit = useMemo(() => {
-    const nombreOk = String(watchedNombre || '').trim().length >= 3
-    return nombreOk && !loadingCliente
+    return String(watchedNombre || '').trim().length >= 3 && !loadingCliente
   }, [watchedNombre, loadingCliente])
 
-  /**
-   * Manejar envío del formulario
-   */
   const handleSubmit = async (values) => {
     setSubmitting(true)
+
     try {
       const payload = {
         nombreCompleto: values.nombreCompleto?.trim(),
@@ -71,172 +53,181 @@ function ClienteForm({ onSuccess, onCancel, idClienteEdit = null }) {
 
       if (idClienteEdit) {
         await updateCliente(payload)
-        message.success('Cliente actualizado exitosamente')
+        message.success('Cliente actualizado')
       } else {
         await createCliente(payload)
-        message.success('Cliente creado exitosamente')
+        message.success('Cliente creado')
       }
 
-      // Limpiar formulario
       form.resetFields()
-
-      // Llamar callback de éxito
-      if (onSuccess) {
-        onSuccess()
-      }
+      onSuccess?.()
     } catch (error) {
       message.error(error.message || 'Error al guardar cliente')
-      console.error('Error:', error)
     } finally {
       setSubmitting(false)
     }
   }
 
   return (
-    <div style={{ backgroundColor: '#f5f5f5', padding: '24px', minHeight: '100vh', margin: '-24px' }}>
-      <div style={{ flex: 1, maxWidth: 1200, margin: '0 auto', width: '100%', paddingBottom: '80px' }}>
-        <Spin spinning={loadingCliente}>
-          <div style={{ marginBottom: 24 }}>
-            <Title level={3} style={{ margin: 0, fontWeight: 600 }}>
+    <div style={{ background: '#f7f8fa', minHeight: '100vh', margin: '-24px', padding: 24 }}>
+      <div style={{ maxWidth: 1040, margin: '0 auto', paddingBottom: 88 }}>
+        <Space direction="vertical" size={20} style={{ width: '100%' }}>
+          <div>
+            <Title level={3} style={{ margin: 0 }}>
               {title}
             </Title>
-            <Text orientation="secondary" style={{ fontSize: '14px' }}>{breadcrumb}</Text>
+            <Text type="secondary">{breadcrumb}</Text>
           </div>
 
-          <div style={{ background: '#fff', padding: 24, borderRadius: 8, boxShadow: '0 1px 2px rgba(0,0,0,0.05)' }}>
+          <Spin spinning={loadingCliente}>
             <Form
               form={form}
               layout="vertical"
               onFinish={handleSubmit}
               autoComplete="off"
-              requiredMark
+              requiredMark={false}
             >
-              {/* Nombre Completo - Campo requerido */}
-          <Form.Item
-            label="Nombre Completo"
-            name="nombreCompleto"
-            rules={[
-              { required: true, message: 'El nombre es requerido' },
-              { min: 3, message: 'El nombre debe tener al menos 3 caracteres' },
-              { max: 200, message: 'El nombre no puede exceder 200 caracteres' },
-            ]}
-          >
-            <Input placeholder="Ej: Juan Pérez García" />
-          </Form.Item>
+              <Card variant="borderless" styles={{ body: { padding: 24 } }} style={{ borderRadius: 8 }}>
+                <Title level={5} style={{ marginTop: 0 }}>
+                  Datos principales
+                </Title>
 
-          {/* Email */}
-          <Form.Item
-            label="Email"
-            name="email"
-            rules={[
-              { type: 'email', message: 'Email inválido' },
-              { max: 150, message: 'El email no puede exceder 150 caracteres' },
-            ]}
-          >
-            <Input placeholder="Ej: juan@ejemplo.com" type="email" />
-          </Form.Item>
+                <Row gutter={16}>
+                  <Col xs={24} md={12}>
+                    <Form.Item
+                      label="Nombre completo"
+                      name="nombreCompleto"
+                      rules={[
+                        { required: true, message: 'El nombre es requerido' },
+                        { min: 3, message: 'El nombre debe tener al menos 3 caracteres' },
+                        { max: 200, message: 'El nombre no puede exceder 200 caracteres' },
+                      ]}
+                    >
+                      <Input placeholder="Nombre del cliente" />
+                    </Form.Item>
+                  </Col>
 
-          {/* Teléfono */}
-          <Form.Item
-            label="Teléfono"
-            name="telefono"
-            rules={[
-              {
-                pattern: /^[\d\s\-\+\(\)]*$/,
-                message: 'Teléfono inválido',
-              },
-              { max: 30, message: 'El teléfono no puede exceder 30 caracteres' },
-            ]}
-          >
-            <Input placeholder="Ej: +58 414 1234567" />
-          </Form.Item>
+                  <Col xs={24} md={12}>
+                    <Form.Item
+                      label="Institucion o empresa"
+                      name="institucion"
+                      rules={[{ max: 200, message: 'La institucion no puede exceder 200 caracteres' }]}
+                    >
+                      <Input placeholder="Empresa o institucion" />
+                    </Form.Item>
+                  </Col>
 
-          {/* Dos columnas para ciudad y cargo */}
-          <Row gutter={16}>
-            <Col xs={24} sm={12}>
-              <Form.Item
-                label="Ciudad"
-                name="ciudad"
-                rules={[
-                  { max: 100, message: 'La ciudad no puede exceder 100 caracteres' },
-                ]}
+                  <Col xs={24} md={12}>
+                    <Form.Item
+                      label="Cargo"
+                      name="cargo"
+                      rules={[{ max: 150, message: 'El cargo no puede exceder 150 caracteres' }]}
+                    >
+                      <Input placeholder="Cargo o rol" />
+                    </Form.Item>
+                  </Col>
+
+                  <Col xs={24} md={12}>
+                    <Form.Item
+                      label="Ciudad"
+                      name="ciudad"
+                      rules={[{ max: 100, message: 'La ciudad no puede exceder 100 caracteres' }]}
+                    >
+                      <Input placeholder="Ciudad" />
+                    </Form.Item>
+                  </Col>
+                </Row>
+              </Card>
+
+              <Card variant="borderless" styles={{ body: { padding: 24 } }} style={{ borderRadius: 8, marginTop: 16 }}>
+                <Title level={5} style={{ marginTop: 0 }}>
+                  Contacto
+                </Title>
+
+                <Row gutter={16}>
+                  <Col xs={24} md={12}>
+                    <Form.Item
+                      label="Email"
+                      name="email"
+                      rules={[
+                        { type: 'email', message: 'Email invalido' },
+                        { max: 150, message: 'El email no puede exceder 150 caracteres' },
+                      ]}
+                    >
+                      <Input placeholder="correo@empresa.com" type="email" />
+                    </Form.Item>
+                  </Col>
+
+                  <Col xs={24} md={12}>
+                    <Form.Item
+                      label="Telefono"
+                      name="telefono"
+                      rules={[
+                        {
+                          pattern: /^[\d\s+()-]*$/,
+                          message: 'Telefono invalido',
+                        },
+                        { max: 30, message: 'El telefono no puede exceder 30 caracteres' },
+                      ]}
+                    >
+                      <Input placeholder="+591 70000000" />
+                    </Form.Item>
+                  </Col>
+
+                  <Col xs={24}>
+                    <Form.Item
+                      label="Direccion"
+                      name="direccion"
+                      rules={[{ max: 500, message: 'La direccion no puede exceder 500 caracteres' }]}
+                    >
+                      <Input.TextArea rows={2} placeholder="Direccion de referencia" />
+                    </Form.Item>
+                  </Col>
+
+                  <Col xs={24}>
+                    <Form.Item
+                      label="Observaciones"
+                      name="observaciones"
+                      rules={[{ max: 1000, message: 'Las observaciones no pueden exceder 1000 caracteres' }]}
+                    >
+                      <Input.TextArea rows={3} placeholder="Notas internas" />
+                    </Form.Item>
+                  </Col>
+                </Row>
+              </Card>
+
+              <div
+                style={{
+                  position: 'fixed',
+                  bottom: 0,
+                  left: 0,
+                  width: '100%',
+                  background: '#fff',
+                  borderTop: '1px solid #f0f0f0',
+                  padding: '16px 24px',
+                  zIndex: 10,
+                  display: 'flex',
+                  justifyContent: 'flex-end',
+                  gap: 12,
+                }}
               >
-                <Input placeholder="Ej: Caracas" />
-              </Form.Item>
-            </Col>
-            <Col xs={24} sm={12}>
-              <Form.Item
-                label="Cargo"
-                name="cargo"
-                rules={[
-                  { max: 150, message: 'El cargo no puede exceder 150 caracteres' },
-                ]}
-              >
-                <Input placeholder="Ej: Gerente de Compras" />
-              </Form.Item>
-            </Col>
-          </Row>
-
-          {/* Institución */}
-          <Form.Item
-            label="Institución/Empresa"
-            name="institucion"
-            rules={[
-              { max: 200, message: 'La institución no puede exceder 200 caracteres' },
-            ]}
-          >
-            <Input placeholder="Ej: Empresa XYZ S.A." />
-          </Form.Item>
-
-          {/* Dirección */}
-          <Form.Item
-            label="Dirección"
-            name="direccion"
-            rules={[
-              { max: 500, message: 'La dirección no puede exceder 500 caracteres' },
-            ]}
-          >
-            <Input.TextArea
-              rows={2}
-              placeholder="Ej: Avenida Principal 123, Piso 5"
-            />
-          </Form.Item>
-
-          {/* Observaciones */}
-          <Form.Item
-            label="Observaciones"
-            name="observaciones"
-            rules={[
-              { max: 1000, message: 'Las observaciones no pueden exceder 1000 caracteres' },
-            ]}
-          >
-            <Input.TextArea
-              rows={3}
-              placeholder="Notas adicionales sobre el cliente..."
-            />
-          </Form.Item>
-
-            {/* Botones */}
-            <div style={{
-              position: 'fixed', bottom: 0, left: 0, width: '100%',
-              background: '#fff', borderTop: '1px solid #f0f0f0',
-              padding: '16px 24px', zIndex: 10, display: 'flex', justifyContent: 'flex-end', gap: 16
-            }}>
-              <Button
-                orientation="primary"
-                htmlType="submit"
-                loading={submitting}
-                disabled={!canSubmit}
-                size="large"
-                style={{ borderRadius: 8, minWidth: 100, fontWeight: 600 }}
-              >
-                Guardar
-              </Button>
-              <Button onClick={onCancel} size="large" style={{ borderRadius: 8, minWidth: 100 }}>Cancelar</Button>
-            </div>
-          </Form>
-          </div>
-        </Spin>
+                <Button onClick={onCancel} size="large" disabled={submitting}>
+                  Cancelar
+                </Button>
+                <Button
+                  type="primary"
+                  htmlType="submit"
+                  icon={<SaveOutlined />}
+                  loading={submitting}
+                  disabled={!canSubmit}
+                  size="large"
+                >
+                  Guardar
+                </Button>
+              </div>
+            </Form>
+          </Spin>
+        </Space>
       </div>
     </div>
   )

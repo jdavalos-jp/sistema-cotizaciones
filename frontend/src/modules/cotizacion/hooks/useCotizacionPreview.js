@@ -1,14 +1,17 @@
-import { useEffect, useMemo, useState } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
 import { message } from 'antd'
 
 import { previewCotizacion } from '../services/api/cotizacionesApi'
 import { useDebouncedValue } from './useDebouncedValue'
 
-export function useCotizacionPreview({ idCliente, moneda, cart }) {
+export function useCotizacionPreview({ idCliente, moneda, cart, removeItem }) {
   const debouncedCart = useDebouncedValue(cart, 0)
 
   const [loading, setLoading] = useState(false)
   const [data, setData] = useState(null)
+
+  // Track which IDs we've already warned about so we don't spam
+  const warnedRef = useRef(new Set())
 
   useEffect(() => {
     const controller = new AbortController()
@@ -42,6 +45,23 @@ export function useCotizacionPreview({ idCliente, moneda, cart }) {
           { signal: controller.signal },
         )
         setData(preview.data)
+
+        // Auto-remove deleted items from cart
+        if (preview.data?.removedIds?.length && removeItem) {
+          for (const removed of preview.data.removedIds) {
+            removeItem(removed.tipo, String(removed.id))
+          }
+        }
+
+        // Show warnings (only once per item)
+        if (preview.data?.warnings?.length) {
+          for (const w of preview.data.warnings) {
+            if (!warnedRef.current.has(w)) {
+              warnedRef.current.add(w)
+              message.warning(w, 5)
+            }
+          }
+        }
       } catch (err) {
         if (controller.signal.aborted) return
         message.error(String(err?.message || err))
@@ -56,3 +76,4 @@ export function useCotizacionPreview({ idCliente, moneda, cart }) {
 
   return useMemo(() => ({ loading, data }), [loading, data])
 }
+

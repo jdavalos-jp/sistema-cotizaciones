@@ -31,12 +31,12 @@ export default function ProductoInventarioPreciosMultimedia({
           name="sku"
           rules={[
             {
-              pattern: /^[A-Za-z0-9\-_]{0,50}$/,
-              message: 'Usa letras/números/guión/guión bajo (máx. 50)',
+              pattern: /^[A-Za-z0-9._-]{0,100}$/,
+              message: 'Usa letras, números, puntos, guiones y guión bajo (máx. 100)',
             },
           ]}
         >
-          <Input placeholder="PROD-001" maxLength={50} allowClear />
+          <Input placeholder="PROD-001" maxLength={100} allowClear />
         </Form.Item>
 
         <Form.Item

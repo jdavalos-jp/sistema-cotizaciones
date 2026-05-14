@@ -89,6 +89,7 @@ export function useImagenesProducto(idProducto) {
       )
     } catch (err) {
       setError(err.message)
+      throw err // <--- Lanza el error para que la UI se entere
     } finally {
       setLoading(false)
     }

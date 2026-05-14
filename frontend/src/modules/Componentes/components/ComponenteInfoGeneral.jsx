@@ -60,10 +60,7 @@ export default function ComponenteInfoGeneral() {
         name="sku"
         rules={[
           { max: 100, message: 'Máximo 100 caracteres' },
-          {
-            pattern: /^[A-Z0-9\-_]*$/i,
-            message: 'Solo letras, números, guiones',
-          },
+          { pattern: /^[A-Za-z0-9._-]*$/, message: 'Solo letras, números, puntos y guiones' },
         ]}
       >
         <Input

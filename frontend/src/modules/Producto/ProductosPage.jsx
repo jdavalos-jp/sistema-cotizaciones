@@ -1,5 +1,4 @@
-import ProductosListPage from '../../modules/Productos/components/ProductosListPage'
-
+import ProductosListPage from './components/ListaProductos/ProductosListPage'
 /**
  * Página Wrapper - Productos
  * Simplemente monta el componente del módulo

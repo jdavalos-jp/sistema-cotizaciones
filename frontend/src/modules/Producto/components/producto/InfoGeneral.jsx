@@ -32,9 +32,12 @@ function InfoGeneral() {
       <Form.Item
         label="SKU"
         name="sku"
-        rules={[{ max: 50, message: 'Máximo 50 caracteres' }]}
+        rules={[
+          { max: 100, message: 'Máximo 100 caracteres' },
+          { pattern: /^[A-Za-z0-9._-]*$/, message: 'Usa letras, números, puntos, guiones y guión bajo' }
+        ]}
       >
-        <Input placeholder="Código SKU (opcional)" maxLength={50} />
+        <Input placeholder="Código SKU (opcional)" maxLength={100} />
       </Form.Item>
     </>
   )

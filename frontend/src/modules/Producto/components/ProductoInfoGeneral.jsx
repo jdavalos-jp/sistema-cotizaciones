@@ -39,11 +39,11 @@ export default function ProductoInfoGeneral() {
       <Form.Item
         label="Descripción"
         name="descripcion"
-        rules={[{ max: 500, message: 'Máximo 500 caracteres' }]}
+        rules={[{ max: 1000, message: 'Máximo 1000 caracteres' }]}
       >
         <RichTextEditor
           placeholder="Describe las características principales, beneficios y materiales..."
-          maxLength={500}
+          maxLength={1000}
         />
       </Form.Item>
     </Card>

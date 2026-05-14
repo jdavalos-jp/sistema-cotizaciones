@@ -40,6 +40,7 @@ export default function App() {
               <Route path="/catalogo" element={<CatalogoPage />} />
               <Route path="/productos" element={<ProductosPage />} />
               <Route path="/productos/crear" element={<ProductoFormPage />} />
+              <Route path="/productos/editar/:id" element={<ProductoFormPage />} />
               <Route path="/categorias" element={<CategoriasPage />} />
               <Route path="/categorias/crear" element={<CategoriasPage mode="crear" />} />
               <Route path="/categorias/editar/:id" element={<CategoriasPage mode="editar" />} />

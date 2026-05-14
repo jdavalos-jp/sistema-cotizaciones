@@ -94,6 +94,15 @@ function ClienteDatosSection({
 
   return (
     <Card
+      variant="borderless"
+      style={{
+        borderRadius: 8,
+        boxShadow: '0 1px 2px rgba(0,0,0,0.05)',
+      }}
+      styles={{
+        header: { padding: '16px 24px', borderBottom: '1px solid #f0f0f0' },
+        body: { padding: 24 },
+      }}
       title={
         <Space>
           <UserOutlined />

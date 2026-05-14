@@ -120,6 +120,22 @@ export function useProductos(idProductoSolo = null) {
     setProductos((prev) => prev.filter((p) => p.idProducto !== idProducto))
   }, [])
 
+  const deleteProducto = useCallback(async (idProducto) => {
+    try {
+      setLoading(true)
+      setError(null)
+      await productosApi.deleteProducto(idProducto)
+      deletProductoLocal(idProducto)
+      return true
+    } catch (err) {
+      const errorMsg = err.message || 'Error al eliminar producto'
+      setError(errorMsg)
+      throw err
+    } finally {
+      setLoading(false)
+    }
+  }, [deletProductoLocal])
+
   /**
    * Crear nuevo producto
    */
@@ -221,6 +237,7 @@ export function useProductos(idProductoSolo = null) {
     // CRUD
     createProducto,
     updateProducto,
+    deleteProducto,
     
     // Setters directos
     setProductos,
@@ -261,5 +278,6 @@ export function useProductosList() {
     handlePagination: hook.handlePagination,
     refresh: hook.refresh,
     deletProductoLocal: hook.deletProductoLocal,
+    deleteProducto: hook.deleteProducto,
   }
 }

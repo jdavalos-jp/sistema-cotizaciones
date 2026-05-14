@@ -1,22 +1,21 @@
-import { Card, Button, Table, Space, Input, Popconfirm, message, Typography, Spin, Image } from 'antd'
-import { PlusOutlined, SearchOutlined, EditOutlined, DeleteOutlined } from '@ant-design/icons'
+import { Card, Button, Table, Space, Input, Popconfirm, message, Typography, Spin, Image, Dropdown } from 'antd'
+import { PlusOutlined, SearchOutlined, EditOutlined, DeleteOutlined, DownOutlined, MoreOutlined } from '@ant-design/icons'
 import { useEffect, useRef, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { useProductos } from '../hooks/useProductos'
+import { useProductos } from '../../hooks/useProductos'
 
 export default function ProductosListPage() {
   const navigate = useNavigate()
   const debounceTimeoutRef = useRef(null)
   const [searchTerm, setSearchTerm] = useState('') // ✅ Arreglado searchTerm
 
-  const { 
-    productos, 
-    loading, 
-    pagination, 
-    filters,
-    handleFilterChange, 
+  const {
+    productos,
+    loading,
+    pagination,
+    handleFilterChange,
     handlePagination,
-    deletProductoLocal 
+    deleteProducto,
   } = useProductos()
 
   // Cargar productos al montar
@@ -46,18 +45,19 @@ export default function ProductosListPage() {
   // Eliminar producto
   const handleDelete = async (idProducto) => {
     try {
-      deletProductoLocal(idProducto)
+      await deleteProducto(idProducto)
       message.success('Producto eliminado')
     } catch (error) {
-      message.error('Error al eliminar producto')
+      message.error(error?.message || 'Error al eliminar producto')
     }
   }
 
   const columns = [
     {
-      title: 'NOMBRE',
+      title: 'Nombre',
       dataIndex: 'nombre',
       key: 'nombre',
+    //  width: 300,
       render: (nombre, record) => (
         <div style={{ display: 'flex', gap: 12, alignItems: 'flex-start' }}>
           <div
@@ -85,27 +85,27 @@ export default function ProductosListPage() {
             )}
           </div>
 
-          <div style={{ flex: 1 }}>
+          <div style={{  width: 200, overflow: 'hidden' }}>
             <div style={{ fontWeight: '500', marginBottom: 4 }}>{nombre}</div>
             {record.categoria && (
               <div style={{ fontSize: '12px', color: '#666', marginBottom: 2 }}>
                 {record.categoria.nombre}
               </div>
             )}
-          </div> 
+          </div>
         </div>
       ),
     },
-    { title: 'SKU', dataIndex: 'sku', key: 'sku' },
-    { title: 'SUBCATEGORÍA', dataIndex: ['categoria', 'nombre'], key: 'categoria' },
+    { title: 'SKU', dataIndex: 'sku', key: 'sku', width: 120},
+    { title: 'Subcategoría', dataIndex: ['categoria', 'nombre'], key: 'categoria' },
     {
-      title: 'PRECIO',
+      title: 'Precio',
       dataIndex: 'precioBase',
       key: 'precio',
       render: (val) => `Bs ${typeof val === 'number' ? val.toFixed(2) : val}`,
     },
     {
-      title: 'STOCK',
+      title: 'Stock',
       dataIndex: 'cantidad',
       key: 'cantidad',
       render: (val) => (
@@ -115,25 +115,48 @@ export default function ProductosListPage() {
       ),
     },
     {
-      title: 'ACCIONES',
+      title: 'Acciones',
       key: 'acciones',
+      width: 100, // Da un ancho fijo sugerido
       render: (_, record) => (
-        <Space>
-          <Button type="text" size="small" icon={<EditOutlined />} onClick={() => navigate(`/productos/editar/${record.idProducto}`)}>
-            Editar
-          </Button>
-          <Popconfirm
-            title="Eliminar"
-            description="¿Está seguro que desea eliminar?"
-            onConfirm={() => handleDelete(record.idProducto)}
-            okText="Sí"
-            cancelText="No"
-          >
-            <Button type="text" size="small" danger icon={<DeleteOutlined />}>
-              Eliminar
-            </Button>
-          </Popconfirm>
-        </Space>
+        <Dropdown
+          menu={{
+            items: [
+              {
+                key: 'edit',
+                label: 'Editar',
+                icon: <EditOutlined />,
+                onClick: () => navigate(`/productos/editar/${record.idProducto}`),
+              },
+              {
+                type: 'divider',
+              },
+              {
+                key: 'delete',
+                label: (
+                  <Popconfirm
+                    title="Eliminar"
+                    description="¿Está seguro que desea eliminar este producto?"
+                    onConfirm={() => handleDelete(record.idProducto)}
+                    okText="Sí"
+                    cancelText="No"
+                  >
+                    <div style={{ color: '#ff4d4f', width: '100%' }}>Eliminar</div>
+                  </Popconfirm>
+                ),
+                icon: <DeleteOutlined style={{ color: '#ff4d4f' }} />,
+                danger: true,
+              },
+            ],
+          }}
+          trigger={['click']}
+          placement="bottomRight"
+        >
+          <Button 
+            type="text" 
+            icon={<MoreOutlined style={{ fontSize: '18px' }} />} 
+          />
+        </Dropdown>
       ),
     },
   ]
@@ -150,7 +173,7 @@ export default function ProductosListPage() {
         </Typography.Text>
       </div>
 
-      <Card variant = {{ padding: '24px' }} styles={false} style={{ borderRadius: '8px', boxShadow: '0 1px 2px rgba(0,0,0,0.05)' }}>
+      <Card variant={{ padding: '24px' }} styles={false} style={{ borderRadius: '8px', boxShadow: '0 1px 2px rgba(0,0,0,0.05)' }}>
         <Spin spinning={loading}>
           {/* TOP BAR: BUSCADOR Y BOTÓN */}
           <div style={{ display: 'flex', gap: '16px', marginBottom: '24px' }}>

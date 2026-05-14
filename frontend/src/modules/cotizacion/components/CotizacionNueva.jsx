@@ -35,6 +35,22 @@ import { createAndDownloadPdf } from '../services/api/cotizacionesApi'
 
 const { Title, Text } = Typography
 
+const pageStyle = {
+  backgroundColor: '#f5f5f5',
+  padding: 24,
+  minHeight: '100vh',
+  margin: '-24px',
+}
+
+const cardStyle = {
+  borderRadius: 8,
+  boxShadow: '0 1px 2px rgba(0,0,0,0.05)',
+}
+
+const cardBodyStyle = {
+  padding: 24,
+}
+
 function CotizacionNueva() {
   const [idCliente, setIdCliente] = useState(null)
   const [clienteLabel, setClienteLabel] = useState('')
@@ -57,6 +73,7 @@ function CotizacionNueva() {
     idCliente,
     moneda,
     cart: cart.cart,
+    removeItem: cart.removeItem,
   })
 
   const subtotal = Number(preview.data?.totales?.subtotal || 0)
@@ -193,15 +210,8 @@ function CotizacionNueva() {
 
   if (showSuccess) {
     return (
-      <div
-        style={{
-          backgroundColor: '#f5f5f5',
-          padding: 24,
-          minHeight: '100vh',
-          margin: '-24px',
-        }}
-      >
-        <Card>
+      <div style={pageStyle}>
+        <Card variant="borderless" style={cardStyle} styles={{ body: cardBodyStyle }}>
           <div style={{ textAlign: 'center', padding: '60px 20px' }}>
             <CheckCircleOutlined
               style={{
@@ -223,20 +233,15 @@ function CotizacionNueva() {
   }
 
   return (
-    <div
-      style={{
-        backgroundColor: '#f5f5f5',
-        padding: 24,
-        minHeight: '100vh',
-        margin: '-24px',
-      }}
-    >
+    <div style={pageStyle}>
       <Space
         orientation="vertical"
-        size={24}
+        size={20}
         style={{
           width: '100%',
           paddingBottom: 80,
+          maxWidth: 1180,
+          margin: '0 auto',
         }}
       >
         <div style={{ marginBottom: 24 }}>
@@ -290,6 +295,9 @@ function CotizacionNueva() {
         />
 
         <Card
+          variant="borderless"
+          style={cardStyle}
+          styles={{ body: cardBodyStyle }}
           title={
             <Space>
               <FileTextOutlined />
@@ -306,12 +314,21 @@ function CotizacionNueva() {
                 onChange={(event) => setObservaciones(event.target.value)}
                 rows={4}
                 placeholder="Notas u observaciones adicionales..."
-                style={{ marginTop: 8 }}
+                style={{ marginTop: 8, borderRadius: 6 }}
               />
             </Col>
 
             <Col xs={24} md={12}>
-              <div style={{ display: 'grid', gap: 16 }}>
+              <div
+                style={{
+                  display: 'grid',
+                  gap: 16,
+                  background: '#fafafa',
+                  border: '1px solid #f0f0f0',
+                  borderRadius: 8,
+                  padding: 16,
+                }}
+              >
                 <ResumenFila
                   label="Subtotal:"
                   value={`${subtotal.toLocaleString('es-BO')} ${moneda}`}
@@ -444,11 +461,12 @@ function FooterAcciones({
         width: '100%',
         background: '#fff',
         borderTop: '1px solid #f0f0f0',
-        padding: '16px 24px',
+        padding: '12px 24px',
         zIndex: 10,
         display: 'flex',
         justifyContent: 'space-between',
         alignItems: 'center',
+        boxShadow: '0 -4px 16px rgba(0,0,0,0.04)',
       }}
     >
       <Text type="secondary">

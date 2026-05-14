@@ -95,7 +95,7 @@ export default function DashboardPage() {
               title="Productos"
               value={stats.productos}
               prefix={<ShoppingOutlined />}
-              valueStyle={{ color: '#1890ff' }}
+              styles={{ content: { color: '#1890ff' } }}
             />
           </Card>
         </Col>
@@ -105,7 +105,7 @@ export default function DashboardPage() {
               title="Componentes"
               value={stats.componentes}
               prefix={<ThunderboltOutlined />}
-              valueStyle={{ color: '#52c41a' }}
+              styles={{ content: { color: '#52c41a' } }}
             />
           </Card>
         </Col>
@@ -115,7 +115,7 @@ export default function DashboardPage() {
               title="Clientes"
               value={stats.clientes}
               prefix={<UserOutlined />}
-              valueStyle={{ color: '#faad14' }}
+              styles={{ content: { color: '#faad14' } }}
             />
           </Card>
         </Col>
@@ -125,7 +125,7 @@ export default function DashboardPage() {
               title="Cotizaciones Activas"
               value={stats.cotizacionesActivas}
               prefix={<FileTextOutlined />}
-              valueStyle={{ color: '#f5222d' }}
+              styles={{ content: { color: '#f5222d' } }}
             />
           </Card>
         </Col>

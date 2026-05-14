@@ -1,10 +1,43 @@
-import { Card, Button, Table, Space, Input, Popconfirm, message, Typography, Spin, Image } from 'antd'
-import { SearchOutlined, EditOutlined, DeleteOutlined } from '@ant-design/icons'
-import { useMemo } from 'react'
+import { Card, Button, Table, Space, Input, Popconfirm, message, Typography, Spin, Image, Dropdown, Empty, Tag, Tooltip } from 'antd'
+import { SearchOutlined, EditOutlined, DeleteOutlined, MoreOutlined } from '@ant-design/icons'
+import { useCallback, useMemo } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useComponentesManager } from '../hooks/useComponentesManager'
 
 const { Title, Text } = Typography
+
+function ProductosCell({ productos = [] }) {
+  if (!productos.length) {
+    return <Empty description="Sin productos" image={Empty.PRESENTED_IMAGE_SIMPLE} style={{ margin: 0 }} />
+  }
+
+  const visibleProductos = productos.slice(0, 3)
+  const hiddenCount = productos.length - visibleProductos.length
+
+  return (
+    <Space size={[0, 8]} wrap>
+      {visibleProductos.map((relacion) => {
+        const producto = relacion.producto || relacion
+        const label = producto.nombre || 'Producto sin nombre'
+        const sku = producto.sku ? `SKU: ${producto.sku}` : 'Sin SKU'
+
+        return (
+          <Tooltip key={relacion.idProductoComponente || producto.idProducto || label} title={sku}>
+            <Tag color="blue" style={{ marginInlineEnd: 0, borderRadius: 12 }}>
+              {label}
+            </Tag>
+          </Tooltip>
+        )
+      })}
+
+      {hiddenCount > 0 && (
+        <Tag style={{ marginInlineEnd: 0, borderRadius: 12 }}>
+          +{hiddenCount}
+        </Tag>
+      )}
+    </Space>
+  )
+}
 
 export default function ComponentesListPage() {
   const navigate = useNavigate()
@@ -31,22 +64,22 @@ export default function ComponentesListPage() {
     handlePagination(current, pageSize)
   }
 
-  const handleDelete = async (idComponente) => {
+  const handleDelete = useCallback(async (idComponente) => {
     try {
       await deleteComponente(idComponente)
       message.success('Componente eliminado')
     } catch (error) {
       message.error(error?.message || 'Error al eliminar componente')
     }
-  }
+  }, [deleteComponente])
 
   const handleCreateClick = () => {
     navigate('/componentes/crear')
   }
 
-  const handleEditClick = (idComponente) => {
+  const handleEditClick = useCallback((idComponente) => {
     navigate(`/componentes/editar/${idComponente}`)
-  }
+  }, [navigate])
 
   const dataSource = useMemo(() => {
     return componentes.map((componente) => ({
@@ -111,21 +144,20 @@ export default function ComponentesListPage() {
         width: 120,
         render: (sku) => sku || '—',
       },
-      {
-        title: 'Descripción',
-        dataIndex: 'descripcion',
-        key: 'descripcion',
-        ellipsis: true,
-        width: 250,
-        render: (descripcion) => descripcion || '—',
-      },
+     // {
+     ///   title: 'Productos',
+      //  dataIndex: 'productos',
+      //  key: 'productos',
+     //   width: 300,
+     //   render: (productos) => <ProductosCell productos={productos} />,
+     // },
       {
         title: 'Precio Base',
         dataIndex: 'precioBase',
         key: 'precioBase',
         width: 120,
         render: (price) => (
-          <span style={{ fontWeight: 500, color: '#030303' }}>
+          <span style={{ color: '#000000' }}>
             Bs {Number(price || 0).toLocaleString('es-BO')}
           </span>
         ),
@@ -133,42 +165,46 @@ export default function ComponentesListPage() {
       {
         title: 'Acciones',
         key: 'acciones',
-        width: 160,
+        width: 100,
+        align: 'center',
         render: (_, record) => (
-          <Space>
-            <Button
-              orientation="text"
-              size="small"
-              icon={<EditOutlined />}
-              onClick={() => handleEditClick(record.idComponente)}
-              title="Editar"
-            >
-              Editar
-            </Button>
-
-            <Popconfirm
-              title="Eliminar"
-              description="¿Está seguro que desea eliminar este componente?"
-              onConfirm={() => handleDelete(record.idComponente)}
-              okText="Sí"
-              cancelText="No"
-              okButtonProps={{ danger: true }}
-            >
-              <Button
-                orientation="text"
-                size="small"
-                danger
-                icon={<DeleteOutlined />}
-                title="Eliminar"
-              >
-                Eliminar
-              </Button>
-            </Popconfirm>
-          </Space>
+          <Dropdown
+            menu={{
+              items: [
+                {
+                  key: 'edit',
+                  label: 'Editar',
+                  icon: <EditOutlined />,
+                  onClick: () => handleEditClick(record.idComponente),
+                },
+                { type: 'divider' },
+                {
+                  key: 'delete',
+                  label: (
+                    <Popconfirm
+                      title="Eliminar Componente"
+                      description="¿Está seguro que desea eliminar este componente?"
+                      onConfirm={() => handleDelete(record.idComponente)}
+                      okText="Sí"
+                      cancelText="No"
+                    >
+                      <div style={{ color: '#ff4d4f', width: '100%' }}>Eliminar</div>
+                    </Popconfirm>
+                  ),
+                  icon: <DeleteOutlined style={{ color: '#ff4d4f' }} />,
+                  danger: true,
+                },
+              ],
+            }}
+            trigger={['click']}
+            placement="bottomRight"
+          >
+            <Button type="text" icon={<MoreOutlined style={{ fontSize: '18px' }} />} />
+          </Dropdown>
         ),
       },
     ]
-  }, [])
+  }, [handleDelete, handleEditClick])
 
   return (
     <div

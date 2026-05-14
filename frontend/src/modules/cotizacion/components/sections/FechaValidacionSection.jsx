@@ -21,7 +21,7 @@ import dayjs from 'dayjs'
  * @param {'neutral'|'info'} variant - neutral = gris, info = azul claro
  */
 function CampoDisplay({ label, value, variant = 'neutral' }) {
-  const bgColor = variant === 'info' ? '#e6f7ff' : '#f0f0f0'
+  const bgColor = variant === 'info' ? '#f0f7ff' : '#fafafa'
 
   return (
     <div>
@@ -31,7 +31,8 @@ function CampoDisplay({ label, value, variant = 'neutral' }) {
           marginTop: 8,
           padding: '8px 12px',
           backgroundColor: bgColor,
-          borderRadius: 4,
+          border: '1px solid #f0f0f0',
+          borderRadius: 6,
         }}
       >
         <Typography.Text strong>{value}</Typography.Text>
@@ -72,6 +73,15 @@ function FechaValidacionSection({
 
   return (
     <Card
+      variant="borderless"
+      style={{
+        borderRadius: 8,
+        boxShadow: '0 1px 2px rgba(0,0,0,0.05)',
+      }}
+      styles={{
+        header: { padding: '16px 24px', borderBottom: '1px solid #f0f0f0' },
+        body: { padding: 24 },
+      }}
       title={
         <Space>
           <CalendarOutlined />
@@ -125,10 +135,10 @@ function FechaValidacionSection({
           <Col xs={24}>
             <div
               style={{
-                backgroundColor: '#f6ffed',
+                backgroundColor: '#fafafa',
                 padding: 12,
-                borderRadius: 4,
-                borderLeft: '4px solid #52c41a',
+                borderRadius: 6,
+                border: '1px solid #f0f0f0',
               }}
             >
               <Typography.Text type="secondary">Resumen</Typography.Text>
