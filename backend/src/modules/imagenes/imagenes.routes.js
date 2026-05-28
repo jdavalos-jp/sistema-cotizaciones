@@ -1,7 +1,7 @@
 const express = require('express')
 const multer = require('multer')
 const { prisma } = require('../../db/prisma')
-const { uploadProductoImage, uploadCotizacionImage, uploadComponenteImage, deleteProductoImage, deleteImage } = require('../../services/storage/imageService')
+const { uploadProductoImage, uploadCotizacionImage, uploadComponenteImage, deleteProductoImage, deleteImage, deleteImageByPublicUrl } = require('../../services/storage/imageService')
 const { asyncHandler } = require('../../utils/asyncHandler')
 
 const router = express.Router()
@@ -45,7 +45,7 @@ router.post('/productos/:idProducto/imagenes',
         },
       })
 
-      console.log('✅ [IMAGENES] Imagen guardada con ID:', imagen.idImagen, '- URL:', imagen.urlImagen);
+      console.log(' [IMAGENES] Imagen guardada con ID:', imagen.idImagen, '- URL:', imagen.urlImagen);
       res.json({ data: imagen })
     } catch (err) {
       console.error('❌ [IMAGENES] Error:', err.message);
@@ -228,7 +228,7 @@ router.delete('/componentes/imagenes/:idImagen',
     })
     if (!imagen) return res.status(404).json({ error: 'No encontrada' })
 
-    await deleteProductoImage(imagen)
+    await deleteImageByPublicUrl(imagen.urlImagen)
 
     await prisma.componenteImagen.delete({
       where: { idImagen: BigInt(req.params.idImagen) }

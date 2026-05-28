@@ -1,7 +1,6 @@
 const { prisma } = require('../../db/prisma');
 const { Prisma } = require('@prisma/client');
 const { HttpError } = require('../../utils/httpError');
-const { deleteImage } = require('../../services/storage/imageService');
 
 /* ---------- HELPERS ---------- */
 
@@ -234,15 +233,13 @@ async function updateProducto(idProducto, updateData) {
 
 async function deleteProducto(idProducto) {
   const prodId = parseId(idProducto, 'idProducto');
-  const producto = await prisma.producto.findUnique({ where: { idProducto: prodId }, include: { imagenes: true } });
+  const producto = await prisma.producto.findUnique({ where: { idProducto: prodId }, select: { idProducto: true } });
   if (!producto) throw new HttpError(404, 'Producto no encontrado');
 
-  // Eliminar imágenes en paralelo
-  await Promise.all(
-    (producto.imagenes || []).map(async (img) => img.rutaBucket && deleteImage(img.rutaBucket).catch(console.error))
-  );
-
-  await prisma.producto.delete({ where: { idProducto: prodId } });
+  await prisma.producto.update({
+    where: { idProducto: prodId },
+    data: { estado: 'inactivo' },
+  });
   return { message: 'Producto eliminado' };
 }
 

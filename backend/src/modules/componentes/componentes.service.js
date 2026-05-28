@@ -1,5 +1,6 @@
 const { prisma } = require('../../db/prisma');
 const { HttpError } = require('../../utils/httpError');
+const { deleteImageByPublicUrl } = require('../../services/storage/imageService');
 
 // ==================== SELECT ====================
 
@@ -62,14 +63,17 @@ function parseId(param, fieldName = 'id') {
 
 async function listComponentes({ take = 50, skip = 0, search } = {}) {
   const q = search?.trim();
-  const where = q
-    ? {
-        OR: [
-          { nombre: { contains: q, mode: 'insensitive' } },
-          { sku: { contains: q, mode: 'insensitive' } },
-        ],
-      }
-    : undefined;
+  const where = {
+    estado: 'activo',
+    ...(q
+      ? {
+          OR: [
+            { nombre: { contains: q, mode: 'insensitive' } },
+            { sku: { contains: q, mode: 'insensitive' } },
+          ],
+        }
+      : {}),
+  };
 
   const [componentes, total] = await Promise.all([
     prisma.componente.findMany({
@@ -189,9 +193,13 @@ async function deleteComponente(idComponente) {
 
   if (!existing) throw new HttpError(404, 'Componente no encontrado');
 
-  // Eliminar - Prisma manejará cascadas
-  await prisma.componente.delete({
+  await prisma.productoComponente.deleteMany({
     where: { idComponente: compId },
+  });
+
+  await prisma.componente.update({
+    where: { idComponente: compId },
+    data: { estado: 'inactivo' },
   });
 
   return { ok: true, message: 'Componente eliminado' };
@@ -381,6 +389,8 @@ async function deleteComponenteImage(idImagen) {
   });
 
   if (!existing) throw new HttpError(404, 'Imagen no encontrada');
+
+  await deleteImageByPublicUrl(existing.urlImagen);
 
   await prisma.componenteImagen.delete({
     where: { idImagen: imgId },

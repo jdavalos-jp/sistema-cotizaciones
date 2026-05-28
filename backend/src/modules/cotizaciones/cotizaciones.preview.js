@@ -48,12 +48,32 @@ async function buildCotizacionPreview({ idCliente, productos, componentes, moned
   const productosById = new Map(productosDb.map((p) => [p.idProducto, p]));
   const componentesById = new Map(componentesDb.map((c) => [c.idComponente, c]));
 
+  // Collect warnings for missing items instead of throwing errors
+  const warnings = [];
+
+  const missingProductIds = productIds.filter((id) => !productosById.has(id));
+  if (missingProductIds.length > 0) {
+    const missing = missingProductIds.map((id) => id.toString()).join(', ');
+    warnings.push(`Productos eliminados (omitidos): ${missing}`);
+  }
+
+  const missingComponentIds = componentIds.filter((id) => !componentesById.has(id));
+  if (missingComponentIds.length > 0) {
+    const missing = missingComponentIds.map((id) => id.toString()).join(', ');
+    warnings.push(`Componentes eliminados (omitidos): ${missing}`);
+  }
+
   const lineas = [];
   let subtotal = 0;
 
+  const removedIds = [
+    ...missingProductIds.map((id) => ({ tipo: 'producto', id: id.toString() })),
+    ...missingComponentIds.map((id) => ({ tipo: 'componente', id: id.toString() })),
+  ];
+
   for (const it of productItems) {
     const p = productosById.get(it.idProducto);
-    if (!p) throw new HttpError(400, 'Producto no encontrado');
+    if (!p) continue; 
 
     const precioUnitario = it.precioUnitario ?? p.precioBase;
     const totalLinea = precioUnitario * it.cantidad;
@@ -73,7 +93,7 @@ async function buildCotizacionPreview({ idCliente, productos, componentes, moned
 
   for (const it of componentItems) {
     const c = componentesById.get(it.idComponente);
-    if (!c) throw new HttpError(400, 'Componente no encontrado');
+    if (!c) continue; 
 
     const precioUnitario = it.precioUnitario ?? c.precioBase;
     const totalLinea = precioUnitario * it.cantidad;
@@ -105,6 +125,8 @@ async function buildCotizacionPreview({ idCliente, productos, componentes, moned
       impuestos,
       total,
     },
+    warnings,
+    removedIds,
   };
 }
 

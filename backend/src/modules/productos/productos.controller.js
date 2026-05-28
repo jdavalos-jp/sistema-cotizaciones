@@ -72,6 +72,7 @@ async function getById(req, res) {
     const data = await getProductoById(idProducto);
     res.json({ ok: true, data });
   } catch (err) {
+    if (err.statusCode) throw err;
     throw new HttpError(400, 'ID de producto inválido');
   }
 }
@@ -140,6 +141,7 @@ async function deleteOne(req, res) {
     await deleteProducto(idProducto);
     res.json({ ok: true, message: 'Producto eliminado' });
   } catch (err) {
+    if (err.statusCode) throw err;
     throw new HttpError(400, 'ID de producto inválido');
   }
 }

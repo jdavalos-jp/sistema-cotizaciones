@@ -18,6 +18,50 @@ function safeText(value) {
   return String(value);
 }
 
+function decodeHtmlEntities(value) {
+  return safeText(value)
+    .replace(/&nbsp;/gi, ' ')
+    .replace(/&amp;/gi, '&')
+    .replace(/&lt;/gi, '<')
+    .replace(/&gt;/gi, '>')
+    .replace(/&quot;/gi, '"')
+    .replace(/&#39;/gi, "'")
+    .replace(/&#(\d+);/g, (_, code) => {
+      const n = Number(code);
+      return Number.isFinite(n) ? String.fromCodePoint(n) : _;
+    })
+    .replace(/&#x([0-9a-f]+);/gi, (_, code) => {
+      const n = Number.parseInt(code, 16);
+      return Number.isFinite(n) ? String.fromCodePoint(n) : _;
+    });
+}
+
+function richTextToPdfText(value) {
+  const raw = safeText(value).trim();
+  if (!raw) return '';
+
+  const hasHtml = /<\/?[a-z][\s\S]*>/i.test(raw);
+  if (!hasHtml) return decodeHtmlEntities(raw);
+
+  return decodeHtmlEntities(raw)
+    .replace(/\r?\n/g, ' ')
+    .replace(/<br\s*\/?>/gi, '\n')
+    .replace(/<\/p\s*>/gi, '\n')
+    .replace(/<p\b[^>]*>/gi, '')
+    .replace(/<\/div\s*>/gi, '\n')
+    .replace(/<div\b[^>]*>/gi, '')
+    .replace(/<\/h[1-6]\s*>/gi, '\n')
+    .replace(/<h[1-6]\b[^>]*>/gi, '')
+    .replace(/<li\b[^>]*>/gi, '\n- ')
+    .replace(/<\/li\s*>/gi, '')
+    .replace(/<\/?(ul|ol)\b[^>]*>/gi, '\n')
+    .replace(/<[^>]+>/g, '')
+    .split('\n')
+    .map((line) => line.replace(/[ \t]+/g, ' ').trim())
+    .filter(Boolean)
+    .join('\n');
+}
+
 function joinNonEmpty(lines) {
   return (lines ?? [])
     .map((x) => (x === null || x === undefined ? '' : String(x)).trim())
@@ -298,7 +342,7 @@ function drawRow(doc, row, cols, { moneda, zebra, index } = {}) {
   doc.font('Helvetica').fontSize(9);
   const itemCol = cols.find((c) => c.key === 'item');
   const itemText = safeText(row.item);
-  const descText = safeText(row.descripcion);
+  const descText = richTextToPdfText(row.descripcion);
   const itemHeight = doc.heightOfString(itemText, { width: itemCol.w, align: 'left' });
   doc.font('Helvetica').fontSize(8);
   const descHeight = descText
@@ -455,7 +499,7 @@ function buildCotizacionPdf(cotizacion) {
 
       // Asegurar que validez es un Date o string en formato ISO
       if (!validezTable) {
-        validezTable = addDays(fechaEmisionTable, 7);
+        validezTable = addDaysToDate(fechaEmisionTable, 7);
       }
 
       const validezStr = toDateOnlyString(validezTable);
@@ -472,7 +516,7 @@ function buildCotizacionPdf(cotizacion) {
           .map((p) => ({
             sku: p?.producto?.sku ?? null,
             item: p.nombreItem,
-            descripcion: joinNonEmpty([p.descripcionItem, formatIncludedComponents(p?.producto)]),
+            descripcion: joinNonEmpty([richTextToPdfText(p.descripcionItem), formatIncludedComponents(p?.producto)]),
             cantidad: p.cantidad,
             unitario: p.precioUnitario,
             total: p.subtotal,
@@ -484,7 +528,7 @@ function buildCotizacionPdf(cotizacion) {
           .map((c) => ({
             sku: c?.componente?.sku ?? null,
             item: c.nombreItem,
-            descripcion: c.descripcionItem,
+            descripcion: richTextToPdfText(c.descripcionItem),
             cantidad: c.cantidad,
             unitario: c.precioUnitario,
             total: c.subtotal,

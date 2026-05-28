@@ -154,6 +154,30 @@ async function deleteImage(rutaBucket) {
   if (error) throw new Error(`Error: ${error.message}`)
 }
 
+function getBucketPathFromPublicUrl(urlImagen) {
+  if (!urlImagen) return null
+
+  try {
+    const { pathname } = new URL(urlImagen)
+    const marker = `/${BUCKET_NAME}/`
+    const markerIndex = pathname.indexOf(marker)
+
+    if (markerIndex === -1) return null
+
+    return decodeURIComponent(pathname.slice(markerIndex + marker.length))
+  } catch {
+    return null
+  }
+}
+
+async function deleteImageByPublicUrl(urlImagen) {
+  const rutaBucket = getBucketPathFromPublicUrl(urlImagen)
+
+  if (!rutaBucket) return
+
+  await deleteImage(rutaBucket)
+}
+
 async function uploadComponenteImage(file, idComponente) {
   if (!file || !file.buffer) throw new Error('No file')
   if (!VALIDACIONES.TIPOS.includes(file.mimetype)) throw new Error('Tipo inválido')
@@ -193,13 +217,18 @@ async function uploadComponenteImage(file, idComponente) {
 }
 
 async function deleteProductoImage(imagenData) {
-  await deleteImage(imagenData.rutaBucket)
-  const rutaThumb = imagenData.urlThumb.split('/').slice(-1)[0]
-  const rutaThumbnailFull = `${imagenData.rutaBucket.split('/').slice(0, -1).join('/')}/${rutaThumb}`
-  try {
-    await deleteImage(rutaThumbnailFull)
-  } catch (err) {
-    console.warn('Aviso thumb:', err.message)
+  if (imagenData.rutaBucket) {
+    await deleteImage(imagenData.rutaBucket)
+  }
+  
+  if (imagenData.urlThumb) {
+    const rutaThumb = imagenData.urlThumb.split('/').slice(-1)[0]
+    const rutaThumbnailFull = `${imagenData.rutaBucket.split('/').slice(0, -1).join('/')}/${rutaThumb}`
+    try {
+      await deleteImage(rutaThumbnailFull)
+    } catch (err) {
+      console.warn('Aviso thumb:', err.message)
+    }
   }
 }
 
@@ -208,5 +237,6 @@ module.exports = {
   uploadCotizacionImage,
   uploadComponenteImage,
   deleteImage,
+  deleteImageByPublicUrl,
   deleteProductoImage,
 }
