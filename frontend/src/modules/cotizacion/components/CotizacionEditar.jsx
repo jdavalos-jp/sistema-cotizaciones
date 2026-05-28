@@ -197,10 +197,10 @@ export default function CotizacionEditar({ idCotizacion, onSuccess, onCancel }) 
   }
 
   return (
-    <div>
+    <div className="cotizacion-edit">
       <Space direction="vertical" size={24} style={{ width: '100%' }}>
         {/* Encabezado */}
-        <div>
+        <div className="cotizacion-edit__header">
           <Title level={3} style={{ marginTop: 0, marginBottom: 0 }}>
             Editar Cotización #{cotizacion.numeroCotizacion}
           </Title>

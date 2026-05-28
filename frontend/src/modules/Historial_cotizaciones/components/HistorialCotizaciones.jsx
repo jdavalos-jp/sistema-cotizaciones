@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useMemo } from 'react'
+import React, { useState, useEffect, useMemo, useCallback } from 'react'
 import { Modal, Spin, message } from 'antd'
 import { useCotizacionesList } from '../hooks/useCotizacionesManager'
 
@@ -6,6 +6,7 @@ import CotizacionesHeader from './CotizacionesHeader'
 import CotizacionesFiltros from './CotizacionesFiltros'
 import CotizacionesTable from './CotizacionesTable'
 import VerDetalleCotizacion from './VerDetalleCotizacion'
+import './historialCotizaciones.css'
 
 function HistorialCotizaciones() {
   const {
@@ -23,11 +24,7 @@ function HistorialCotizaciones() {
   const [modalVisible, setModalVisible] = useState(false)
   const [cotizacionSeleccionada, setCotizacionSeleccionada] = useState(null)
 
-  useEffect(() => {
-    cargarCotizaciones()
-  }, [filtro, paginacion])
-
-  const cargarCotizaciones = async () => {
+  const cargarCotizaciones = useCallback(async () => {
     try {
       const estado = filtro === 'todos' ? null : filtro
       const skip = (paginacion.current - 1) * paginacion.pageSize
@@ -40,9 +37,12 @@ function HistorialCotizaciones() {
     } catch {
       message.error('Error al cargar cotizaciones')
     }
-  }
+  }, [filtro, loadCotizaciones, paginacion])
 
-  // Filtrar cotizaciones por búsqueda en memoria
+  useEffect(() => {
+    cargarCotizaciones()
+  }, [cargarCotizaciones])
+
   const cotizacionesFiltradas = useMemo(() => {
     if (!busqueda.trim()) return cotizaciones
 
@@ -70,13 +70,13 @@ function HistorialCotizaciones() {
     setModalVisible(true)
   }
 
-  if (error) return <div style={{ color: 'red' }}>{error}</div>
+  if (error) return <div className="cotizaciones-error">{error}</div>
 
   return (
-    <div style={{ backgroundColor: '#f5f5f5', padding: '24px', minHeight: '100vh', margin: '-24px' }}>
+    <div className="cotizaciones-page">
       <CotizacionesHeader />
 
-      <div style={{ background: '#fff', padding: 24, borderRadius: 8, boxShadow: '0 1px 2px rgba(0,0,0,0.05)' }}>
+      <section className="cotizaciones-panel">
         <CotizacionesFiltros
           cotizaciones={cotizaciones}
           filtro={filtro}
@@ -95,14 +95,16 @@ function HistorialCotizaciones() {
             onCambiarEstado={handleCambiarEstado}
           />
         </Spin>
-      </div>
+      </section>
 
       <Modal
         open={modalVisible}
         footer={null}
-        width="90%"
+        width={1120}
         onCancel={() => setModalVisible(false)}
-        title="Detalles de Cotización"
+        title="Detalle de cotizacion"
+        className="cotizaciones-modal"
+        centered
       >
         {cotizacionSeleccionada && (
           <VerDetalleCotizacion

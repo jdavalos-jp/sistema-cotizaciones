@@ -1,5 +1,5 @@
 import React, { useMemo } from 'react'
-import { Select, Typography, Input, Card, Row, Col } from 'antd'
+import { Select, Typography, Input, Row, Col } from 'antd'
 import {
   SearchOutlined,
   FileTextOutlined,
@@ -7,67 +7,17 @@ import {
   CheckCircleOutlined,
 } from '@ant-design/icons'
 
-function StatItem({ label, count, color, icon }) {
+function StatItem({ label, count, tone, icon }) {
   return (
-    <Card
-      variant="borderless"
-      className="cotizacion-stat-card"
-      style={{
-        borderLeft: `4px solid ${color}`,
-        boxShadow: '0 2px 8px rgba(0,0,0,0.08)',
-        cursor: 'pointer',
-        transition: 'all 0.3s ease',
-        flex: 1,
-        minWidth: 180,
-      }}
-      onMouseEnter={(event) => {
-        event.currentTarget.style.boxShadow = `0 4px 12px ${color}33`
-        event.currentTarget.style.transform = 'translateY(-2px)'
-      }}
-      onMouseLeave={(event) => {
-        event.currentTarget.style.boxShadow = '0 2px 8px rgba(0,0,0,0.08)'
-        event.currentTarget.style.transform = 'translateY(0)'
-      }}
-      styles={{
-        body: {
-          padding: 16,
-        },
-      }}
-    >
-      <Row gutter={12} align="middle" wrap={false}>
-        <Col>
-          <div
-            style={{
-              fontSize: 24,
-              color,
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-            }}
-          >
-            {icon}
-          </div>
-        </Col>
-
-        <Col flex="auto">
-          <Typography.Text type="secondary" style={{ fontSize: 12 }}>
-            {label}
-          </Typography.Text>
-
-          <div>
-            <Typography.Text
-              strong
-              style={{
-                fontSize: 20,
-                color,
-              }}
-            >
-              {count}
-            </Typography.Text>
-          </div>
-        </Col>
-      </Row>
-    </Card>
+    <div className={`cotizacion-stat cotizacion-stat--${tone}`}>
+      <span className="cotizacion-stat__icon">{icon}</span>
+      <div>
+        <Typography.Text className="cotizacion-stat__label">
+          {label}
+        </Typography.Text>
+        <div className="cotizacion-stat__count">{count}</div>
+      </div>
+    </div>
   )
 }
 
@@ -97,20 +47,13 @@ function CotizacionesFiltros({
   }, [])
 
   return (
-    <div
-      style={{
-        marginBottom: 24,
-        display: 'flex',
-        flexDirection: 'column',
-        gap: 16,
-      }}
-    >
-      <Row gutter={[12, 12]}>
+    <div className="cotizaciones-toolbar">
+      <Row gutter={[12, 12]} className="cotizaciones-stats">
         <Col xs={24} sm={12} md={8} lg={6}>
           <StatItem
             label="Borradores"
             count={estadisticas.borradores}
-            color="#fa8c16"
+            tone="draft"
             icon={<FileTextOutlined />}
           />
         </Col>
@@ -119,7 +62,7 @@ function CotizacionesFiltros({
           <StatItem
             label="Enviadas"
             count={estadisticas.enviadas}
-            color="#1890ff"
+            tone="sent"
             icon={<CheckOutlined />}
           />
         </Col>
@@ -128,33 +71,26 @@ function CotizacionesFiltros({
           <StatItem
             label="Aceptadas"
             count={estadisticas.aceptadas}
-            color="#52c41a"
+            tone="accepted"
             icon={<CheckCircleOutlined />}
           />
         </Col>
       </Row>
 
-      <div
-        style={{
-          display: 'flex',
-          gap: 16,
-          width: '100%',
-          alignItems: 'center',
-        }}
-      >
+      <div className="cotizaciones-filters">
         <Input
-          placeholder="Buscar por número o nombre de cliente..."
+          placeholder="Buscar por numero o cliente"
           value={busqueda}
           onChange={(event) => setBusqueda(event.target.value)}
-          style={{ flex: 1 }}
-          suffix={<SearchOutlined style={{ color: 'rgba(0,0,0,.45)' }} />}
+          className="cotizaciones-search"
+          prefix={<SearchOutlined />}
           allowClear
         />
 
         <Select
           value={filtro}
           onChange={setFiltro}
-          style={{ width: 200 }}
+          className="cotizaciones-select"
           options={opcionesFiltro}
         />
       </div>

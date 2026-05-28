@@ -18,10 +18,15 @@ import {
 } from '@ant-design/icons'
 
 const estadoColors = {
-  borrador: 'orange',
-  enviada: 'blue',
-  aceptada: 'green',
-  rechazada: 'red',
+  borrador: 'default',
+  enviada: 'processing',
+  aceptada: 'success',
+  rechazada: 'error',
+}
+
+function formatCurrency(value, moneda) {
+  const number = Number(value || 0)
+  return `${number.toLocaleString('es-BO')} ${moneda || ''}`.trim()
 }
 
 function CotizacionesTable({
@@ -34,61 +39,82 @@ function CotizacionesTable({
 }) {
   const columns = [
     {
-      title: 'Nº Cotización',
+      title: 'Cotizacion',
       dataIndex: 'numeroCotizacion',
-      render: (t) => <strong>{t}</strong>,
+      render: (text) => <span className="cotizaciones-number">{text}</span>,
     },
     {
       title: 'Cliente',
       dataIndex: ['cliente', 'nombreCompleto'],
+      render: (text) => text || '-',
     },
     {
       title: 'Total',
       dataIndex: 'total',
-      render: (t, r) => `${t} ${r.moneda}`,
+      align: 'right',
+      render: (total, record) => (
+        <span className="cotizaciones-total">
+          {formatCurrency(total, record.moneda)}
+        </span>
+      ),
     },
     {
       title: 'Estado',
       dataIndex: 'estado',
       render: (estado) => (
-        <Tag color={estadoColors[estado]}>{estado}</Tag>
+        <Tag color={estadoColors[estado]} className="cotizaciones-status">
+          {estado}
+        </Tag>
       ),
     },
     {
-      title: 'Acciones',
-      render: (_, r) => (
-        <Space wrap>
-          <Tooltip title="Ver">
-            <Button icon={<EyeOutlined />} onClick={() => onVer(r)} />
+      title: '',
+      align: 'right',
+      render: (_, record) => (
+        <Space wrap className="cotizaciones-actions">
+          <Tooltip title="Ver detalle">
+            <Button type="text" icon={<EyeOutlined />} onClick={() => onVer(record)} />
           </Tooltip>
 
-          {r.estado === 'borrador' && (
+          {record.estado === 'borrador' && (
             <>
-              <Button
-                icon={<SendOutlined />}
-                onClick={() => onCambiarEstado(r.idCotizacion, 'enviada')}
-              />
+              <Tooltip title="Marcar como enviada">
+                <Button
+                  type="text"
+                  icon={<SendOutlined />}
+                  onClick={() => onCambiarEstado(record.idCotizacion, 'enviada')}
+                />
+              </Tooltip>
 
               <Popconfirm
-                title="¿Eliminar?"
-                onConfirm={() => onEliminar(r.idCotizacion)}
+                title="Eliminar cotizacion"
+                description="Esta accion no se puede deshacer."
+                okText="Eliminar"
+                cancelText="Cancelar"
+                onConfirm={() => onEliminar(record.idCotizacion)}
               >
-                <Button danger icon={<DeleteOutlined />} />
+                <Button type="text" danger icon={<DeleteOutlined />} />
               </Popconfirm>
             </>
           )}
 
-          {r.estado === 'enviada' && (
+          {record.estado === 'enviada' && (
             <>
-              <Button
-                icon={<CheckOutlined />}
-                onClick={() => onCambiarEstado(r.idCotizacion, 'aceptada')}
-              />
-              <Button
-                danger
-                icon={<CloseOutlined />}
-                onClick={() => onCambiarEstado(r.idCotizacion, 'rechazada')}
-              />
+              <Tooltip title="Aceptar">
+                <Button
+                  type="text"
+                  icon={<CheckOutlined />}
+                  onClick={() => onCambiarEstado(record.idCotizacion, 'aceptada')}
+                />
+              </Tooltip>
+              <Tooltip title="Rechazar">
+                <Button
+                  type="text"
+                  danger
+                  icon={<CloseOutlined />}
+                  onClick={() => onCambiarEstado(record.idCotizacion, 'rechazada')}
+                />
+              </Tooltip>
             </>
           )}
         </Space>
@@ -97,27 +123,28 @@ function CotizacionesTable({
   ]
 
   const handleShowSizeChange = (current, pageSize) => {
-    console.log(current, pageSize)
     setPaginacion({ current, pageSize })
   }
 
   return (
     <Table
+      className="cotizaciones-table"
       columns={columns}
       dataSource={cotizaciones}
       rowKey="idCotizacion"
+      size="middle"
+      scroll={{ x: true }}
       pagination={{
         ...paginacion,
         showSizeChanger: true,
-        showQuickJumper: true,
         pageSizeOptions: ['5', '10', '20', '50'],
-        showTotal: (total) => `Total: ${total} cotizaciones`,
+        showTotal: (total) => `${total} cotizaciones`,
         onShowSizeChange: handleShowSizeChange,
-        onChange: (page) => {
-          setPaginacion({ ...paginacion, current: page })
+        onChange: (page, pageSize) => {
+          setPaginacion({ current: page, pageSize })
         },
       }}
-      locale={{ emptyText: <Empty /> }}
+      locale={{ emptyText: <Empty description="Sin cotizaciones" /> }}
     />
   )
 }

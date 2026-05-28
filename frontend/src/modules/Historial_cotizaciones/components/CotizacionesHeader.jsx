@@ -3,14 +3,20 @@ import { Typography } from 'antd'
 
 function CotizacionesHeader() {
   return (
-    <div style={{ marginBottom: 24 }}>
-      <Typography.Title level={3} style={{ margin: 0 }}>
-        Historial de Cotizaciones
-      </Typography.Title>
-      <Typography.Text type="secondary" style={{ fontSize: '14px' }}>
-        Inicio / Historial de Cotizaciones
+    <header className="cotizaciones-header">
+      <div>
+        <Typography.Text className="cotizaciones-eyebrow">
+          Cotizaciones
+        </Typography.Text>
+        <Typography.Title level={2} className="cotizaciones-title">
+          Historial
+        </Typography.Title>
+      </div>
+
+      <Typography.Text className="cotizaciones-subtitle">
+        Consulta, edita y da seguimiento a tus cotizaciones.
       </Typography.Text>
-    </div>
+    </header>
   )
 }
 
