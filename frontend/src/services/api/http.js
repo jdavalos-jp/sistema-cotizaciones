@@ -108,10 +108,13 @@ async function handleErrorResponse(res) {
  * Parsea la respuesta según el tipo esperado
  */
 async function parseResponse(res, responseType) {
+  if (res.status === 204 || res.status === 205) return null
+
   if (responseType === 'blob') return res.blob()
 
   const contentType = res.headers.get('content-type') || ''
   if (contentType.includes('application/pdf')) return res.arrayBuffer()
+  if (!contentType) return null
 
   return res.json()
 }

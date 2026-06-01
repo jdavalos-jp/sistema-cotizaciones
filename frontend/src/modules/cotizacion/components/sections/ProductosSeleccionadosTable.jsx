@@ -146,7 +146,7 @@ function ProductosSeleccionadosTable({
         <>
           <Table
             columns={columns}
-            rowKey={(record) => `${record.tipo}-${record.id}-${record.nombre}`} // por si hay duplicados
+            rowKey={(record) => `${record.tipo}-${record.id}`}
             dataSource={lineas}
             pagination={false}
             size="small"

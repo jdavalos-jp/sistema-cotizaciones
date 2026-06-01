@@ -1,5 +1,5 @@
-import { Card, Button, Table, Space, Input, Popconfirm, message, Typography, Spin, Image, Dropdown } from 'antd'
-import { PlusOutlined, SearchOutlined, EditOutlined, DeleteOutlined, DownOutlined, MoreOutlined } from '@ant-design/icons'
+import { Card, Button, Table, Input, Popconfirm, message, Typography, Spin, Image, Dropdown } from 'antd'
+import { PlusOutlined, SearchOutlined, EditOutlined, DeleteOutlined, MoreOutlined } from '@ant-design/icons'
 import { useEffect, useRef, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useProductos } from '../../hooks/useProductos'
@@ -7,7 +7,7 @@ import { useProductos } from '../../hooks/useProductos'
 export default function ProductosListPage() {
   const navigate = useNavigate()
   const debounceTimeoutRef = useRef(null)
-  const [searchTerm, setSearchTerm] = useState('') // ✅ Arreglado searchTerm
+  const [searchTerm, setSearchTerm] = useState('')
 
   const {
     productos,
@@ -18,31 +18,29 @@ export default function ProductosListPage() {
     deleteProducto,
   } = useProductos()
 
-  // Cargar productos al montar
   useEffect(() => {
-    // El hook se encarga de cargar automáticamente
+    return () => {
+      if (debounceTimeoutRef.current) clearTimeout(debounceTimeoutRef.current)
+    }
   }, [])
 
-  // Buscar productos con debounce
   const handleSearch = (value) => {
-    setSearchTerm(value) // actualizar input
+    setSearchTerm(value)
     if (debounceTimeoutRef.current) clearTimeout(debounceTimeoutRef.current)
+
     debounceTimeoutRef.current = setTimeout(() => {
       handleFilterChange({ search: value })
     }, 300)
   }
 
-  // Cambiar página
   const handlePaginationChange = (page) => {
     handlePagination(page, pagination.take)
   }
 
-  // Cambiar tamaño de página
   const handleShowSizeChange = (current, pageSize) => {
     handlePagination(current, pageSize)
   }
 
-  // Eliminar producto
   const handleDelete = async (idProducto) => {
     try {
       await deleteProducto(idProducto)
@@ -57,7 +55,6 @@ export default function ProductosListPage() {
       title: 'Nombre',
       dataIndex: 'nombre',
       key: 'nombre',
-    //  width: 300,
       render: (nombre, record) => (
         <div style={{ display: 'flex', gap: 12, alignItems: 'flex-start' }}>
           <div
@@ -73,7 +70,7 @@ export default function ProductosListPage() {
               overflow: 'hidden',
             }}
           >
-            {record.imagenes && record.imagenes.length > 0 ? (
+            {Array.isArray(record.imagenes) && record.imagenes.length > 0 ? (
               <Image
                 src={record.imagenes[0]?.urlImagen}
                 alt={nombre}
@@ -81,14 +78,14 @@ export default function ProductosListPage() {
                 preview={{ mask: 'Ver' }}
               />
             ) : (
-              <span style={{ fontSize: '11px', color: '#999' }}>Sin imagen</span>
+              <span style={{ fontSize: 11, color: '#999' }}>Sin imagen</span>
             )}
           </div>
 
-          <div style={{  width: 200, overflow: 'hidden' }}>
-            <div style={{ fontWeight: '500', marginBottom: 4 }}>{nombre}</div>
+          <div style={{ width: 200, overflow: 'hidden' }}>
+            <div style={{ fontWeight: 500, marginBottom: 4 }}>{nombre}</div>
             {record.categoria && (
-              <div style={{ fontSize: '12px', color: '#666', marginBottom: 2 }}>
+              <div style={{ fontSize: 12, color: '#666', marginBottom: 2 }}>
                 {record.categoria.nombre}
               </div>
             )}
@@ -96,28 +93,28 @@ export default function ProductosListPage() {
         </div>
       ),
     },
-    { title: 'SKU', dataIndex: 'sku', key: 'sku', width: 120},
-    { title: 'Subcategoría', dataIndex: ['categoria', 'nombre'], key: 'categoria' },
+    { title: 'SKU', dataIndex: 'sku', key: 'sku', width: 120, render: (value) => value || '-' },
+    { title: 'Subcategoria', dataIndex: ['subcategoria', 'nombre'], key: 'subcategoria', render: (value) => value || '-' },
     {
       title: 'Precio',
       dataIndex: 'precioBase',
       key: 'precio',
-      render: (val) => `Bs ${typeof val === 'number' ? val.toFixed(2) : val}`,
+      render: (value) => `Bs ${Number(value || 0).toFixed(2)}`,
     },
     {
       title: 'Stock',
       dataIndex: 'cantidad',
       key: 'cantidad',
-      render: (val) => (
-        <Typography.Text style={{ color: val > 10 ? '#52c41a' : val > 0 ? '#faad14' : '#f5222d' }}>
-          {val || 0}
+      render: (value) => (
+        <Typography.Text style={{ color: value > 10 ? '#52c41a' : value > 0 ? '#faad14' : '#f5222d' }}>
+          {value || 0}
         </Typography.Text>
       ),
     },
     {
       title: 'Acciones',
       key: 'acciones',
-      width: 100, // Da un ancho fijo sugerido
+      width: 100,
       render: (_, record) => (
         <Dropdown
           menu={{
@@ -128,18 +125,17 @@ export default function ProductosListPage() {
                 icon: <EditOutlined />,
                 onClick: () => navigate(`/productos/editar/${record.idProducto}`),
               },
-              {
-                type: 'divider',
-              },
+              { type: 'divider' },
               {
                 key: 'delete',
                 label: (
                   <Popconfirm
                     title="Eliminar"
-                    description="¿Está seguro que desea eliminar este producto?"
+                    description="Esta accion no se puede deshacer."
                     onConfirm={() => handleDelete(record.idProducto)}
-                    okText="Sí"
-                    cancelText="No"
+                    okText="Eliminar"
+                    cancelText="Cancelar"
+                    okButtonProps={{ danger: true }}
                   >
                     <div style={{ color: '#ff4d4f', width: '100%' }}>Eliminar</div>
                   </Popconfirm>
@@ -152,39 +148,39 @@ export default function ProductosListPage() {
           trigger={['click']}
           placement="bottomRight"
         >
-          <Button 
-            type="text" 
-            icon={<MoreOutlined style={{ fontSize: '18px' }} />} 
-          />
+          <Button type="text" icon={<MoreOutlined style={{ fontSize: 18 }} />} />
         </Dropdown>
       ),
     },
   ]
 
   return (
-    <div style={{ backgroundColor: '#f5f5f5', padding: '24px', minHeight: '100vh', margin: '-24px' }}>
-      {/* ALINEACIÓN TIPO BREADCRUMB */}
+    <div style={{ backgroundColor: '#f5f5f5', padding: 24, minHeight: '100vh', margin: '-24px' }}>
       <div style={{ marginBottom: 24 }}>
         <Typography.Title level={3} style={{ margin: 0 }}>
           Productos
         </Typography.Title>
-        <Typography.Text type="secondary" style={{ fontSize: '14px' }}>
+        <Typography.Text type="secondary" style={{ fontSize: 14 }}>
           Inicio / Productos
         </Typography.Text>
       </div>
 
-      <Card variant={{ padding: '24px' }} styles={false} style={{ borderRadius: '8px', boxShadow: '0 1px 2px rgba(0,0,0,0.05)' }}>
+      <Card
+        variant="borderless"
+        styles={{ body: { padding: 24 } }}
+        style={{ borderRadius: 8, boxShadow: '0 1px 2px rgba(0,0,0,0.05)' }}
+      >
         <Spin spinning={loading}>
-          {/* TOP BAR: BUSCADOR Y BOTÓN */}
-          <div style={{ display: 'flex', gap: '16px', marginBottom: '24px' }}>
+          <div style={{ display: 'flex', gap: 16, marginBottom: 24 }}>
             <Input
+              allowClear
               placeholder="Buscar por nombre o SKU..."
               value={searchTerm}
-              onChange={(e) => handleSearch(e.target.value)}
+              onChange={(event) => handleSearch(event.target.value)}
               style={{ flex: 1 }}
               suffix={<SearchOutlined style={{ color: 'rgba(0,0,0,.45)' }} />}
             />
-            <Button type="primary" onClick={() => navigate('/productos/crear')}>
+            <Button type="primary" icon={<PlusOutlined />} onClick={() => navigate('/productos/crear')}>
               Agregar Producto
             </Button>
           </div>
@@ -192,7 +188,7 @@ export default function ProductosListPage() {
           <Table
             columns={columns}
             dataSource={productos}
-            rowKey={(record) => `${record.idProducto}-${record.sku || record.nombre}`} // ✅ evitar keys duplicadas
+            rowKey={(record) => String(record.idProducto)}
             pagination={{
               pageSize: pagination.pageSize,
               current: pagination.current,
@@ -205,6 +201,7 @@ export default function ProductosListPage() {
               showTotal: (total) => `Total: ${total} productos`,
             }}
             loading={loading}
+            scroll={{ x: true }}
           />
         </Spin>
       </Card>

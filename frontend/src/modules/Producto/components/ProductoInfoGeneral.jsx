@@ -1,9 +1,6 @@
-import React from 'react'
-import { Card, Form, Input, Typography, theme } from 'antd'
+import { Card, Form, Input, theme } from 'antd'
 import { InfoCircleOutlined } from '@ant-design/icons'
 import RichTextEditor from '../../../shared/components/RichTextEditor'
-
-const { Text } = Typography
 
 export default function ProductoInfoGeneral() {
   const { token } = theme.useToken()
@@ -13,7 +10,7 @@ export default function ProductoInfoGeneral() {
       title={
         <span>
           <InfoCircleOutlined style={{ color: token.colorPrimary, marginRight: 8, fontSize: 18 }} />
-          Información General
+          Informacion General
         </span>
       }
       size="small"
@@ -29,20 +26,20 @@ export default function ProductoInfoGeneral() {
         name="nombre"
         rules={[
           { required: true, message: 'Campo requerido' },
-          { min: 2, message: 'Mínimo 2 caracteres' },
-          { max: 255, message: 'Máximo 255 caracteres' },
+          { min: 2, message: 'Minimo 2 caracteres' },
+          { max: 200, message: 'Maximo 200 caracteres' },
         ]}
       >
-        <Input placeholder="Ej. Reloj Inteligente Serie 5" maxLength={255} allowClear />
+        <Input placeholder="Ej. Reloj Inteligente Serie 5" maxLength={200} allowClear />
       </Form.Item>
 
       <Form.Item
-        label="Descripción"
+        label="Descripcion"
         name="descripcion"
-        rules={[{ max: 1000, message: 'Máximo 1000 caracteres' }]}
+        rules={[{ max: 1000, message: 'Maximo 1000 caracteres' }]}
       >
         <RichTextEditor
-          placeholder="Describe las características principales, beneficios y materiales..."
+          placeholder="Describe las caracteristicas principales, beneficios y materiales..."
           maxLength={1000}
         />
       </Form.Item>

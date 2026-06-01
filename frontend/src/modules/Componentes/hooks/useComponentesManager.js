@@ -27,50 +27,58 @@ export function useComponentesManager(idComponenteEdit = null) {
    * Cargar lista de componentes
    */
   const fetchComponentes = useCallback(
-    async (newFilters = null, newPagination = null) => {
+    async (newFilters = null, newPagination = null, options = {}) => {
       try {
         setLoading(true)
         setError(null)
 
         const currentFilters = newFilters ? { ...filters, ...newFilters } : filters
-        const currentPagination = newPagination ? { ...pagination, ...newPagination } : pagination
+        const currentPagination = newPagination
+          ? { skip: pagination.skip, take: pagination.take, ...newPagination }
+          : { skip: pagination.skip, take: pagination.take }
 
         const response = await componentesApi.getComponentes({
           skip: currentPagination.skip,
           take: currentPagination.take,
           search: currentFilters.search,
+          signal: options.signal,
         })
 
         const rows = Array.isArray(response) ? response : response?.data || []
-        setComponentes(rows)
+        const total = Number.isFinite(response?.meta?.total)
+          ? response.meta.total
+          : Number.isFinite(response?.total)
+            ? response.total
+            : rows.length
 
-        if (response?.total !== undefined) {
-          setPagination((prev) => ({ ...prev, total: response.total }))
-        }
+        setComponentes(rows)
+        setPagination((prev) => ({ ...prev, total }))
       } catch (err) {
+        if (err.name === 'AbortError') return
         setError(err.message || 'Error al cargar componentes')
         setComponentes([])
       } finally {
-        setLoading(false)
+        if (!options.signal?.aborted) setLoading(false)
       }
     },
-    [filters, pagination]
+    [filters, pagination.skip, pagination.take]
   )
 
   /**
    * Cargar componente individual por ID
    */
-  const fetchComponente = useCallback(async (id) => {
+  const fetchComponente = useCallback(async (id, options = {}) => {
     if (!id) return
     try {
       setLoadingComponente(true)
       setError(null)
-      const response = await componentesApi.getComponente(id)
+      const response = await componentesApi.getComponente(id, { signal: options.signal })
       setComponente(response)
     } catch (err) {
+      if (err.name === 'AbortError') return
       setError(err.message || 'Error al cargar componente')
     } finally {
-      setLoadingComponente(false)
+      if (!options.signal?.aborted) setLoadingComponente(false)
     }
   }, [])
 
@@ -109,7 +117,8 @@ export function useComponentesManager(idComponenteEdit = null) {
    * Eliminar componente de la lista
    */
   const deleteComponenteLocal = useCallback((idComponente) => {
-    setComponentes((prev) => prev.filter((c) => c.idComponente !== idComponente))
+    setComponentes((prev) => prev.filter((c) => String(c.idComponente) !== String(idComponente)))
+    setPagination((prev) => ({ ...prev, total: Math.max(0, prev.total - 1) }))
   }, [])
 
   /**
@@ -124,6 +133,7 @@ export function useComponentesManager(idComponenteEdit = null) {
         setComponente(response)
         if (response?.idComponente) {
           setComponentes((prev) => [response, ...prev])
+          setPagination((prev) => ({ ...prev, total: prev.total + 1 }))
         }
         return response
       } catch (err) {
@@ -162,7 +172,7 @@ export function useComponentesManager(idComponenteEdit = null) {
         const response = await componentesApi.updateComponente(idComponente, payload)
         setComponente(response)
         setComponentes((prev) =>
-          prev.map((c) => (c.idComponente === idComponente ? response : c))
+          prev.map((c) => (String(c.idComponente) === String(idComponente) ? response : c))
         )
         return response
       } catch (err) {
@@ -199,15 +209,21 @@ export function useComponentesManager(idComponenteEdit = null) {
    * Auto-fetch cuando cambian filtros o paginación
    */
   useEffect(() => {
-    fetchComponentes()
-  }, [filters, pagination.skip, pagination.take])
+    const controller = new AbortController()
+    // eslint-disable-next-line react-hooks/set-state-in-effect
+    fetchComponentes(null, null, { signal: controller.signal })
+    return () => controller.abort()
+  }, [fetchComponentes])
 
   /**
    * Auto-fetch de componente individual si se proporciona ID
    */
   useEffect(() => {
     if (idComponenteEdit) {
-      fetchComponente(idComponenteEdit)
+      const controller = new AbortController()
+      // eslint-disable-next-line react-hooks/set-state-in-effect
+      fetchComponente(idComponenteEdit, { signal: controller.signal })
+      return () => controller.abort()
     }
   }, [idComponenteEdit, fetchComponente])
 
@@ -256,24 +272,27 @@ export function useComponente(idComponente = null) {
    */
   useEffect(() => {
     if (!idComponente) {
+      // eslint-disable-next-line react-hooks/set-state-in-effect
       setProductosComponente([])
       return
     }
+    const controller = new AbortController()
 
     const fetchProductos = async () => {
       try {
         setLoadingProductos(true)
-        const productos = await componentesApi.getProductosDelComponente(idComponente)
+        const productos = await componentesApi.getProductosDelComponente(idComponente, { signal: controller.signal })
         setProductosComponente(productos || [])
       } catch (err) {
-        console.error('Error cargando productos del componente:', err)
+        if (err.name === 'AbortError') return
         setProductosComponente([])
       } finally {
-        setLoadingProductos(false)
+        if (!controller.signal.aborted) setLoadingProductos(false)
       }
     }
 
     fetchProductos()
+    return () => controller.abort()
   }, [idComponente])
 
   return {

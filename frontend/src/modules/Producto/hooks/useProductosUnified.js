@@ -31,13 +31,15 @@ export function useProductos(idProductoSolo = null) {
    * Cargar lista de productos con filtros
    */
   const fetchProductos = useCallback(
-    async (newFilters = null, newPagination = null) => {
+    async (newFilters = null, newPagination = null, options = {}) => {
       try {
         setLoading(true)
         setError(null)
         
         const currentFilters = newFilters ? { ...filters, ...newFilters } : filters
-        const currentPagination = newPagination ? { ...pagination, ...newPagination } : pagination
+        const currentPagination = newPagination
+          ? { skip: pagination.skip, take: pagination.take, ...newPagination }
+          : { skip: pagination.skip, take: pagination.take }
 
         const response = await productosApi.getProductos({
           skip: currentPagination.skip,
@@ -45,39 +47,44 @@ export function useProductos(idProductoSolo = null) {
           search: currentFilters.search,
           idCategoria: currentFilters.idCategoria,
           idSubcategoria: currentFilters.idSubcategoria,
+          signal: options.signal,
         })
 
         const rows = Array.isArray(response) ? response : response?.data || []
+        const total = Number.isFinite(response?.meta?.total)
+          ? response.meta.total
+          : Number.isFinite(response?.total)
+            ? response.total
+            : rows.length
+
         setProductos(rows)
-        
-        // Actualizar total si viene en respuesta
-        if (response?.total !== undefined) {
-          setPagination(prev => ({ ...prev, total: response.total }))
-        }
+        setPagination(prev => ({ ...prev, total }))
       } catch (err) {
+        if (err.name === 'AbortError') return
         setError(err.message || 'Error al cargar productos')
         setProductos([])
       } finally {
-        setLoading(false)
+        if (!options.signal?.aborted) setLoading(false)
       }
     },
-    [filters, pagination]
+    [filters, pagination.skip, pagination.take]
   )
 
   /**
    * Cargar un producto individual por ID
    */
-  const fetchProducto = useCallback(async (id) => {
+  const fetchProducto = useCallback(async (id, options = {}) => {
     if (!id) return
     try {
       setLoadingProducto(true)
       setError(null)
-      const response = await productosApi.getProducto(id)
+      const response = await productosApi.getProducto(id, { signal: options.signal })
       setProducto(response)
     } catch (err) {
+      if (err.name === 'AbortError') return
       setError(err.message || 'Error al cargar producto')
     } finally {
-      setLoadingProducto(false)
+      if (!options.signal?.aborted) setLoadingProducto(false)
     }
   }, [])
 
@@ -117,7 +124,8 @@ export function useProductos(idProductoSolo = null) {
    * Eliminar producto de la lista
    */
   const deletProductoLocal = useCallback((idProducto) => {
-    setProductos((prev) => prev.filter((p) => p.idProducto !== idProducto))
+    setProductos((prev) => prev.filter((p) => String(p.idProducto) !== String(idProducto)))
+    setPagination((prev) => ({ ...prev, total: Math.max(0, prev.total - 1) }))
   }, [])
 
   const deleteProducto = useCallback(async (idProducto) => {
@@ -187,7 +195,7 @@ export function useProductos(idProductoSolo = null) {
       setProducto(response)
       // Actualizar en lista
       setProductos(prev => 
-        prev.map(p => p.idProducto === idProducto ? response : p)
+        prev.map(p => String(p.idProducto) === String(idProducto) ? response : p)
       )
       return response
     } catch (err) {
@@ -203,15 +211,21 @@ export function useProductos(idProductoSolo = null) {
    * Auto-fetch cuando cambian filtros o paginación
    */
   useEffect(() => {
-    fetchProductos()
-  }, [filters, pagination.skip, pagination.take])
+    const controller = new AbortController()
+    // eslint-disable-next-line react-hooks/set-state-in-effect
+    fetchProductos(null, null, { signal: controller.signal })
+    return () => controller.abort()
+  }, [fetchProductos])
 
   /**
    * Auto-fetch de producto individual si se proporciona ID
    */
   useEffect(() => {
     if (idProductoSolo) {
-      fetchProducto(idProductoSolo)
+      const controller = new AbortController()
+      // eslint-disable-next-line react-hooks/set-state-in-effect
+      fetchProducto(idProductoSolo, { signal: controller.signal })
+      return () => controller.abort()
     }
   }, [idProductoSolo, fetchProducto])
 

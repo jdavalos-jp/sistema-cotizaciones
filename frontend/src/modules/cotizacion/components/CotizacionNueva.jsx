@@ -1,4 +1,4 @@
-import React, { useMemo, useState } from 'react'
+import React, { useEffect, useMemo, useRef, useState } from 'react'
 import {
   Button,
   Space,
@@ -63,6 +63,7 @@ function CotizacionNueva() {
   const [loadingSubmit, setLoadingSubmit] = useState(false)
   const [showSuccess, setShowSuccess] = useState(false)
   const [modalNuevoClienteVisible, setModalNuevoClienteVisible] = useState(false)
+  const resetTimerRef = useRef(null)
 
   const clientes = useClientesSearch()
   const productos = useCatalogSearch(fetchProductos)
@@ -77,10 +78,19 @@ function CotizacionNueva() {
   })
 
   const subtotal = Number(preview.data?.totales?.subtotal || 0)
+  const descuentoSeguro = Math.min(Number(descuento || 0), subtotal)
 
   const total = useMemo(() => {
-    return subtotal - Number(descuento || 0) + Number(impuestos || 0)
-  }, [subtotal, descuento, impuestos])
+    return Math.max(0, subtotal - descuentoSeguro + Number(impuestos || 0))
+  }, [subtotal, descuentoSeguro, impuestos])
+
+  useEffect(() => {
+    return () => {
+      if (resetTimerRef.current) {
+        clearTimeout(resetTimerRef.current)
+      }
+    }
+  }, [])
 
   const lineasConEdiciones = useMemo(() => {
     const lineas = preview.data?.lineas ?? []
@@ -193,14 +203,19 @@ function CotizacionNueva() {
           })),
       }
 
+      if (payload.descuento > subtotal) {
+        message.warning('El descuento no puede ser mayor al subtotal')
+        return
+      }
+
       const pdfBlob = await createAndDownloadPdf(payload)
 
-      downloadPdfBlob(pdfBlob, `cotizacion-${payload.idCliente}.pdf`)
+      downloadPdfBlob(pdfBlob, `cotizacion-${Date.now()}.pdf`)
 
-      message.success('¡Cotización creada exitosamente!')
+      message.success('Cotización creada exitosamente')
       setShowSuccess(true)
 
-      setTimeout(resetForm, 3000)
+      resetTimerRef.current = setTimeout(resetForm, 3000)
     } catch (error) {
       message.error(String(error?.message || error))
     } finally {
@@ -221,10 +236,10 @@ function CotizacionNueva() {
               }}
             />
 
-            <Title level={2}>¡Cotización Completada!</Title>
+            <Title level={2}>Cotización completada</Title>
 
             <Text>
-              La cotización ha sido creada y descargada exitosamente
+              La cotización ha sido creada y descargada exitosamente.
             </Text>
           </div>
         </Card>
@@ -337,7 +352,7 @@ function CotizacionNueva() {
                 <ResumenInput
                   label="Descuento:"
                   value={descuento}
-                  onChange={setDescuento}
+                  onChange={(value) => setDescuento(Math.min(value, subtotal))}
                   moneda={moneda}
                 />
 
@@ -365,7 +380,7 @@ function CotizacionNueva() {
           cartLength={cart.cart.length}
           loadingSubmit={loadingSubmit}
           disabled={!idCliente || !cart.cart.length || !diasValidez || !diasEntrega}
-          onClear={() => cart.clear()}
+          onClear={resetForm}
           onSubmit={handleGenerarCotizacion}
         />
       </Space>
@@ -374,9 +389,12 @@ function CotizacionNueva() {
         visible={modalNuevoClienteVisible}
         onClose={() => setModalNuevoClienteVisible(false)}
         onSuccess={(nuevoCliente) => {
-          setIdCliente(nuevoCliente.id || Date.now())
-          setClienteLabel(nuevoCliente.nombre)
-          clientes.setSearch(nuevoCliente.nombre)
+          const clienteId = nuevoCliente.idCliente ?? nuevoCliente.id
+          const clienteNombre = nuevoCliente.nombreCompleto ?? nuevoCliente.nombre ?? ''
+
+          setIdCliente(clienteId)
+          setClienteLabel(clienteNombre)
+          clientes.setSearch(clienteNombre)
           message.success('Cliente registrado exitosamente')
         }}
       />

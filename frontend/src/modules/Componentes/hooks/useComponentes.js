@@ -1,4 +1,4 @@
-import { useState, useCallback, useEffect } from 'react'
+import { useState, useCallback } from 'react'
 import * as componentesApi from '../Services/api/componentesApi'
 
 /**
@@ -10,39 +10,39 @@ export function useComponentes() {
   const [loading, setLoading] = useState(false)
   const [pagination, setPagination] = useState({ total: 0, current: 1, pageSize: 10 })
 
-  const loadComponentes = useCallback(async (skip = 0, search = '') => {
+  const loadComponentes = useCallback(async (skip = 0, search = '', options = {}) => {
     setLoading(true)
     try {
       const response = await componentesApi.getComponentes({
         skip,
         take: pagination.pageSize,
         search,
+        signal: options.signal,
       })
 
       const data = Array.isArray(response) ? response : response?.data || []
-      setComponentes(data)
+      const total = Number.isFinite(response?.meta?.total)
+        ? response.meta.total
+        : Number.isFinite(response?.total)
+          ? response.total
+          : data.length
 
-      if (response?.total !== undefined) {
-        setPagination((prev) => ({ ...prev, total: response.total }))
-      }
+      setComponentes(data)
+      setPagination((prev) => ({ ...prev, total }))
     } catch (error) {
-      console.error('Error loading componentes:', error)
+      if (error.name === 'AbortError') return
       setComponentes([])
       throw error
     } finally {
-      setLoading(false)
+      if (!options.signal?.aborted) setLoading(false)
     }
   }, [pagination.pageSize])
 
   const deleteComponente = useCallback(async (idComponente) => {
-    try {
-      await componentesApi.deleteComponente(idComponente)
-      setComponentes((prev) => prev.filter((c) => c.idComponente !== idComponente))
-      return true
-    } catch (error) {
-      console.error('Error deleting componente:', error)
-      throw error
-    }
+    await componentesApi.deleteComponente(idComponente)
+    setComponentes((prev) => prev.filter((c) => String(c.idComponente) !== String(idComponente)))
+    setPagination((prev) => ({ ...prev, total: Math.max(0, prev.total - 1) }))
+    return true
   }, [])
 
   return {

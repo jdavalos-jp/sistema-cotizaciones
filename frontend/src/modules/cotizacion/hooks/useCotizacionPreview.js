@@ -72,7 +72,7 @@ export function useCotizacionPreview({ idCliente, moneda, cart, removeItem }) {
 
     run()
     return () => controller.abort()
-  }, [idCliente, moneda, debouncedCart])
+  }, [idCliente, moneda, debouncedCart, removeItem])
 
   return useMemo(() => ({ loading, data }), [loading, data])
 }

@@ -1,6 +1,4 @@
 import { useNavigate, useParams } from 'react-router-dom'
-import { Breadcrumb } from 'antd'
-import { HomeOutlined } from '@ant-design/icons'
 import ClienteForm from '../../modules/Clientes/components/ClienteForm'
 
 /**
@@ -21,30 +19,11 @@ export default function ClienteFormPage() {
     navigate('/clientes')
   }
 
-  const breadcrumbItems = [
-    {
-      title: (
-        <a onClick={() => navigate('/')}>
-          <HomeOutlined />
-          <span style={{ marginLeft: 8 }}>Inicio</span>
-        </a>
-      ),
-    },
-    {
-      title: (
-        <a onClick={() => navigate('/clientes')}>Clientes</a>
-      ),
-    },
-    {
-      title: id ? 'Editar Cliente' : 'Agregar Cliente',
-    },
-  ]
-
   return (
     <ClienteForm
       onSuccess={handleSuccess}
       onCancel={handleCancel}
-      idClienteEdit={id ? BigInt(id) : null}
+      idClienteEdit={id || null}
     />
   )
 }

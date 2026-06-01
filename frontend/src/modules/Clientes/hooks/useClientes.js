@@ -12,22 +12,31 @@ export function useClientes() {
   const [loading, setLoading] = useState(false)
   const [pagination, setPagination] = useState({ total: 0, current: 1, pageSize: 10 })
 
-  const loadClientes = useCallback(async (skip = 0, search = '') => {
+  const loadClientes = useCallback(async ({ page = 1, pageSize = 10, search = '', signal } = {}) => {
     setLoading(true)
     try {
       const params = new URLSearchParams()
-      if (search) params.set('search', search)
-      // Usar take grande para obtener todos los clientes disponibles
-      params.set('take', '200')
+      const safePage = Number.isFinite(page) && page > 0 ? page : 1
+      const safePageSize = Number.isFinite(pageSize) && pageSize > 0 ? pageSize : 10
+      const skip = (safePage - 1) * safePageSize
 
-      const result = await apiGet(`/clientes?${params.toString()}`)
-      const clientesData = result.data ?? result ?? []
+      if (search?.trim()) params.set('search', search.trim())
+      params.set('take', String(safePageSize))
+      params.set('skip', String(skip))
+
+      const result = await apiGet(`/clientes?${params.toString()}`, { signal })
+      const clientesData = Array.isArray(result?.data) ? result.data : []
+      const total = Number.isFinite(result?.meta?.total) ? result.meta.total : clientesData.length
+
       setClientes(clientesData)
       setPagination((prev) => ({
         ...prev,
-        total: clientesData.length,
+        current: safePage,
+        pageSize: safePageSize,
+        total,
       }))
     } catch (error) {
+      if (error.name === 'AbortError') return
       setClientes([])
       throw error
     } finally {

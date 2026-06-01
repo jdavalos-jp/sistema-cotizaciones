@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import { Card, Form, Select, Button, Table, Empty, Space, Typography, theme, Spin, message } from 'antd'
 import { DeleteOutlined, AppstoreOutlined } from '@ant-design/icons'
 import * as productosApi from '../../Producto/Services/api/productosApi'
@@ -19,10 +19,12 @@ export default function ComponenteProductoSelector({
   )
 
   useEffect(() => {
+    const controller = new AbortController()
+
     const cargarProductos = async () => {
       setLoadingProductos(true)
       try {
-        const response = await productosApi.getProductos({ take: 1000 })
+        const response = await productosApi.getProductos({ take: 1000, signal: controller.signal })
         const productosData = response?.data || response || []
 
         setProductos(
@@ -36,14 +38,15 @@ export default function ComponenteProductoSelector({
           }))
         )
       } catch (err) {
-        console.error('Error cargando productos:', err)
+        if (err.name === 'AbortError') return
         message.error('Error al cargar productos')
       } finally {
-        setLoadingProductos(false)
+        if (!controller.signal.aborted) setLoadingProductos(false)
       }
     }
 
     cargarProductos()
+    return () => controller.abort()
   }, [])
 
   const handleProductosChange = (values) => {

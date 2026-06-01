@@ -6,6 +6,21 @@ function keyOf(item) {
   return `${item.tipo}:${item.id}`
 }
 
+function normalizeItem(item) {
+  if (!item || !['producto', 'componente'].includes(item.tipo) || item.id === undefined || item.id === null) {
+    return null
+  }
+
+  return {
+    id: String(item.id),
+    tipo: item.tipo,
+    cantidad: Math.max(1, Number(item.cantidad) || 1),
+    nombre: item.nombre,
+    descripcion: item.descripcion,
+    precioUnitario: item.precioUnitario === undefined ? undefined : Math.max(0, Number(item.precioUnitario) || 0),
+  }
+}
+
 export function useCotizacionCart({ persistent = true } = {}) {
   const [cart, setCart] = useState([])
   const isMountedRef = useRef(true)
@@ -21,11 +36,11 @@ export function useCotizacionCart({ persistent = true } = {}) {
       if (saved && isMountedRef.current) {
         const parsed = JSON.parse(saved)
         if (Array.isArray(parsed)) {
-          savedCart = parsed
+          savedCart = parsed.map(normalizeItem).filter(Boolean)
         }
       }
-    } catch (err) {
-      console.error('Error leyendo localStorage:', err)
+    } catch {
+      savedCart = []
     }
 
     // Solo actualizar si hay datos guardados
@@ -49,8 +64,8 @@ export function useCotizacionCart({ persistent = true } = {}) {
       } else {
         localStorage.removeItem(STORAGE_KEY)
       }
-    } catch (err) {
-      console.error('Error guardando en localStorage:', err)
+    } catch {
+      // El navegador puede bloquear storage; el carrito sigue funcionando en memoria.
     }
   }, [cart, persistent])
 
@@ -126,14 +141,7 @@ export function useCotizacionCart({ persistent = true } = {}) {
   // Reemplaza todo el carrito de forma atómica (una sola mutación de estado)
   const setItems = useCallback((items) => {
     setCart(
-      items.map((item) => ({
-        id: String(item.id),
-        tipo: item.tipo,
-        cantidad: Math.max(1, Number(item.cantidad) || 1),
-        nombre: item.nombre,
-        descripcion: item.descripcion,
-        precioUnitario: item.precioUnitario,
-      }))
+      items.map(normalizeItem).filter(Boolean)
     )
   }, [])
 

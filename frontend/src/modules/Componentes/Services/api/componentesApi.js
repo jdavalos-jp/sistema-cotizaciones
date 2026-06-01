@@ -19,11 +19,11 @@ function unwrapData(response) {
 export async function getComponentes(options = {}, fetchOptions = {}) {
   const { skip = 0, take = 50, search, signal } = options
   const params = new URLSearchParams()
-  params.append('skip', skip)
-  params.append('take', take)
-  if (search) params.append('search', search)
+  params.append('skip', String(skip))
+  params.append('take', String(take))
+  if (search?.trim()) params.append('search', search.trim())
 
-  return unwrapData(await apiGet(`${BASE_URL}?${params.toString()}`, { signal, ...fetchOptions }))
+  return apiGet(`${BASE_URL}?${params.toString()}`, { signal, ...fetchOptions })
 }
 
 /**

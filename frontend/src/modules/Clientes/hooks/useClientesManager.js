@@ -15,22 +15,24 @@ export function useClientesManager(idClienteEdit = null) {
    */
   useEffect(() => {
     if (!idClienteEdit) return
+    const controller = new AbortController()
 
     const loadCliente = async () => {
       try {
         setLoading(true)
         setError(null)
-        const response = await clientesApi.getCliente(idClienteEdit)
+        const response = await clientesApi.getCliente(idClienteEdit, { signal: controller.signal })
         setCliente(response)
       } catch (err) {
+        if (controller.signal.aborted) return
         setError(err.message || 'Error al cargar cliente')
-        console.error('Error loading cliente:', err)
       } finally {
-        setLoading(false)
+        if (!controller.signal.aborted) setLoading(false)
       }
     }
 
     loadCliente()
+    return () => controller.abort()
   }, [idClienteEdit])
 
   /**

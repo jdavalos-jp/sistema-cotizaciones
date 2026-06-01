@@ -1,21 +1,27 @@
-import React from 'react'
-import { Typography } from 'antd'
+import { Button, Typography } from 'antd'
+import { PlusOutlined, ReloadOutlined } from '@ant-design/icons'
+import { useNavigate } from 'react-router-dom'
 
-function CotizacionesHeader() {
+function CotizacionesHeader({ loading = false, onRefresh }) {
+  const navigate = useNavigate()
+
   return (
     <header className="cotizaciones-header">
       <div>
-        <Typography.Text className="cotizaciones-eyebrow">
-          Cotizaciones
-        </Typography.Text>
-        <Typography.Title level={2} className="cotizaciones-title">
-          Historial
+        <Typography.Title level={3} className="cotizaciones-title">
+          Historial de cotizaciones
         </Typography.Title>
+        <Typography.Text className="cotizaciones-subtitle">
+          Seguimiento operativo de borradores, envios y decisiones comerciales.
+        </Typography.Text>
       </div>
 
-      <Typography.Text className="cotizaciones-subtitle">
-        Consulta, edita y da seguimiento a tus cotizaciones.
-      </Typography.Text>
+      <div className="cotizaciones-header__actions">
+        <Button icon={<ReloadOutlined />} loading={loading} onClick={onRefresh} />
+        <Button type="primary" icon={<PlusOutlined />} onClick={() => navigate('/cotizaciones/nueva')}>
+          Nueva cotizacion
+        </Button>
+      </div>
     </header>
   )
 }

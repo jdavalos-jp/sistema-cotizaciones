@@ -1,34 +1,49 @@
 import { Table, Empty, Button, Input, Typography, Card, Avatar, Space, Tag, Popconfirm, Dropdown } from 'antd'
-import { PlusOutlined, SearchOutlined, EditOutlined, DeleteOutlined, DownOutlined, MoreOutlined } from '@ant-design/icons'
+import {
+  PlusOutlined,
+  SearchOutlined,
+  EditOutlined,
+  DeleteOutlined,
+  BgColorsOutlined,
+  MoreOutlined,
+} from '@ant-design/icons'
 
 const { Text } = Typography
 
+const avatarColors = [
+  '#1677ff',
+  '#13c2c2',
+  '#52c41a',
+  '#faad14',
+  '#f5222d',
+  '#722ed1',
+  '#eb2f96',
+  '#fa8c16',
+]
+
+function getInitials(nombre = '') {
+  return String(nombre)
+    .split(' ')
+    .filter(Boolean)
+    .map((word) => word.charAt(0))
+    .join('')
+    .toUpperCase()
+    .slice(0, 2) || 'CA'
+}
 
 function CategoryCell({ categoria }) {
-  const colors = [
-    '#1890ff', '#722ed1', '#fa8c16', '#eb2f96', '#13c2c2',
-    '#52c41a', '#faad14', '#f5222d', '#1089ff', '#13c2c2'
-  ]
-  const index = categoria.nombre.charCodeAt(0) % colors.length
-
-  const getInitials = (nombre) => {
-    return nombre
-      .split(' ')
-      .map((word) => word.charAt(0))
-      .join('')
-      .toUpperCase()
-      .slice(0, 2)
-  }
+  const nombre = String(categoria.nombre || 'Categoría')
+  const index = nombre.charCodeAt(0) % avatarColors.length
 
   return (
     <Space>
-      <Avatar size={40} style={{ backgroundColor: colors[index] }}>
-        {getInitials(categoria.nombre)}
+      <Avatar size={40} style={{ backgroundColor: avatarColors[index] }}>
+        {getInitials(nombre)}
       </Avatar>
       <div>
-        <Text strong>{categoria.nombre}</Text>
+        <Text strong>{nombre}</Text>
         <br />
-        <Text type="secondary" style={{ fontSize: '12px' }}>
+        <Text type="secondary" style={{ fontSize: 12 }}>
           {categoria.descripcion || 'Sin descripción'}
         </Text>
       </div>
@@ -37,14 +52,16 @@ function CategoryCell({ categoria }) {
 }
 
 function SubcategoriesCell({ subcategorias }) {
-  if (!subcategorias || subcategorias.length === 0) {
-    return <Empty description="Sin subcategorías" style={{ margin: 0 }} />
+  const data = Array.isArray(subcategorias) ? subcategorias : []
+
+  if (data.length === 0) {
+    return <Empty description="Sin subcategorías" image={Empty.PRESENTED_IMAGE_SIMPLE} style={{ margin: 0 }} />
   }
 
   return (
-    <Space wrap>
-      {subcategorias.map((sub) => (
-        <Tag key={sub.idSubcategoria} color="blue">
+    <Space wrap size={[4, 6]}>
+      {data.map((sub) => (
+        <Tag key={sub.idSubcategoria} color="geekblue">
           {sub.nombre}
         </Tag>
       ))}
@@ -52,69 +69,63 @@ function SubcategoriesCell({ subcategorias }) {
   )
 }
 
-// ============= CELDA: Estado =============
 function StatusBadge({ estado }) {
-  const statusConfig = {
-    activo: { color: '#52c41a', label: 'Activo' },
-    inactivo: { color: '#f5222d', label: 'Inactivo' },
-    true: { color: '#52c41a', label: 'Activo' },
-    false: { color: '#f5222d', label: 'Inactivo' },
-    '1': { color: '#52c41a', label: 'Activo' },
-    '0': { color: '#f5222d', label: 'Inactivo' },
-  }
+  const activo = String(estado || 'activo').toLowerCase() === 'activo'
 
-  const config = statusConfig[estado] || statusConfig[estado ? 'true' : 'false']
   return (
-    <Tag color={config.color} style={{ borderRadius: '12px' }}>
-      {config.label}
+    <Tag color={activo ? 'success' : 'default'} style={{ borderRadius: 12 }}>
+      {activo ? 'Activo' : 'Inactivo'}
     </Tag>
   )
 }
 
-// ============= CELDA: Acciones =============
 function CategoryActions({ category, onEdit, onDelete }) {
-  const handleDelete = () => {
-    onDelete(category.idCategoria)
-  }
-
-  const dropdownItems = [
-    {
-      key: 'edit',
-      label: 'Editar',
-      icon: <EditOutlined />,
-      onClick: () => onEdit(category),
-    },
-    {
-      type: 'divider',
-    },
-    {
-      key: 'delete',
-      label: (
-        <Popconfirm
-          title="Eliminar categoría"
-          description="¿Estás seguro que deseas eliminar esta categoría?"
-          onConfirm={handleDelete}
-          okText="Sí"
-          cancelText="No"
-          okButtonProps={{ danger: true }}
-        >
-          <span style={{ color: 'red' }}>Eliminar</span>
-        </Popconfirm>
-      ),
-      danger: true,
-    },
-  ]
+  const isInactive = String(category.estado || '').toLowerCase() === 'inactivo'
 
   return (
-    <Dropdown menu={{ items: dropdownItems }} trigger={['click']} placement="bottomRight">
-      <Button type="text" icon={<MoreOutlined style={{ fontSize: '18px' }} />} />
+    <Dropdown
+      menu={{
+        items: [
+          {
+            key: 'edit',
+            label: 'Editar',
+            icon: <EditOutlined />,
+            onClick: () => onEdit(category),
+          },
+          { type: 'divider' },
+          {
+            key: 'delete',
+            label: (
+              <Popconfirm
+                title="Desactivar categoría"
+                description="La categoría quedará inactiva si no tiene productos o servicios asociados."
+                onConfirm={() => onDelete(category.idCategoria)}
+                okText="Desactivar"
+                cancelText="Cancelar"
+                okButtonProps={{ danger: true }}
+                disabled={isInactive}
+              >
+                <div style={{ color: isInactive ? '#ccc' : '#ff4d4f', width: '100%', cursor: isInactive ? 'not-allowed' : 'pointer' }}>
+                  Desactivar
+                </div>
+              </Popconfirm>
+            ),
+            icon: <DeleteOutlined style={{ color: isInactive ? '#ccc' : '#ff4d4f' }} />,
+            danger: true,
+            disabled: isInactive,
+          },
+        ],
+      }}
+      trigger={['click']}
+      placement="bottomRight"
+    >
+      <Button type="text" icon={<MoreOutlined style={{ fontSize: 18 }} />} />
     </Dropdown>
   )
 }
 
-
 export default function CategoriesList({
-  categorias,
+  categorias = [],
   loading,
   pagination,
   searchValue,
@@ -126,10 +137,10 @@ export default function CategoriesList({
 }) {
   const columns = [
     {
-      title: 'Categoria',
+      title: 'Categoría',
       dataIndex: 'nombre',
       key: 'categoria',
-      width: '25%',
+      width: '30%',
       render: (_, record) => <CategoryCell categoria={record} />,
     },
     {
@@ -150,8 +161,7 @@ export default function CategoriesList({
     {
       title: 'Acciones',
       key: 'acciones',
-      width: '25%',
-      align: 'right',
+      width: 100,
       render: (_, record) => (
         <CategoryActions category={record} onEdit={onEdit} onDelete={onDelete} />
       ),
@@ -159,48 +169,40 @@ export default function CategoriesList({
   ]
 
   return (
-    <div style={{ backgroundColor: '#f5f5f5', padding: '24px', minHeight: '100vh', margin: '-24px' }}>
-      {/* ALINEACIÓN TIPO BREADCRUMB */}
+    <div style={{ backgroundColor: '#f5f5f5', padding: 24, minHeight: '100vh', margin: '-24px' }}>
       <div style={{ marginBottom: 24 }}>
         <Typography.Title level={3} style={{ margin: 0 }}>
           Categorías
         </Typography.Title>
-        <Typography.Text type="secondary" style={{ fontSize: '14px' }}>
+        <Typography.Text type="secondary" style={{ fontSize: 14 }}>
           Inicio / Categorías
         </Typography.Text>
       </div>
 
       <Card
         variant="borderless"
-        style={{
-          borderRadius: 8,
-          boxShadow: '0 1px 2px rgba(0,0,0,0.05)',
-        }}
-        styles={{
-          body: {
-            padding: 24,
-          },
-        }}
+        styles={{ body: { padding: 24 } }}
+        style={{ borderRadius: 8, boxShadow: '0 1px 2px rgba(0,0,0,0.05)' }}
       >
-        {/* TOP BAR: BUSCADOR Y BOTÓN */}
-        <div style={{ display: 'flex', gap: '16px', marginBottom: '24px' }}>
+        <div style={{ display: 'flex', gap: 16, marginBottom: 24 }}>
           <Input
-            placeholder="Buscar categoria"
+            allowClear
+            placeholder="Buscar categoría..."
             value={searchValue}
-            onChange={(e) => onSearch(e.target.value)}
+            onChange={(event) => onSearch(event.target.value)}
             style={{ flex: 1 }}
             suffix={<SearchOutlined style={{ color: 'rgba(0,0,0,.45)' }} />}
           />
-          <Button type="primary" onClick={onAddCategory}>
-            Añadir categoria
+
+          <Button type="primary" icon={<PlusOutlined />} onClick={onAddCategory}>
+            Agregar Categoría
           </Button>
         </div>
 
-        {/* TABLA */}
         <Table
           columns={columns}
           dataSource={categorias}
-          rowKey="idCategoria"
+          rowKey={(record) => String(record.idCategoria)}
           loading={loading}
           pagination={{
             pageSize: pagination.pageSize,
@@ -211,7 +213,15 @@ export default function CategoriesList({
             showQuickJumper: true,
             showTotal: (total) => `Total: ${total} categoría${total !== 1 ? 's' : ''}`,
           }}
-          locale={{ emptyText: <Empty description="No hay categorías" /> }}
+          locale={{
+            emptyText: (
+              <Empty
+                image={<BgColorsOutlined style={{ fontSize: 32, color: '#8c8c8c' }} />}
+                description="No hay categorías"
+              />
+            ),
+          }}
+          scroll={{ x: 760 }}
         />
       </Card>
     </div>

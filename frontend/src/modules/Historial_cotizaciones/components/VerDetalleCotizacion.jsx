@@ -24,7 +24,9 @@ export default function VerDetalleCotizacion({
     useCotizacion(idCotizacion)
 
   useEffect(() => {
-    load()
+    const controller = new AbortController()
+    load({ signal: controller.signal })
+    return () => controller.abort()
   }, [load])
 
   const handleEditarSuccess = () => {
@@ -122,7 +124,7 @@ export default function VerDetalleCotizacion({
           <Button icon={<DownloadOutlined />} onClick={handleDescargar}>
             PDF
           </Button>
-          <Button icon={<PrinterOutlined />}>Imprimir</Button>
+          <Button icon={<PrinterOutlined />} onClick={() => window.print()}>Imprimir</Button>
           {puedeEditar && (
             <Button
               type="primary"

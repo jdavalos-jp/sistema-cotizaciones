@@ -1,4 +1,4 @@
-import { apiGet, apiPost, apiPut, apiDelete } from '../../../../services/api/http'
+import { apiGet, apiPost, apiPut, apiPatch, apiDelete } from '../../../../services/api/http'
 
 const BASE_URL = '/cotizaciones'
 
@@ -9,8 +9,8 @@ const BASE_URL = '/cotizaciones'
 export async function getCotizaciones(options = {}, fetchOptions = {}) {
   const { skip = 0, take = 50, estado = null, signal } = options
   const params = new URLSearchParams()
-  params.append('skip', skip)
-  params.append('take', take)
+  params.append('skip', String(skip))
+  params.append('take', String(take))
   if (estado) params.append('estado', estado)
 
   return apiGet(`${BASE_URL}?${params.toString()}`, { signal, ...fetchOptions })

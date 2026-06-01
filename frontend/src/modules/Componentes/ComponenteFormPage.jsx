@@ -12,7 +12,7 @@ export default function ComponenteFormPage() {
   const { id } = useParams()
 
   // Convertir id a número si existe
-  const idComponenteEdit = id ? Number(id) : null
+  const idComponenteEdit = id || null
 
   const handleSuccess = () => {
     navigate('/componentes')

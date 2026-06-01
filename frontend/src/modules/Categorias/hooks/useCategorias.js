@@ -1,64 +1,78 @@
-import { useState, useCallback } from 'react'
+import { useCallback, useMemo, useState } from 'react'
 import * as categoriasApi from '../services/categoriasApi'
 
-/**
- * Hook para gestionar categorías con subcategorías
- */
+const PAGE_SIZE = 10
+
+function normalizeCategorias(response) {
+  const data = Array.isArray(response) ? response : response?.data || []
+  return Array.isArray(data) ? data : []
+}
+
 export function useCategorias() {
+  const [allCategorias, setAllCategorias] = useState([])
   const [categorias, setCategorias] = useState([])
   const [loading, setLoading] = useState(false)
-  const [pagination, setPagination] = useState({ total: 0, current: 1, pageSize: 10 })
+  const [pagination, setPagination] = useState({ total: 0, current: 1, pageSize: PAGE_SIZE })
 
-  const loadCategorias = useCallback(async (skip = 0, search = '') => {
-    setLoading(true)
-    try {
-      const response = await categoriasApi.getCategorias()
-      if (response) {
-        const data = Array.isArray(response) ? response : response.data || []
-        
-        // Si hay búsqueda, filtrar categorías
-        const filtered = search 
-          ? data.filter(cat => cat.nombre.toLowerCase().includes(search.toLowerCase()))
-          : data
-        
-        // Aplicar paginación
-        const total = filtered.length
-        const paginatedData = filtered.slice(skip, skip + pagination.pageSize)
-        
-        setCategorias(paginatedData)
-        setPagination((prev) => ({ ...prev, total }))
-      }
-    } catch (error) {
-      console.error('Error loading categorías:', error)
-      throw error
-    } finally {
-      setLoading(false)
-    }
-  }, [pagination.pageSize])
+  const applyView = useCallback((data, skip = 0, search = '') => {
+    const term = search.trim().toLowerCase()
+    const filtered = term
+      ? data.filter((categoria) => {
+          const nombre = String(categoria.nombre || '').toLowerCase()
+          const descripcion = String(categoria.descripcion || '').toLowerCase()
+          return nombre.includes(term) || descripcion.includes(term)
+        })
+      : data
 
-  const deleteCategoria = useCallback(async (idCategoria) => {
-    setLoading(true)
-    try {
-      // 1. Llamar VERDADERAMENTE a la API (Esto faltaba)
-      await categoriasApi.deleteCategoria(idCategoria)
-      
-      // 2. Si la API responde OK, lo quitamos de la memoria de React
-      setCategorias((prev) => prev.filter((c) => c.idCategoria !== idCategoria))
-    } catch (error) {
-      // Lanzamos el error hacia la vista para que el mensaje (Categoría en uso) sea visible
-      console.error('Error en hook deleteCategoria:', error)
-      throw error 
-    } finally {
-      setLoading(false)
-    }
+    setCategorias(filtered.slice(skip, skip + PAGE_SIZE))
+    setPagination((prev) => ({
+      ...prev,
+      total: filtered.length,
+      current: Math.floor(skip / PAGE_SIZE) + 1,
+      pageSize: PAGE_SIZE,
+    }))
   }, [])
 
-  return {
+  const loadCategorias = useCallback(async (skip = 0, search = '', fetchOptions = {}) => {
+    setLoading(true)
+    try {
+      const response = await categoriasApi.getCategorias(fetchOptions)
+      const data = normalizeCategorias(response)
+      setAllCategorias(data)
+      applyView(data, skip, search)
+    } finally {
+      setLoading(false)
+    }
+  }, [applyView])
+
+  const filterCategorias = useCallback((skip = 0, search = '') => {
+    applyView(allCategorias, skip, search)
+  }, [allCategorias, applyView])
+
+  const deleteCategoria = useCallback(async (idCategoria, search = '') => {
+    setLoading(true)
+    try {
+      await categoriasApi.deleteCategoria(idCategoria)
+      const next = allCategorias.map((categoria) =>
+        String(categoria.idCategoria) === String(idCategoria)
+          ? { ...categoria, estado: 'inactivo' }
+          : categoria
+      )
+
+      setAllCategorias(next)
+      applyView(next, 0, search)
+    } finally {
+      setLoading(false)
+    }
+  }, [allCategorias, applyView])
+
+  return useMemo(() => ({
     categorias,
     loading,
     pagination,
     loadCategorias,
+    filterCategorias,
     deleteCategoria,
     setPagination,
-  }
+  }), [categorias, loading, pagination, loadCategorias, filterCategorias, deleteCategoria])
 }

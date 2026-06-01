@@ -1,5 +1,5 @@
 import { Avatar, Button, Card, Dropdown, Empty, Input, message, Popconfirm, Space, Table, Tag, Typography } from 'antd'
-import { DeleteOutlined, EditOutlined, MoreOutlined, SearchOutlined, UserOutlined } from '@ant-design/icons'
+import { DeleteOutlined, EditOutlined, MoreOutlined, PlusOutlined, SearchOutlined, UserOutlined } from '@ant-design/icons'
 import { useEffect, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useClientes } from '../hooks/useClientes'
@@ -22,39 +22,38 @@ function ClientesListPage() {
   const { clientes, loading, pagination, loadClientes, deleteCliente, setPagination } = useClientes()
 
   useEffect(() => {
-    loadClientes(0, '').catch(() => {
+    const controller = new AbortController()
+
+    loadClientes({ page: 1, pageSize: pagination.pageSize, search: '', signal: controller.signal }).catch((error) => {
+      if (error.name === 'AbortError') return
       message.error('Error al cargar clientes')
     })
-  }, [loadClientes])
+
+    return () => controller.abort()
+  }, [loadClientes, pagination.pageSize])
 
   const handleSearch = async (value) => {
     setSearchTerm(value)
     setPagination((prev) => ({ ...prev, current: 1 }))
 
     try {
-      await loadClientes(0, value)
+      await loadClientes({ page: 1, pageSize: pagination.pageSize, search: value })
     } catch {
       message.error('Error al buscar clientes')
     }
   }
 
   const handlePaginationChange = async (page) => {
-    const skip = (page - 1) * pagination.pageSize
-    setPagination((prev) => ({ ...prev, current: page }))
-
     try {
-      await loadClientes(skip, searchTerm)
+      await loadClientes({ page, pageSize: pagination.pageSize, search: searchTerm })
     } catch {
       message.error('Error al cargar clientes')
     }
   }
 
   const handleShowSizeChange = async (current, pageSize) => {
-    const skip = (current - 1) * pageSize
-    setPagination((prev) => ({ ...prev, current, pageSize }))
-
     try {
-      await loadClientes(skip, searchTerm)
+      await loadClientes({ page: current, pageSize, search: searchTerm })
     } catch {
       message.error('Error al cargar clientes')
     }
@@ -189,7 +188,7 @@ function ClientesListPage() {
             style={{ flex: 1 }}
             suffix={<SearchOutlined style={{ color: 'rgba(0,0,0,.45)' }} />}
           />
-          <Button type="primary" onClick={() => navigate('/clientes/crear')}>
+          <Button type="primary" icon={<PlusOutlined />} onClick={() => navigate('/clientes/crear')}>
             Anadir cliente
           </Button>
         </div>
