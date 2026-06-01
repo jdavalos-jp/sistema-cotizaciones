@@ -1,8 +1,8 @@
+const { Prisma } = require('@prisma/client');
+
 const { prisma } = require('../../db/prisma');
 const { HttpError } = require('../../utils/httpError');
 const { deleteImageByPublicUrl } = require('../../services/storage/imageService');
-
-// ==================== SELECT ====================
 
 const componenteSelect = {
   idComponente: true,
@@ -35,47 +35,115 @@ const componenteSelect = {
   },
 };
 
-// ==================== HELPERS ====================
+const productoComponenteSelect = {
+  idProductoComponente: true,
+  idProducto: true,
+  idComponente: true,
+  cantidad: true,
+  precioReferencial: true,
+  observaciones: true,
+  producto: {
+    select: {
+      idProducto: true,
+      nombre: true,
+      sku: true,
+      precioBase: true,
+    },
+  },
+};
 
-/**
- * Convierte Decimal de Prisma a Number
- */
-function convertDecimals(componente) {
-  if (!componente) return null;
-  return {
-    ...componente,
-    precioBase: Number(componente.precioBase),
-  };
-}
-
-/**
- * Parsea un ID a BigInt
- */
 function parseId(param, fieldName = 'id') {
+  if (param === undefined || param === null || param === '') return null;
+
   try {
-    return BigInt(param);
+    const id = BigInt(param);
+    if (id <= 0n) throw new Error('invalid');
+    return id;
   } catch {
-    throw new HttpError(400, `${fieldName} inválido`);
+    throw new HttpError(400, `${fieldName} invalido`);
   }
 }
 
-// ==================== CRUD OPERATIONS ====================
+function parseNonNegativeInt(value, fieldName) {
+  const number = Number(value);
+  if (!Number.isInteger(number) || number < 0) {
+    throw new HttpError(400, `${fieldName} debe ser un entero no negativo`);
+  }
+  return number;
+}
+
+function parsePositiveInt(value, fieldName) {
+  const number = Number(value);
+  if (!Number.isInteger(number) || number <= 0) {
+    throw new HttpError(400, `${fieldName} debe ser un entero positivo`);
+  }
+  return number;
+}
+
+function convertDecimals(value) {
+  if (Array.isArray(value)) return value.map(convertDecimals);
+  if (value instanceof Prisma.Decimal) return Number(value);
+  if (value && typeof value === 'object') {
+    return Object.fromEntries(Object.entries(value).map(([key, item]) => [key, convertDecimals(item)]));
+  }
+  return value;
+}
+
+function buildComponenteWhere({ search }) {
+  const where = { estado: 'activo' };
+  const q = search?.trim();
+
+  if (q) {
+    where.OR = [
+      { nombre: { contains: q, mode: 'insensitive' } },
+      { sku: { contains: q, mode: 'insensitive' } },
+      { descripcion: { contains: q, mode: 'insensitive' } },
+    ];
+  }
+
+  return where;
+}
+
+async function assertComponenteActivo(idComponente) {
+  const componente = await prisma.componente.findFirst({
+    where: { idComponente, estado: 'activo' },
+    select: { idComponente: true, sku: true },
+  });
+
+  if (!componente) throw new HttpError(404, 'Componente no encontrado');
+
+  return componente;
+}
+
+async function assertProductoActivo(idProducto) {
+  const producto = await prisma.producto.findFirst({
+    where: { idProducto, estado: 'activo' },
+    select: { idProducto: true },
+  });
+
+  if (!producto) throw new HttpError(404, 'Producto no encontrado');
+
+  return producto;
+}
+
+async function assertSkuDisponible(sku, idComponente = null) {
+  if (!sku) return;
+
+  const conflict = await prisma.componente.findFirst({
+    where: {
+      sku,
+      estado: 'activo',
+      ...(idComponente ? { idComponente: { not: idComponente } } : {}),
+    },
+    select: { idComponente: true },
+  });
+
+  if (conflict) throw new HttpError(409, `SKU '${sku}' ya esta en uso por otro componente`);
+}
 
 async function listComponentes({ take = 50, skip = 0, search } = {}) {
-  const q = search?.trim();
-  const where = {
-    estado: 'activo',
-    ...(q
-      ? {
-          OR: [
-            { nombre: { contains: q, mode: 'insensitive' } },
-            { sku: { contains: q, mode: 'insensitive' } },
-          ],
-        }
-      : {}),
-  };
-
-  const [componentes, total] = await Promise.all([
+  const where = buildComponenteWhere({ search });
+  const [componentes, total] = await prisma.$transaction([
     prisma.componente.findMany({
       take,
       skip,
@@ -86,41 +154,31 @@ async function listComponentes({ take = 50, skip = 0, search } = {}) {
     prisma.componente.count({ where }),
   ]);
 
-  return { data: componentes.map(convertDecimals), total };
+  return { data: convertDecimals(componentes), total };
 }
 
 async function getComponenteById(idComponente) {
-  const componente = await prisma.componente.findUnique({
-    where: { idComponente },
+  const compId = parseId(idComponente, 'idComponente');
+  const componente = await prisma.componente.findFirst({
+    where: { idComponente: compId, estado: 'activo' },
     select: componenteSelect,
   });
 
   if (!componente) throw new HttpError(404, 'Componente no encontrado');
+
   return convertDecimals(componente);
 }
 
 async function createComponente({ nombre, descripcion, precioBase, sku }) {
-  // Validaciones básicas
-  if (!nombre?.trim()) throw new HttpError(400, 'Nombre es requerido');
-  if (!precioBase && precioBase !== 0) throw new HttpError(400, 'Precio es requerido');
-
-  // Verificar SKU único si se proporciona
-  if (sku?.trim()) {
-    const existing = await prisma.componente.findFirst({
-      where: { sku: sku.trim() },
-    });
-    if (existing) throw new HttpError(400, 'SKU ya existe');
-  }
-
-  const precio = Number(precioBase);
-  if (isNaN(precio) || precio < 0) throw new HttpError(400, 'Precio inválido');
+  const normalizedSku = sku?.trim() || null;
+  await assertSkuDisponible(normalizedSku);
 
   const componente = await prisma.componente.create({
     data: {
       nombre: nombre.trim(),
       descripcion: descripcion?.trim() || null,
-      precioBase: precio,
-      sku: sku?.trim() || null,
+      precioBase: parseNonNegativeInt(precioBase, 'Precio'),
+      sku: normalizedSku,
       estado: 'activo',
     },
     select: componenteSelect,
@@ -131,47 +189,17 @@ async function createComponente({ nombre, descripcion, precioBase, sku }) {
 
 async function updateComponente(idComponente, updateData) {
   const compId = parseId(idComponente, 'idComponente');
-
-  // Verificar que existe
-  const existing = await prisma.componente.findUnique({
-    where: { idComponente: compId },
-  });
-  if (!existing) throw new HttpError(404, 'Componente no encontrado');
+  await assertComponenteActivo(compId);
 
   const data = {};
 
-  if (updateData.nombre !== undefined) {
-    if (!updateData.nombre?.trim()) throw new HttpError(400, 'Nombre no puede estar vacío');
-    data.nombre = updateData.nombre.trim();
-  }
-
-  if (updateData.descripcion !== undefined) {
-    data.descripcion = updateData.descripcion?.trim() || null;
-  }
-
-  if (updateData.precioBase !== undefined) {
-    const precio = Number(updateData.precioBase);
-    if (isNaN(precio) || precio < 0) throw new HttpError(400, 'Precio inválido');
-    data.precioBase = precio;
-  }
-
-  // ✅ BUG FIX #5: Mejorar validación de SKU en edición
+  if (updateData.nombre !== undefined) data.nombre = updateData.nombre.trim();
+  if (updateData.descripcion !== undefined) data.descripcion = updateData.descripcion?.trim() || null;
+  if (updateData.precioBase !== undefined) data.precioBase = parseNonNegativeInt(updateData.precioBase, 'Precio');
   if (updateData.sku !== undefined) {
-    const newSku = updateData.sku?.trim() || null;
-    if (newSku && newSku !== existing.sku) {
-      const conflicts = await prisma.componente.findFirst({
-        where: {
-          sku: newSku,
-          idComponente: { not: compId },
-        },
-      });
-      if (conflicts) throw new HttpError(400, `SKU '${newSku}' ya está en uso por otro componente`);
-    }
-    data.sku = newSku;
-  }
-
-  if (Object.keys(data).length === 0) {
-    return convertDecimals(existing);
+    const normalizedSku = updateData.sku?.trim() || null;
+    await assertSkuDisponible(normalizedSku, compId);
+    data.sku = normalizedSku;
   }
 
   const componente = await prisma.componente.update({
@@ -185,46 +213,30 @@ async function updateComponente(idComponente, updateData) {
 
 async function deleteComponente(idComponente) {
   const compId = parseId(idComponente, 'idComponente');
+  await assertComponenteActivo(compId);
 
-  const existing = await prisma.componente.findUnique({
-    where: { idComponente: compId },
-    select: { idComponente: true },
-  });
-
-  if (!existing) throw new HttpError(404, 'Componente no encontrado');
-
-  await prisma.productoComponente.deleteMany({
-    where: { idComponente: compId },
-  });
-
-  await prisma.componente.update({
-    where: { idComponente: compId },
-    data: { estado: 'inactivo' },
-  });
+  await prisma.$transaction([
+    prisma.productoComponente.deleteMany({
+      where: { idComponente: compId },
+    }),
+    prisma.componente.update({
+      where: { idComponente: compId },
+      data: { estado: 'inactivo' },
+    }),
+  ]);
 
   return { ok: true, message: 'Componente eliminado' };
 }
 
-// ==================== PRODUCTO_COMPONENTE OPERATIONS ====================
-
-/**
- * Agregar producto a un componente
- * Crea relación en tabla producto_componentes
- */
 async function addProductToComponente(idComponente, idProducto, { cantidad = 1, precioReferencial = null, observaciones = null } = {}) {
   const compId = parseId(idComponente, 'idComponente');
   const prodId = parseId(idProducto, 'idProducto');
 
-  // Verificar que existen ambos
-  const [componente, producto] = await Promise.all([
-    prisma.componente.findUnique({ where: { idComponente: compId }, select: { idComponente: true } }),
-    prisma.producto.findUnique({ where: { idProducto: prodId }, select: { idProducto: true } }),
+  await Promise.all([
+    assertComponenteActivo(compId),
+    assertProductoActivo(prodId),
   ]);
 
-  if (!componente) throw new HttpError(404, 'Componente no encontrado');
-  if (!producto) throw new HttpError(404, 'Producto no encontrado');
-
-  // Verificar que no exista ya
   const existing = await prisma.productoComponente.findFirst({
     where: {
       idComponente: compId,
@@ -232,87 +244,42 @@ async function addProductToComponente(idComponente, idProducto, { cantidad = 1, 
     },
   });
 
-  if (existing) throw new HttpError(400, 'Este componente ya está asociado a este producto');
+  if (existing) throw new HttpError(409, 'Este componente ya esta asociado a este producto');
 
-  // Crear relación
   const productoComponente = await prisma.productoComponente.create({
     data: {
       idComponente: compId,
       idProducto: prodId,
-      cantidad: Math.max(1, cantidad),
-      precioReferencial: precioReferencial ? Number(precioReferencial) : null,
+      cantidad: parsePositiveInt(cantidad, 'Cantidad'),
+      precioReferencial: precioReferencial == null ? null : parseNonNegativeInt(precioReferencial, 'Precio referencial'),
       observaciones: observaciones?.trim() || null,
     },
-    select: {
-      idProductoComponente: true,
-      idProducto: true,
-      idComponente: true,
-      cantidad: true,
-      precioReferencial: true,
-      observaciones: true,
-      producto: {
-        select: {
-          idProducto: true,
-          nombre: true,
-          sku: true,
-          precioBase: true,
-        },
-      },
-    },
+    select: productoComponenteSelect,
   });
 
-  return productoComponente;
+  return convertDecimals(productoComponente);
 }
 
-/**
- * Obtener productos asociados a un componente
- */
 async function getProductsInComponente(idComponente) {
   const compId = parseId(idComponente, 'idComponente');
+  await assertComponenteActivo(compId);
 
-  // Verificar que existe el componente
-  const componente = await prisma.componente.findUnique({
-    where: { idComponente: compId },
-    select: { idComponente: true },
-  });
-
-  if (!componente) throw new HttpError(404, 'Componente no encontrado');
-
-  // Obtener relationships
   const items = await prisma.productoComponente.findMany({
     where: { idComponente: compId },
-    select: {
-      idProductoComponente: true,
-      idProducto: true,
-      cantidad: true,
-      precioReferencial: true,
-      observaciones: true,
-      producto: {
-        select: {
-          idProducto: true,
-          nombre: true,
-          sku: true,
-          precioBase: true,
-        },
-      },
-    },
+    select: productoComponenteSelect,
     orderBy: { idProductoComponente: 'desc' },
   });
 
-  return items;
+  return convertDecimals(items);
 }
 
-/**
- * Remover producto de componente
- */
 async function removeProductFromComponente(idProductoComponente) {
   const relId = parseId(idProductoComponente, 'idProductoComponente');
-
   const existing = await prisma.productoComponente.findUnique({
     where: { idProductoComponente: relId },
   });
 
-  if (!existing) throw new HttpError(404, 'Relación no encontrada');
+  if (!existing) throw new HttpError(404, 'Relacion no encontrada');
 
   await prisma.productoComponente.delete({
     where: { idProductoComponente: relId },
@@ -321,69 +288,35 @@ async function removeProductFromComponente(idProductoComponente) {
   return { ok: true, message: 'Producto removido del componente' };
 }
 
-/**
- * Actualizar relación producto_componente
- */
 async function updateProductInComponente(idProductoComponente, updateData) {
   const relId = parseId(idProductoComponente, 'idProductoComponente');
-
   const existing = await prisma.productoComponente.findUnique({
     where: { idProductoComponente: relId },
   });
 
-  if (!existing) throw new HttpError(404, 'Relación no encontrada');
+  if (!existing) throw new HttpError(404, 'Relacion no encontrada');
 
   const data = {};
 
-  if (updateData.cantidad !== undefined) {
-    const qty = Number(updateData.cantidad);
-    if (isNaN(qty) || qty < 1) throw new HttpError(400, 'Cantidad debe ser >= 1');
-    data.cantidad = qty;
-  }
-
+  if (updateData.cantidad !== undefined) data.cantidad = parsePositiveInt(updateData.cantidad, 'Cantidad');
   if (updateData.precioReferencial !== undefined) {
-    data.precioReferencial = updateData.precioReferencial ? Number(updateData.precioReferencial) : null;
+    data.precioReferencial = updateData.precioReferencial == null
+      ? null
+      : parseNonNegativeInt(updateData.precioReferencial, 'Precio referencial');
   }
-
-  if (updateData.observaciones !== undefined) {
-    data.observaciones = updateData.observaciones?.trim() || null;
-  }
-
-  if (Object.keys(data).length === 0) return existing;
+  if (updateData.observaciones !== undefined) data.observaciones = updateData.observaciones?.trim() || null;
 
   const updated = await prisma.productoComponente.update({
     where: { idProductoComponente: relId },
     data,
-    select: {
-      idProductoComponente: true,
-      idProducto: true,
-      idComponente: true,
-      cantidad: true,
-      precioReferencial: true,
-      observaciones: true,
-      producto: {
-        select: {
-          idProducto: true,
-          nombre: true,
-          sku: true,
-          precioBase: true,
-        },
-      },
-    },
+    select: productoComponenteSelect,
   });
 
-  return updated;
+  return convertDecimals(updated);
 }
 
-// ==================== IMAGEN OPERATIONS ====================
-
-/**
- * ✅ BUG FIX #4: Eliminar imagen de componente
- * Elimina registro en BASE DE DATOS (storage se maneja en otro lado)
- */
 async function deleteComponenteImage(idImagen) {
   const imgId = parseId(idImagen, 'idImagen');
-
   const existing = await prisma.componenteImagen.findUnique({
     where: { idImagen: imgId },
   });
@@ -391,15 +324,12 @@ async function deleteComponenteImage(idImagen) {
   if (!existing) throw new HttpError(404, 'Imagen no encontrada');
 
   await deleteImageByPublicUrl(existing.urlImagen);
-
   await prisma.componenteImagen.delete({
     where: { idImagen: imgId },
   });
 
   return { ok: true, message: 'Imagen eliminada' };
 }
-
-// ==================== EXPORTS ====================
 
 module.exports = {
   listComponentes,

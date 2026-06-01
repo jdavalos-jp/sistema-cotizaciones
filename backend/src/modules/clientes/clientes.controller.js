@@ -7,37 +7,61 @@ const {
 } = require('./clientes.service');
 
 const { HttpError } = require('../../utils/httpError');
+const {
+  createClienteSchema,
+  updateClienteSchema,
+  formatZodError,
+} = require('./clientes.validation');
 
 function parseId(param) {
   try {
-    return BigInt(param);
+    const id = BigInt(param);
+    if (id <= 0n) throw new Error('invalid');
+    return id;
   } catch {
-    throw new HttpError(400, 'id_cliente inválido');
+    throw new HttpError(400, 'id_cliente invalido');
   }
 }
 
-function normalizeClienteBody(body) {
-  const nombreCompleto = typeof body?.nombreCompleto === 'string' ? body.nombreCompleto.trim() : '';
-  if (!nombreCompleto) throw new HttpError(400, 'nombreCompleto es requerido');
+function parseClienteBody(schema, body) {
+  const result = schema.safeParse(body);
+  if (!result.success) {
+    throw new HttpError(400, formatZodError(result.error));
+  }
 
-  return {
-    nombreCompleto,
-    telefono: body?.telefono ? String(body.telefono).trim() : null,
-    email: body?.email ? String(body.email).trim() : null,
-    ciudad: body?.ciudad ? String(body.ciudad).trim() : null,
-    cargo: body?.cargo ? String(body.cargo).trim() : null,
-    institucion: body?.institucion ? String(body.institucion).trim() : null,
-    direccion: body?.direccion ? String(body.direccion).trim() : null,
-    observaciones: body?.observaciones ? String(body.observaciones).trim() : null,
-  };
+  return result.data;
+}
+
+function mapPrismaError(err) {
+  if (err?.code === 'P2025') {
+    throw new HttpError(404, 'Cliente no encontrado');
+  }
+
+  if (err?.code === 'P2003') {
+    throw new HttpError(409, 'No se puede eliminar: tiene cotizaciones relacionadas');
+  }
+
+  throw err;
 }
 
 async function list(req, res) {
   const take = req.query.take ? Number(req.query.take) : 50;
+  const skip = req.query.skip ? Number(req.query.skip) : 0;
   const safeTake = Number.isFinite(take) ? Math.min(Math.max(take, 1), 200) : 50;
+  const safeSkip = Number.isFinite(skip) ? Math.max(skip, 0) : 0;
   const search = req.query.search ? String(req.query.search) : undefined;
-  const data = await listClientes({ take: safeTake, search });
-  res.json({ ok: true, data });
+
+  const { items, total } = await listClientes({ take: safeTake, skip: safeSkip, search });
+
+  res.json({
+    ok: true,
+    data: items,
+    meta: {
+      total,
+      take: safeTake,
+      skip: safeSkip,
+    },
+  });
 }
 
 async function getById(req, res) {
@@ -48,30 +72,31 @@ async function getById(req, res) {
 }
 
 async function create(req, res) {
-  const payload = normalizeClienteBody(req.body);
+  const payload = parseClienteBody(createClienteSchema, req.body);
   const data = await createCliente(payload);
   res.status(201).json({ ok: true, data });
 }
 
 async function update(req, res) {
   const idCliente = parseId(req.params.id);
-  const payload = normalizeClienteBody(req.body);
-  const data = await updateCliente(idCliente, payload);
-  res.json({ ok: true, data });
+  const payload = parseClienteBody(updateClienteSchema, req.body);
+
+  try {
+    const data = await updateCliente(idCliente, payload);
+    res.json({ ok: true, data });
+  } catch (err) {
+    mapPrismaError(err);
+  }
 }
 
 async function remove(req, res) {
   const idCliente = parseId(req.params.id);
+
   try {
     await deleteCliente(idCliente);
     res.status(204).send();
   } catch (err) {
-    // Si hay cotizaciones apuntando al cliente, Postgres puede rechazar el delete.
-    const msg = String(err?.message ?? err);
-    if (msg.toLowerCase().includes('foreign key') || msg.toLowerCase().includes('constraint')) {
-      throw new HttpError(409, 'No se puede eliminar: tiene cotizaciones relacionadas');
-    }
-    throw err;
+    mapPrismaError(err);
   }
 }
 

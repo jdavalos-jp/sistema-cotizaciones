@@ -27,9 +27,20 @@ function createNumeroCotizacion() {
   return `COT-${ymd}-${rnd}`;
 }
 
-async function createCotizacionWithItems({ idCliente, productos, componentes, moneda = 'Bs', observaciones, fechaValidez, diasEntrega = 5 }) {
+async function createCotizacionWithItems({
+  idCliente,
+  productos,
+  componentes,
+  moneda = 'Bs',
+  observaciones,
+  fechaValidez,
+  diasEntrega = 5,
+  descuento = 0,
+  impuestos = 0,
+}) {
   const clienteId = toBigInt(idCliente, 'idCliente');
   const validMoneda = validateCurrency(moneda);
+  const entrega = toInt(diasEntrega ?? 5, 'diasEntrega', { min: 1, max: 365 });
 
   const fechaValidezDate =
     fechaValidez === null || fechaValidez === undefined || fechaValidez === ''
@@ -125,9 +136,14 @@ async function createCotizacionWithItems({ idCliente, productos, componentes, mo
     };
   });
 
-  const descuento = 0;
-  const impuestos = 0;
-  const total = subtotal - descuento + impuestos;
+  const desc = toPriceInt(descuento ?? 0, 'descuento');
+  const imp = toPriceInt(impuestos ?? 0, 'impuestos');
+
+  if (desc > subtotal) {
+    throw new HttpError(400, 'El descuento no puede ser mayor al subtotal');
+  }
+
+  const total = subtotal - desc + imp;
 
   const numeroCotizacion = createNumeroCotizacion();
 
@@ -138,14 +154,14 @@ async function createCotizacionWithItems({ idCliente, productos, componentes, mo
         idCliente: clienteId,
         estado: 'borrador',
         subtotal,
-        descuento,
-        impuestos,
+        descuento: desc,
+        impuestos: imp,
         total,
         moneda: validMoneda,
         observaciones: observaciones ? String(observaciones) : null,
         terminosCondiciones: null,
         idUsuarioCreador: null,
-        diasEntrega: diasEntrega ? Math.max(1, Number(diasEntrega)) : 5,
+        diasEntrega: entrega,
         fechaValidez: fechaValidezDate ?? undefined,
         productos: cotizacionProductosData.length
           ? { create: cotizacionProductosData }
@@ -198,24 +214,27 @@ async function getAllCotizaciones({ skip = 0, take = 50, estado = null } = {}) {
     where.estado = estado;
   }
 
-  const cotizaciones = await prisma.cotizacion.findMany({
-    where,
-    skip,
-    take,
-    orderBy: { fechaCreacion: 'desc' },
-    include: {
-      cliente: true,
-      usuarioCreador: {
-        select: {
-          idUsuario: true,
-          nombre: true,
-          apellido: true,
+  const [cotizaciones, total] = await prisma.$transaction([
+    prisma.cotizacion.findMany({
+      where,
+      skip,
+      take,
+      orderBy: { fechaCreacion: 'desc' },
+      include: {
+        cliente: true,
+        usuarioCreador: {
+          select: {
+            idUsuario: true,
+            nombre: true,
+            apellido: true,
+          },
         },
       },
-    },
-  });
+    }),
+    prisma.cotizacion.count({ where }),
+  ]);
 
-  return cotizaciones.map(enriquecerCotizacion);
+  return { data: cotizaciones.map(enriquecerCotizacion), total };
 }
 
 async function getCotizacionById(idCotizacion) {

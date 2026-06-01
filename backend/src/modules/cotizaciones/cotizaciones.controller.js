@@ -23,6 +23,8 @@ async function createCotizacion(req, res) {
     observaciones: body.observaciones,
     fechaValidez: body.fechaValidez,
     diasEntrega: body.diasEntrega ?? 5,
+    descuento: body.descuento,
+    impuestos: body.impuestos,
   });
 
   res.status(201).json({ ok: true, data: cotizacion });
@@ -41,6 +43,8 @@ async function createPdf(req, res) {
     observaciones: body.observaciones,
     fechaValidez: body.fechaValidez,
     diasEntrega: body.diasEntrega ?? 5,
+    descuento: body.descuento,
+    impuestos: body.impuestos,
   });
 
   const pdfBuffer = await buildCotizacionPdf(cotizacion);
@@ -59,9 +63,18 @@ async function getAllCotizacionesHandler(req, res) {
   const take = Math.min(100, Math.max(1, Number(req.query.take ?? 50)));
   const estado = req.query.estado ?? null;
 
-  const cotizaciones = await getAllCotizaciones({ skip, take, estado });
+  const { data, total } = await getAllCotizaciones({ skip, take, estado });
 
-  res.json({ ok: true, data: cotizaciones });
+  res.json({
+    ok: true,
+    data,
+    total,
+    meta: {
+      total,
+      skip,
+      take,
+    },
+  });
 }
 
 async function getCotizacionByIdHandler(req, res) {
