@@ -10,6 +10,7 @@ function ProductosSeleccionadosTable({
   onSetPrecio = () => { },
   onSetNombre = () => { },
   onSetDescripcion = () => { },
+  onSetObservaciones = () => { },
 }) {
   const total = useMemo(() => lineas.reduce((acc, l) => acc + (Number(l.totalLinea) || 0), 0), [lineas]);
 
@@ -41,6 +42,20 @@ function ProductosSeleccionadosTable({
           value={text || ''}
           onChange={(e) => onSetDescripcion(record.tipo, String(record.id), e.target.value)}
           placeholder="Sin descripción"
+          size="small"
+        />
+      ),
+    },
+    {
+      title: 'NOTAS / ENTREGA',
+      dataIndex: 'observaciones',
+      key: 'observaciones',
+      width: 140,
+      render: (text, record) => (
+        <Input
+          value={text || ''}
+          onChange={(e) => onSetObservaciones(record.tipo, String(record.id), e.target.value)}
+          placeholder="Ej: Inmediata"
           size="small"
         />
       ),

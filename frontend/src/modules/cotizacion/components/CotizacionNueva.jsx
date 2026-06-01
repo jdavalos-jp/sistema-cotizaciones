@@ -1,6 +1,5 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react'
 import {
-  Button,
   Space,
   Typography,
   message,
@@ -29,6 +28,7 @@ import { useCatalogSearch } from '../hooks/useCatalogSearch'
 import { useClientesSearch } from '../hooks/useClientesSearch'
 import { useCotizacionCart } from '../hooks/useCotizacionCart'
 import { useCotizacionPreview } from '../hooks/useCotizacionPreview'
+import FormActionBar from '../../../shared/components/FormActionBar'
 
 import { fetchProductos, fetchComponentes } from '../services/api/catalogoApi'
 import { createAndDownloadPdf } from '../services/api/cotizacionesApi'
@@ -68,7 +68,7 @@ function CotizacionNueva() {
   const clientes = useClientesSearch()
   const productos = useCatalogSearch(fetchProductos)
   const componentes = useCatalogSearch(fetchComponentes)
-  const cart = useCotizacionCart()
+  const cart = useCotizacionCart({ persistent: false })
 
   const preview = useCotizacionPreview({
     idCliente,
@@ -108,6 +108,7 @@ function CotizacionNueva() {
         ...linea,
         nombre: cartItem.nombre ?? linea.nombre,
         descripcion: cartItem.descripcion ?? linea.descripcion,
+        observaciones: cartItem.observaciones ?? linea.observaciones,
       }
     })
   }, [preview.data?.lineas, cart.cart])
@@ -188,6 +189,7 @@ function CotizacionNueva() {
             }),
             ...(item.nombre && { nombre: item.nombre }),
             ...(item.descripcion && { descripcion: item.descripcion }),
+            ...(item.observaciones && { observaciones: item.observaciones }),
           })),
 
         componentes: cart.cart
@@ -200,6 +202,7 @@ function CotizacionNueva() {
             }),
             ...(item.nombre && { nombre: item.nombre }),
             ...(item.descripcion && { descripcion: item.descripcion }),
+            ...(item.observaciones && { observaciones: item.observaciones }),
           })),
       }
 
@@ -307,6 +310,9 @@ function CotizacionNueva() {
           onSetDescripcion={(tipo, id, descripcion) =>
             cart.setDescripcion(tipo, String(id), descripcion)
           }
+          onSetObservaciones={(tipo, id, observaciones) =>
+            cart.setObservaciones(tipo, String(id), observaciones)
+          }
         />
 
         <Card
@@ -376,12 +382,26 @@ function CotizacionNueva() {
           </Row>
         </Card>
 
-        <FooterAcciones
-          cartLength={cart.cart.length}
-          loadingSubmit={loadingSubmit}
-          disabled={!idCliente || !cart.cart.length || !diasValidez || !diasEntrega}
-          onClear={resetForm}
-          onSubmit={handleGenerarCotizacion}
+        <FormActionBar
+          left={`${cart.cart.length} producto(s) en cotización`}
+          actions={[
+            {
+              key: 'clear',
+              label: 'Limpiar',
+              onClick: resetForm,
+              disabled: loadingSubmit,
+            },
+            {
+              key: 'submit',
+              label: 'Generar Cotización',
+              type: 'primary',
+              icon: <PlusOutlined />,
+              loading: loadingSubmit,
+              disabled: !idCliente || !cart.cart.length || !diasValidez || !diasEntrega,
+              onClick: handleGenerarCotizacion,
+              minWidth: 170,
+            },
+          ]}
         />
       </Space>
 
@@ -459,66 +479,6 @@ function ResumenInput({ label, value, onChange, moneda }) {
           {moneda}
         </span>
       </Space.Compact>
-    </div>
-  )
-}
-
-function FooterAcciones({
-  cartLength,
-  loadingSubmit,
-  disabled,
-  onClear,
-  onSubmit,
-}) {
-  return (
-    <div
-      style={{
-        position: 'fixed',
-        bottom: 0,
-        left: 0,
-        width: '100%',
-        background: '#fff',
-        borderTop: '1px solid #f0f0f0',
-        padding: '12px 24px',
-        zIndex: 10,
-        display: 'flex',
-        justifyContent: 'space-between',
-        alignItems: 'center',
-        boxShadow: '0 -4px 16px rgba(0,0,0,0.04)',
-      }}
-    >
-      <Text type="secondary">
-        {cartLength} producto(s) en cotización
-      </Text>
-
-      <Space size={16}>
-        <Button
-          size="large"
-          onClick={onClear}
-          style={{
-            borderRadius: 8,
-            minWidth: 100,
-          }}
-        >
-          Limpiar
-        </Button>
-
-        <Button
-          type="primary"
-          size="large"
-          icon={<PlusOutlined />}
-          loading={loadingSubmit}
-          onClick={onSubmit}
-          disabled={disabled}
-          style={{
-            borderRadius: 8,
-            minWidth: 100,
-            fontWeight: 600,
-          }}
-        >
-          Generar Cotización
-        </Button>
-      </Space>
     </div>
   )
 }

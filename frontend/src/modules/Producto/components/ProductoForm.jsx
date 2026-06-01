@@ -1,5 +1,5 @@
 import React, { useCallback, useEffect, useMemo, useState, useRef } from 'react'
-import { Button, Form, message, Row, Col, Spin, Typography, theme, Flex, Divider } from 'antd'
+import { Form, message, Row, Col, Spin, Typography, theme, Flex, Divider } from 'antd'
 import { useCategoriesAndSubcategories } from '../hooks/useCategoriesAndSubcategories'
 import { useProducto } from '../hooks/useProductosManager'
 import { useImagenesProducto } from '../../../hooks/useImagenes'
@@ -9,6 +9,7 @@ import { uploadImagenProducto } from '../../../services/api/imagenes'
 import ProductoImagenYCategoria from './ProductoImagenYCategoria'
 import ProductoInfoGeneral from './ProductoInfoGeneral'
 import ProductoInventarioPreciosMultimedia from './ProductoInventarioPreciosMultimedia'
+import FormActionBar from '../../../shared/components/FormActionBar'
 
 const { Title, Text } = Typography
 
@@ -310,28 +311,25 @@ function ProductoForm({ onSuccess, onCancel, idProductoEdit = null }) {
           </Row>
 
           <Divider style={{ margin: `${token.marginLG}px 0`, display: 'none' }} />
-
-          {/* Footer fixed */}
-          <div style={{
-            position: 'fixed', bottom: 0, left: 0, width: '100%',
-            background: '#fff', borderTop: '1px solid #f0f0f0',
-            padding: '16px 24px', zIndex: 10, display: 'flex', justifyContent: 'flex-end', gap: 16
-          }}>
-            <Button
-              type="primary"
-              htmlType="submit"
-              loading={submitting}
-              disabled={submitting || !canSubmit}
-              size="large"
-              style={{ borderRadius: 8, minWidth: 100, fontWeight: 600 }}
-            >
-              {idProductoEdit ? 'Guardar' : 'Guardar'}
-            </Button>
-            <Button onClick={onCancel} size="large" style={{ borderRadius: 8, minWidth: 100 }} disabled={submitting}>
-              Cancelar
-            </Button>
-          </div>
-        </Form>
+          <FormActionBar
+            left={idProductoEdit ? 'Editando producto' : 'Nuevo producto'}
+            actions={[
+              {
+                key: 'cancel',
+                label: 'Cancelar',
+                onClick: onCancel,
+                disabled: submitting,
+              },
+              {
+                key: 'save',
+                label: 'Guardar',
+                type: 'primary',
+                htmlType: 'submit',
+                loading: submitting,
+                disabled: submitting || !canSubmit,
+              },
+            ]}
+          /></Form>
       )}
       </div>
     </div>

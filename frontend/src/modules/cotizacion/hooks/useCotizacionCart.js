@@ -17,11 +17,12 @@ function normalizeItem(item) {
     cantidad: Math.max(1, Number(item.cantidad) || 1),
     nombre: item.nombre,
     descripcion: item.descripcion,
+    observaciones: item.observaciones,
     precioUnitario: item.precioUnitario === undefined ? undefined : Math.max(0, Number(item.precioUnitario) || 0),
   }
 }
 
-export function useCotizacionCart({ persistent = true } = {}) {
+export function useCotizacionCart({ persistent = false } = {}) {
   const [cart, setCart] = useState([])
   const isMountedRef = useRef(true)
 
@@ -114,6 +115,16 @@ export function useCotizacionCart({ persistent = true } = {}) {
     )
   }, [])
 
+  const setObservaciones = useCallback((tipo, id, observaciones) => {
+    setCart((prev) =>
+      prev.map((x) => 
+        x.tipo === tipo && String(x.id) === String(id) 
+          ? { ...x, observaciones } 
+          : x
+      ),
+    )
+  }, [])
+
   const addItem = useCallback((item) => {
     setCart((prev) => {
       const exists = prev.some((x) => x.tipo === item.tipo && String(x.id) === String(item.id))
@@ -126,6 +137,7 @@ export function useCotizacionCart({ persistent = true } = {}) {
           cantidad: item.cantidad ?? 1,
           nombre: item.nombre,
           descripcion: item.descripcion,
+          observaciones: item.observaciones,
           precioUnitario: item.precioUnitario,
         },
       ]
@@ -169,6 +181,7 @@ export function useCotizacionCart({ persistent = true } = {}) {
     setPrecioUnitario,
     setNombre,
     setDescripcion,
+    setObservaciones,
     setSelectionFromList,
     clear,
     setItems,

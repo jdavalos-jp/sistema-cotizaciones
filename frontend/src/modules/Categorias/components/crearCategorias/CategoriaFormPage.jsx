@@ -1,9 +1,10 @@
 import { useEffect, useMemo, useState } from 'react'
-import { Button, Form, message, Row, Col, Spin, Typography, Card, Space, Select } from 'antd'
+import { Form, message, Row, Col, Spin, Typography, Card, Space, Select } from 'antd'
 import { CheckCircleFilled, TagsOutlined } from '@ant-design/icons'
 import { useNavigate } from 'react-router-dom'
 import CategoriaInfoGeneral from './CategoriaInfoGeneral'
 import * as categoriasApi from '../../services/categoriasApi'
+import FormActionBar from '../../../../shared/components/FormActionBar'
 
 const { Title, Text } = Typography
 
@@ -161,38 +162,25 @@ export default function CategoriaFormPage({ idCategoriaEdit = null }) {
                 <CategoriaInfoGeneral />
               </Col>
             </Row>
-
-            <div
-              style={{
-                position: 'fixed',
-                bottom: 0,
-                left: 0,
-                width: '100%',
-                background: '#fff',
-                borderTop: '1px solid #f0f0f0',
-                padding: '16px 24px',
-                zIndex: 10,
-                display: 'flex',
-                justifyContent: 'flex-end',
-                gap: 16,
-                boxShadow: '0 -8px 24px rgba(15, 23, 42, 0.06)',
-              }}
-            >
-              <Button size="large" onClick={() => navigate('/categorias')} style={{ borderRadius: 8, minWidth: 100 }}>
-                Cancelar
-              </Button>
-              <Button
-                type="primary"
-                size="large"
-                htmlType="submit"
-                loading={submitting}
-                disabled={!canSubmit}
-                style={{ borderRadius: 8, minWidth: 100, fontWeight: 600 }}
-              >
-                Guardar
-              </Button>
-            </div>
-          </Form>
+            <FormActionBar
+              left={idCategoriaEdit ? 'Editando categoría' : 'Nueva categoría'}
+              actions={[
+                {
+                  key: 'cancel',
+                  label: 'Cancelar',
+                  onClick: () => navigate('/categorias'),
+                  disabled: submitting,
+                },
+                {
+                  key: 'save',
+                  label: 'Guardar',
+                  type: 'primary',
+                  htmlType: 'submit',
+                  loading: submitting,
+                  disabled: !canSubmit,
+                },
+              ]}
+            /></Form>
         </Spin>
       </div>
     </div>

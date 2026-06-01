@@ -1,5 +1,5 @@
 import React, { useState, useMemo } from 'react';
-import { Button, Space, Typography, message, Divider, Row, Col, Card } from 'antd';
+import { Space, Typography, message, Card } from 'antd';
 import { PlusOutlined } from '@ant-design/icons';
 import {
   ClienteDatosSection,
@@ -9,6 +9,7 @@ import {
   ModalNuevoCliente,
 } from './sections';
 import { useCotizacionPreview } from '../hooks/useCotizacionPreview';
+import FormActionBar from '../../../shared/components/FormActionBar';
 
 export default function CotizacionForm({
   initialCliente,
@@ -50,6 +51,7 @@ export default function CotizacionForm({
           ...linea,
           nombre: cartItem.nombre ?? linea.nombre,
           descripcion: cartItem.descripcion ?? linea.descripcion,
+          observaciones: cartItem.observaciones ?? linea.observaciones,
         };
       }
       return linea;
@@ -67,8 +69,26 @@ export default function CotizacionForm({
       diasValidez,
       diasEntrega,
       moneda,
-      productos: cart.cart.filter(x => x.tipo === 'producto'),
-      componentes: cart.cart.filter(x => x.tipo === 'componente'),
+      productos: cart.cart
+        .filter(x => x.tipo === 'producto')
+        .map(x => ({
+          idProducto: String(x.id),
+          cantidad: x.cantidad,
+          precioUnitario: x.precioUnitario,
+          nombre: x.nombre,
+          descripcion: x.descripcion,
+          observaciones: x.observaciones
+        })),
+      componentes: cart.cart
+        .filter(x => x.tipo === 'componente')
+        .map(x => ({
+          idComponente: String(x.id),
+          cantidad: x.cantidad,
+          precioUnitario: x.precioUnitario,
+          nombre: x.nombre,
+          descripcion: x.descripcion,
+          observaciones: x.observaciones
+        })),
     };
 
     await onSubmit(payload);
@@ -111,34 +131,31 @@ export default function CotizacionForm({
         onSetPrecio={cart.setPrecioUnitario}
         onSetNombre={cart.setNombre}
         onSetDescripcion={cart.setDescripcion}
+        onSetObservaciones={cart.setObservaciones}
       />
-      <Divider />
-      <Row justify="end" style={{ marginBottom: 80 }}>
-        <Col>
-          <div style={{
-            position: 'fixed', bottom: 0, left: 0, width: '100%',
-            background: '#fff', borderTop: '1px solid #f0f0f0',
-            padding: '16px 24px', zIndex: 10, display: 'flex', justifyContent: 'flex-end', gap: 16
-          }}>
-            <Button
-              type="primary"
-              size="large"
-              icon={<PlusOutlined />}
-              onClick={handleSubmit}
-              loading={submitting}
-              disabled={!idCliente || !cart.cart.length || lineasConEdiciones.length === 0}
-              style={{ borderRadius: 8, minWidth: 100, fontWeight: 600 }}
-            >
-              Guradar
-            </Button>
-            <Button size="large" onClick={() => cart.clear()} style={{ borderRadius: 8 }}>
-              Limpiar
-            </Button>
-            {onCancel && <Button size="large" onClick={onCancel} style={{ borderRadius: 8 }}>Cancelar</Button>}
-          </div>
-        </Col>
-      </Row>
-      <ModalNuevoCliente
+      <FormActionBar
+        left={`${cart.cart.length} producto(s) en cotización`}
+        actions={[
+          {
+            key: 'clear',
+            label: 'Limpiar',
+            onClick: () => cart.clear(),
+          },
+          ...(onCancel
+            ? [{ key: 'cancel', label: 'Cancelar', onClick: onCancel }]
+            : []),
+          {
+            key: 'save',
+            label: submitLabel || 'Guardar',
+            type: 'primary',
+            icon: <PlusOutlined />,
+            onClick: handleSubmit,
+            loading: submitting,
+            disabled: !idCliente || !cart.cart.length || lineasConEdiciones.length === 0,
+            minWidth: 140,
+          },
+        ]}
+      /><ModalNuevoCliente
         visible={modalNuevoClienteVisible}
         onClose={() => setModalNuevoClienteVisible(false)}
         onSuccess={(nuevoCliente) => {

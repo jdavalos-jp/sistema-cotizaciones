@@ -1,23 +1,20 @@
-import React, { useState } from 'react'
-import { Card, Cascader, Form, Upload, Space, Typography, Button, message, theme, Skeleton, Flex } from 'antd'
-import { UploadOutlined, DeleteOutlined, PictureOutlined, FileImageOutlined } from '@ant-design/icons'
+import React from 'react'
+import { Cascader, Form, Upload, Typography, message, theme, Skeleton } from 'antd'
+import { UploadOutlined } from '@ant-design/icons'
 
 const { Text } = Typography
 const MAX_SIZE = 5 * 1024 * 1024
-export default function categoria ({
+export default function Categoria ({
   categoriaOptions = [],
   loadingCategorias = false,
   loadingHierarchy = false,
   fileList = [],
   setFileList,
-  previewUrl = '',
   setPreviewUrl,
   beforeUpload,
   onDeleteImage,
-  initialFile = null
   }) {
 const { token } = theme.useToken()
-const [hovered, setHovered] = useState(false) 
 const handleUpload = ({ file, fileList: newList }) => {
   console.log('🔍 handleUpload - file:', file.name, file.status)
       if (file.status === 'removed') {

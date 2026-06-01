@@ -1,7 +1,8 @@
 import React, { useEffect, useMemo, useState } from 'react'
-import { Button, Card, Col, Form, Input, message, Row, Space, Spin, Typography } from 'antd'
+import { Card, Col, Form, Input, message, Row, Space, Spin, Typography } from 'antd'
 import { SaveOutlined } from '@ant-design/icons'
 import { useClientesManager } from '../hooks/useClientesManager'
+import FormActionBar from '../../../shared/components/FormActionBar'
 
 const { Title, Text } = Typography
 
@@ -195,37 +196,26 @@ function ClienteForm({ onSuccess, onCancel, idClienteEdit = null }) {
                   </Col>
                 </Row>
               </Card>
-
-              <div
-                style={{
-                  position: 'fixed',
-                  bottom: 0,
-                  left: 0,
-                  width: '100%',
-                  background: '#fff',
-                  borderTop: '1px solid #f0f0f0',
-                  padding: '16px 24px',
-                  zIndex: 10,
-                  display: 'flex',
-                  justifyContent: 'flex-end',
-                  gap: 12,
-                }}
-              >
-                <Button onClick={onCancel} size="large" disabled={submitting}>
-                  Cancelar
-                </Button>
-                <Button
-                  type="primary"
-                  htmlType="submit"
-                  icon={<SaveOutlined />}
-                  loading={submitting}
-                  disabled={!canSubmit}
-                  size="large"
-                >
-                  Guardar
-                </Button>
-              </div>
-            </Form>
+              <FormActionBar
+                left={idClienteEdit ? 'Editando cliente' : 'Nuevo cliente'}
+                actions={[
+                  {
+                    key: 'cancel',
+                    label: 'Cancelar',
+                    onClick: onCancel,
+                    disabled: submitting,
+                  },
+                  {
+                    key: 'save',
+                    label: 'Guardar',
+                    type: 'primary',
+                    htmlType: 'submit',
+                    icon: <SaveOutlined />,
+                    loading: submitting,
+                    disabled: !canSubmit,
+                  },
+                ]}
+              /></Form>
           </Spin>
         </Space>
       </div>

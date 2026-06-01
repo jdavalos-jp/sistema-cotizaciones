@@ -1,5 +1,5 @@
 import React, { useCallback, useEffect, useMemo, useState } from 'react'
-import { Button, Form, message, Row, Col, Spin, Typography, theme, Flex, Divider } from 'antd'
+import { Form, message, Row, Col, Spin, Typography, theme, Flex, Divider } from 'antd'
 import { useComponentesManager } from '../hooks/useComponentesManager'
 import { useImagenesComponente } from '../../../hooks/useImagenes'
 import { uploadImagenComponente, deleteImagenComponente } from '../../../services/api/imagenes'
@@ -8,6 +8,7 @@ import * as componentesApi from '../Services/api/componentesApi'
 import ImageUpload from '../../../shared/components/ImageUpload'
 import ComponenteInfoGeneral from './ComponenteInfoGeneral'
 import ComponenteProductoSelector from './ComponenteProductoSelector'
+import FormActionBar from '../../../shared/components/FormActionBar'
 
 const { Title, Text } = Typography
 
@@ -296,32 +297,25 @@ function ComponenteForm({ onSuccess, onCancel, idComponenteEdit = null }) {
           </Row>
 
           <Divider style={{ margin: `${token.marginLG}px 0`, display: 'none' }} />
-
-          <div style={{
-            position: 'fixed', bottom: 0, left: 0, width: '100%',
-            background: '#fff', borderTop: '1px solid #f0f0f0',
-            padding: '16px 24px', zIndex: 10, display: 'flex', justifyContent: 'flex-end', gap: 16
-          }}>
-            <Button
-              type="primary"
-              htmlType="submit"
-              loading={submitting}
-              disabled={submitting || !canSubmit}
-              size="large"
-              style={{ borderRadius: 8, minWidth: 100, fontWeight: 600 }}
-            >
-              Guardar
-            </Button>
-            <Button
-              onClick={onCancel}
-              size="large"
-              disabled={submitting}
-              style={{ borderRadius: 8, minWidth: 100 }}
-            >
-              Cancelar
-            </Button>
-          </div>
-        </Form>
+          <FormActionBar
+            left={idComponenteEdit ? 'Editando componente' : 'Nuevo componente'}
+            actions={[
+              {
+                key: 'cancel',
+                label: 'Cancelar',
+                onClick: onCancel,
+                disabled: submitting,
+              },
+              {
+                key: 'save',
+                label: 'Guardar',
+                type: 'primary',
+                htmlType: 'submit',
+                loading: submitting,
+                disabled: submitting || !canSubmit,
+              },
+            ]}
+          /></Form>
       )}
       </div>
     </div>
