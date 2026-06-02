@@ -1,0 +1,1 @@
+quiero que actues como ingeniero de software  full stack  y quiero que revises los archivos tanto del backend  y frontend  y quiero que revises que se puede factorizar  y si es escalabra  entendible tienen  buena  logica  
