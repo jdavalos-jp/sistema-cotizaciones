@@ -3,6 +3,7 @@ import { Spin, Descriptions, Table, Tag, Button, Space, message, Modal } from 'a
 import { DownloadOutlined, PrinterOutlined, EditOutlined } from '@ant-design/icons'
 import { useCotizacion } from '../hooks/useCotizacionesManager'
 import { CotizacionEditar } from '../../cotizacion/components'
+import { formatDateDMY } from '../../../shared/utils'
 
 const estadoColors = {
   borrador: 'default',
@@ -176,7 +177,7 @@ export default function VerDetalleCotizacion({
             {cotizacion.cliente?.ciudad || '-'}
           </Descriptions.Item>
           <Descriptions.Item label="Fecha emision">
-            {new Date(cotizacion.fechaEmision).toLocaleDateString('es-BO')}
+            {formatDateDMY(cotizacion.fechaEmision)}
           </Descriptions.Item>
           <Descriptions.Item label="Moneda">
             {cotizacion.moneda}

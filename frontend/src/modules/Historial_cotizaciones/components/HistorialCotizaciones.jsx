@@ -3,6 +3,7 @@ import { Modal, Spin, Alert, message, Typography, Card, Input, Button, DatePicke
 import { PlusOutlined, SearchOutlined, ReloadOutlined } from '@ant-design/icons'
 import { useNavigate } from 'react-router-dom'
 import { useCotizacionesList } from '../hooks/useCotizacionesManager'
+import { toDateOnlyString } from '../../../shared/utils'
 
 import CotizacionesTable from './CotizacionesTable'
 import VerDetalleCotizacion from './VerDetalleCotizacion'
@@ -66,13 +67,12 @@ function HistorialCotizaciones() {
 
     if (fechas && fechas.length === 2) {
       const [start, end] = fechas
-      const startOfDay = start.startOf('day').valueOf()
-      const endOfDay = end.endOf('day').valueOf()
+      const startDate = start.format('YYYY-MM-DD')
+      const endDate = end.format('YYYY-MM-DD')
 
       result = result.filter((cotizacion) => {
-        if (!cotizacion.fechaEmision) return false
-        const time = new Date(cotizacion.fechaEmision).getTime()
-        return time >= startOfDay && time <= endOfDay
+        const fechaEmision = toDateOnlyString(cotizacion.fechaEmision)
+        return fechaEmision >= startDate && fechaEmision <= endDate
       })
     }
 

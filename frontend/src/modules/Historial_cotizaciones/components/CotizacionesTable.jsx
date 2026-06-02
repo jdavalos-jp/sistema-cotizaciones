@@ -7,6 +7,7 @@ import {
   CloseOutlined,
   MoreOutlined,
 } from '@ant-design/icons'
+import { formatDateDMY } from '../../../shared/utils'
 
 const estadoColors = {
   borrador: 'default',
@@ -22,8 +23,7 @@ function formatCurrency(value, moneda) {
 }
 
 function formatDate(value) {
-  if (!value) return '-'
-  return new Date(value).toLocaleDateString('es-BO')
+  return formatDateDMY(value)
 }
 
 function CotizacionesTable({
