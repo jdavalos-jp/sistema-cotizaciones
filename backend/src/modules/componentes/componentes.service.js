@@ -143,7 +143,7 @@ async function assertSkuDisponible(sku, idComponente = null) {
 
 async function listComponentes({ take = 50, skip = 0, search } = {}) {
   const where = buildComponenteWhere({ search });
-  const [componentes, total] = await prisma.$transaction([
+  const [componentes, total] = await Promise.all([
     prisma.componente.findMany({
       take,
       skip,

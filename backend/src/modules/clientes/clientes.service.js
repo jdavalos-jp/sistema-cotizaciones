@@ -14,7 +14,7 @@ async function listClientes({ take = 50, skip = 0, search } = {}) {
       }
     : undefined;
 
-  const [items, total] = await prisma.$transaction([
+  const [items, total] = await Promise.all([
     prisma.cliente.findMany({
       take,
       skip,

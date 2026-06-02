@@ -150,6 +150,10 @@ const UpdateClienteSchema = CreateClienteSchema.partial();
 const CotizacionItemSchema = z.object({
   id: z.union([z.number(), z.string(), z.bigint()]).pipe(z.coerce.bigint().positive()),
   cantidad: z.union([z.number(), z.string()]).pipe(z.coerce.number().int().positive()),
+  nombre: z.string().max(200).optional(),
+  descripcion: z.string().optional(),
+  observaciones: z.string().optional(),
+  precioUnitario: z.union([z.number(), z.string()]).pipe(z.coerce.number().min(0)).optional(),
 });
 
 const CreateCotizacionSchema = z.object({

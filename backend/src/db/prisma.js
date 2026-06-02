@@ -22,7 +22,12 @@ if (looksLikePlaceholder(connectionString)) {
   );
 }
 
-const poolOptions = { connectionString };
+const poolOptions = {
+  connectionString,
+  max: Number(process.env.DB_POOL_MAX ?? 10),
+  idleTimeoutMillis: Number(process.env.DB_IDLE_TIMEOUT_MS ?? 30000),
+  connectionTimeoutMillis: Number(process.env.DB_CONNECTION_TIMEOUT_MS ?? 10000),
+};
 try {
   const u = new URL(connectionString);
   const host = u.hostname || '';

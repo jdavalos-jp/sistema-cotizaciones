@@ -1,234 +1,192 @@
-const sharp = require('sharp')
-const { supabaseAdmin } = require('../../integrations/supabaseAdmin')
-const crypto = require('crypto')
+const crypto = require('crypto');
 
-const BUCKET_NAME = 'cotizaciones-images'
+const sharp = require('sharp');
 
-const VALIDACIONES = {
-  TIPOS: ['image/jpeg', 'image/png', 'image/webp'],
-  TAMANIO_MAX: 5 * 1024 * 1024,           // 5MB
-  ANCHO_MIN: 400,
-  ALTO_MIN: 300,
-  ANCHO_MAX: 4000,
-  ALTO_MAX: 4000,
+const { supabaseAdmin } = require('../../integrations/supabaseAdmin');
+const { HttpError } = require('../../utils/httpError');
+
+const BUCKET_NAME = 'cotizaciones-images';
+
+const IMAGE_RULES = {
+  types: ['image/jpeg', 'image/png', 'image/webp'],
+  maxSize: 5 * 1024 * 1024,
+  minWidth: 400,
+  minHeight: 300,
+};
+
+function validateImageFile(file) {
+  if (!file || !file.buffer) {
+    throw new HttpError(400, 'No se recibio ningun archivo');
+  }
+
+  if (!IMAGE_RULES.types.includes(file.mimetype)) {
+    throw new HttpError(400, 'Tipo invalido. Solo se permiten JPEG, PNG o WebP');
+  }
+
+  if (file.size > IMAGE_RULES.maxSize) {
+    throw new HttpError(400, 'La imagen no puede superar 5MB');
+  }
+}
+
+async function getImageMetadata(file) {
+  try {
+    return await sharp(file.buffer).metadata();
+  } catch {
+    throw new HttpError(400, 'Imagen corrupta');
+  }
+}
+
+function assertMinimumDimensions(metadata) {
+  if (metadata.width < IMAGE_RULES.minWidth || metadata.height < IMAGE_RULES.minHeight) {
+    throw new HttpError(400, `La imagen debe ser minimo ${IMAGE_RULES.minWidth}x${IMAGE_RULES.minHeight}px`);
+  }
+}
+
+async function optimizeImage(file, metadata = null) {
+  const pipeline = sharp(file.buffer);
+
+  if (metadata?.width && metadata?.height) {
+    pipeline.resize(metadata.width, metadata.height, {
+      fit: 'inside',
+      withoutEnlargement: true,
+    });
+  }
+
+  return pipeline.webp({ quality: 80 }).toBuffer();
+}
+
+async function uploadToBucket(rutaBucket, buffer) {
+  const { error } = await supabaseAdmin.storage.from(BUCKET_NAME).upload(rutaBucket, buffer, {
+    contentType: 'image/webp',
+    upsert: false,
+  });
+
+  if (error) {
+    throw new Error(`Error al subir imagen: ${error.message}`);
+  }
+}
+
+function getPublicUrl(rutaBucket) {
+  const {
+    data: { publicUrl },
+  } = supabaseAdmin.storage.from(BUCKET_NAME).getPublicUrl(rutaBucket);
+
+  return publicUrl;
+}
+
+function safePathSegment(value, fallback = 'archivo') {
+  const cleaned = String(value || fallback)
+    .normalize('NFKD')
+    .replace(/[^\w.-]+/g, '-')
+    .replace(/^-+|-+$/g, '')
+    .slice(0, 80);
+
+  return cleaned || fallback;
 }
 
 async function uploadProductoImage(file, idProducto) {
-  // 1️⃣ Validar
-  console.log('📸 [IMAGESERVICE] Validando imagen para producto:', idProducto, '- Tamaño:', file?.size, 'bytes');
-  if (!file || !file.buffer) {
-    const error = 'No file provided';
-    console.error('❌ [IMAGESERVICE]', error);
-    throw new Error(error);
-  }
-  
-  console.log('📸 [IMAGESERVICE] Tipo MIME:', file.mimetype);
-  if (!VALIDACIONES.TIPOS.includes(file.mimetype)) {
-    const error = 'Tipo inválido. Solo JPEG, PNG, WebP';
-    console.error('❌ [IMAGESERVICE]', error, '- Recibido:', file.mimetype);
-    throw new Error(error);
-  }
-  
-  if (file.size > VALIDACIONES.TAMANIO_MAX) {
-    const error = 'Archivo > 5MB';
-    console.error('❌ [IMAGESERVICE]', error);
-    throw new Error(error);
-  }
+  validateImageFile(file);
 
-  // 2️⃣ Metadata
-  let metadata
-  try {
-    console.log('📸 [IMAGESERVICE] Extrayendo metadata con Sharp...');
-    metadata = await sharp(file.buffer).metadata()
-    console.log('📸 [IMAGESERVICE] Metadata:', metadata.width, 'x', metadata.height);
-  } catch (err) {
-    console.error('❌ [IMAGESERVICE] Sharp metadata error:', err.message);
-    throw new Error('Imagen corrupta: ' + err.message);
-  }
+  const metadata = await getImageMetadata(file);
+  assertMinimumDimensions(metadata);
 
-  if (metadata.width < VALIDACIONES.ANCHO_MIN || metadata.height < VALIDACIONES.ALTO_MIN) {
-    const error = `Mínimo ${VALIDACIONES.ANCHO_MIN}x${VALIDACIONES.ALTO_MIN}px`;
-    console.error('❌ [IMAGESERVICE]', error);
-    throw new Error(error);
-  }
+  const hash = crypto.createHash('md5').update(file.buffer).digest('hex').slice(0, 12);
+  const nombreArchivo = `${idProducto}-${Date.now()}-${hash}.webp`;
+  const rutaBucket = `productos/${idProducto}/${nombreArchivo}`;
+  const imageOptimizada = await optimizeImage(file, metadata);
 
-  // 3️⃣ Hash y paths
-  const hash = crypto.createHash('md5').update(file.buffer).digest('hex')
-  const timestamp = Date.now()
-  const nombreArchivo = `${idProducto}-${timestamp}.webp`
-  const rutaBucket = `productos/${idProducto}/${nombreArchivo}`
-
-  console.log('🔄 [IMAGESERVICE] Optimizando imagen...');
-  // 4️⃣ Optimizar y subir
-  let imageOptimizada;
-  try {
-    imageOptimizada = await sharp(file.buffer)
-      .resize(metadata.width, metadata.height, { fit: 'inside', withoutEnlargement: true })
-      .webp({ quality: 80 })
-      .toBuffer()
-    console.log('📸 [IMAGESERVICE] Imagen optimizada - Tamaño:', imageOptimizada.length, 'bytes');
-  } catch (err) {
-    console.error('❌ [IMAGESERVICE] Sharp optimization error:', err.message);
-    throw new Error('Error optimizing image: ' + err.message);
-  }
-
-  console.log('☁️ [IMAGESERVICE] Subiendo a Supabase:', rutaBucket);
-  let errorOriginal;
-  try {
-    const res = await supabaseAdmin.storage
-      .from(BUCKET_NAME)
-      .upload(rutaBucket, imageOptimizada, {
-        contentType: 'image/webp',
-        upsert: false,
-      });
-    
-    if (res.error) {
-      errorOriginal = res.error;
-      throw new Error(res.error.message);
-    }
-    console.log('✅ [IMAGESERVICE] Archivo subido a Supabase');
-  } catch (err) {
-    console.error('❌ [IMAGESERVICE] Supabase upload error:', err.message);
-    throw new Error(`Error subir a Supabase: ${err.message}`);
-  }
-
-  // 6️⃣ URLs
-  console.log('📸 [IMAGESERVICE] Obteniendo URL pública...');
-  const { data: { publicUrl: urlOriginal } } = supabaseAdmin.storage
-    .from(BUCKET_NAME)
-    .getPublicUrl(rutaBucket)
-
-  console.log('✅ [IMAGESERVICE] Imagen subida exitosamente - URL:', urlOriginal);
+  await uploadToBucket(rutaBucket, imageOptimizada);
 
   return {
-    urlImagen: urlOriginal,
+    urlImagen: getPublicUrl(rutaBucket),
     nombreArchivo,
     rutaBucket,
-  }
+    tamanio: imageOptimizada.length,
+  };
 }
 
 async function uploadCotizacionImage(file, idCotizacion, tipo = 'adjunto') {
-  if (!file || !file.buffer) throw new Error('No file')
-  if (!VALIDACIONES.TIPOS.includes(file.mimetype)) throw new Error('Tipo inválido')
-  if (file.size > VALIDACIONES.TAMANIO_MAX) throw new Error('Muy grande')
+  validateImageFile(file);
 
-  let metadata
-  try {
-    metadata = await sharp(file.buffer).metadata()
-  } catch (err) {
-    throw new Error('Imagen corrupta')
-  }
+  await getImageMetadata(file);
 
-  const timestamp = Date.now()
-  const nombreArchivo = `${idCotizacion}-${tipo}-${timestamp}.webp`
-  const rutaBucket = `cotizaciones/${idCotizacion}/${nombreArchivo}`
+  const safeTipo = safePathSegment(tipo, 'adjunto');
+  const nombreArchivo = `${idCotizacion}-${safeTipo}-${Date.now()}.webp`;
+  const rutaBucket = `cotizaciones/${idCotizacion}/${nombreArchivo}`;
+  const imageOptimizada = await optimizeImage(file);
 
-  const imageOptimizada = await sharp(file.buffer)
-    .webp({ quality: 80 })
-    .toBuffer()
-
-  const { error } = await supabaseAdmin.storage
-    .from(BUCKET_NAME)
-    .upload(rutaBucket, imageOptimizada, { contentType: 'image/webp' })
-
-  if (error) throw new Error(`Error: ${error.message}`)
-
-  const { data: { publicUrl } } = supabaseAdmin.storage
-    .from(BUCKET_NAME)
-    .getPublicUrl(rutaBucket)
+  await uploadToBucket(rutaBucket, imageOptimizada);
 
   return {
     nombreArchivo,
     rutaBucket,
-    urlImagen: publicUrl,
-    tipo,
+    urlImagen: getPublicUrl(rutaBucket),
+    tipo: safeTipo,
     tamanio: imageOptimizada.length,
-  }
+  };
+}
+
+async function uploadComponenteImage(file, idComponente) {
+  validateImageFile(file);
+
+  await getImageMetadata(file);
+
+  const nombreArchivo = `${idComponente}-${Date.now()}.webp`;
+  const rutaBucket = `componentes/${idComponente}/${nombreArchivo}`;
+  const imageOptimizada = await optimizeImage(file);
+
+  await uploadToBucket(rutaBucket, imageOptimizada);
+
+  return {
+    nombreArchivo,
+    rutaBucket,
+    urlImagen: getPublicUrl(rutaBucket),
+    tamanio: imageOptimizada.length,
+  };
 }
 
 async function deleteImage(rutaBucket) {
-  const { error } = await supabaseAdmin.storage
-    .from(BUCKET_NAME)
-    .remove([rutaBucket])
+  if (!rutaBucket) return;
 
-  if (error) throw new Error(`Error: ${error.message}`)
+  const { error } = await supabaseAdmin.storage.from(BUCKET_NAME).remove([rutaBucket]);
+
+  if (error) {
+    throw new Error(`Error al eliminar imagen: ${error.message}`);
+  }
 }
 
 function getBucketPathFromPublicUrl(urlImagen) {
-  if (!urlImagen) return null
+  if (!urlImagen) return null;
 
   try {
-    const { pathname } = new URL(urlImagen)
-    const marker = `/${BUCKET_NAME}/`
-    const markerIndex = pathname.indexOf(marker)
+    const { pathname } = new URL(urlImagen);
+    const marker = `/${BUCKET_NAME}/`;
+    const markerIndex = pathname.indexOf(marker);
 
-    if (markerIndex === -1) return null
+    if (markerIndex === -1) return null;
 
-    return decodeURIComponent(pathname.slice(markerIndex + marker.length))
+    return decodeURIComponent(pathname.slice(markerIndex + marker.length));
   } catch {
-    return null
+    return null;
   }
 }
 
 async function deleteImageByPublicUrl(urlImagen) {
-  const rutaBucket = getBucketPathFromPublicUrl(urlImagen)
+  const rutaBucket = getBucketPathFromPublicUrl(urlImagen);
+  if (!rutaBucket) return;
 
-  if (!rutaBucket) return
-
-  await deleteImage(rutaBucket)
-}
-
-async function uploadComponenteImage(file, idComponente) {
-  if (!file || !file.buffer) throw new Error('No file')
-  if (!VALIDACIONES.TIPOS.includes(file.mimetype)) throw new Error('Tipo inválido')
-  if (file.size > VALIDACIONES.TAMANIO_MAX) throw new Error('Muy grande')
-
-  let metadata
-  try {
-    metadata = await sharp(file.buffer).metadata()
-  } catch (err) {
-    throw new Error('Imagen corrupta')
-  }
-
-  const timestamp = Date.now()
-  const nombreArchivo = `${idComponente}-${timestamp}.webp`
-  const rutaBucket = `componentes/${idComponente}/${nombreArchivo}`
-
-  const imageOptimizada = await sharp(file.buffer)
-    .webp({ quality: 80 })
-    .toBuffer()
-
-  const { error } = await supabaseAdmin.storage
-    .from(BUCKET_NAME)
-    .upload(rutaBucket, imageOptimizada, { contentType: 'image/webp' })
-
-  if (error) throw new Error(`Error: ${error.message}`)
-
-  const { data: { publicUrl } } = supabaseAdmin.storage
-    .from(BUCKET_NAME)
-    .getPublicUrl(rutaBucket)
-
-  return {
-    nombreArchivo,
-    rutaBucket,
-    urlImagen: publicUrl,
-    tamanio: imageOptimizada.length,
-  }
+  await deleteImage(rutaBucket);
 }
 
 async function deleteProductoImage(imagenData) {
-  if (imagenData.rutaBucket) {
-    await deleteImage(imagenData.rutaBucket)
+  if (imagenData?.rutaBucket) {
+    await deleteImage(imagenData.rutaBucket);
   }
-  
-  if (imagenData.urlThumb) {
-    const rutaThumb = imagenData.urlThumb.split('/').slice(-1)[0]
-    const rutaThumbnailFull = `${imagenData.rutaBucket.split('/').slice(0, -1).join('/')}/${rutaThumb}`
-    try {
-      await deleteImage(rutaThumbnailFull)
-    } catch (err) {
-      console.warn('Aviso thumb:', err.message)
-    }
+
+  if (imagenData?.urlThumb && imagenData?.rutaBucket) {
+    const rutaThumb = imagenData.urlThumb.split('/').slice(-1)[0];
+    const rutaThumbnailFull = `${imagenData.rutaBucket.split('/').slice(0, -1).join('/')}/${rutaThumb}`;
+    await deleteImage(rutaThumbnailFull).catch(() => undefined);
   }
 }
 
@@ -239,4 +197,4 @@ module.exports = {
   deleteImage,
   deleteImageByPublicUrl,
   deleteProductoImage,
-}
+};

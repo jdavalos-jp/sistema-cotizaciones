@@ -61,6 +61,7 @@ async function createCotizacionWithItems({
     precioUnitario: p.precioUnitario !== undefined ? toPriceInt(p.precioUnitario, `productos[${idx}].precioUnitario`) : null,
     nombre: p.nombre || undefined,
     descripcion: p.descripcion || undefined,
+    observaciones: p.observaciones || undefined,
   }));
 
   const componentItems = (componentes ?? []).map((c, idx) => ({
@@ -69,6 +70,7 @@ async function createCotizacionWithItems({
     precioUnitario: c.precioUnitario !== undefined ? toPriceInt(c.precioUnitario, `componentes[${idx}].precioUnitario`) : null,
     nombre: c.nombre || undefined,
     descripcion: c.descripcion || undefined,
+    observaciones: c.observaciones || undefined,
   }));
 
   const productIds = [...new Set(productItems.map((x) => x.idProducto))];
@@ -111,7 +113,7 @@ async function createCotizacionWithItems({
       descuento: 0,
       subtotal: lineSubtotal,
       ordenVisual: idx + 1,
-      observaciones: null,
+      observaciones: it.observaciones ?? null,
     };
   });
 
@@ -132,7 +134,7 @@ async function createCotizacionWithItems({
       descuento: 0,
       subtotal: lineSubtotal,
       ordenVisual: baseOrdenComponentes + idx + 1,
-      observaciones: null,
+      observaciones: it.observaciones ?? null,
     };
   });
 
@@ -214,7 +216,7 @@ async function getAllCotizaciones({ skip = 0, take = 50, estado = null } = {}) {
     where.estado = estado;
   }
 
-  const [cotizaciones, total] = await prisma.$transaction([
+  const [cotizaciones, total] = await Promise.all([
     prisma.cotizacion.findMany({
       where,
       skip,
@@ -317,6 +319,7 @@ async function updateCotizacion(idCotizacion, { productos, componentes, moneda, 
     descuento: p.descuento ? toPriceInt(p.descuento, `productos[${idx}].descuento`) : 0,
     nombre: p.nombre || undefined,
     descripcion: p.descripcion || undefined,
+    observaciones: p.observaciones || undefined,
   }));
 
   const componentItems = (componentes ?? []).map((c, idx) => ({
@@ -326,6 +329,7 @@ async function updateCotizacion(idCotizacion, { productos, componentes, moneda, 
     descuento: c.descuento ? toPriceInt(c.descuento, `componentes[${idx}].descuento`) : 0,
     nombre: c.nombre || undefined,
     descripcion: c.descripcion || undefined,
+    observaciones: c.observaciones || undefined,
   }));
 
   if (productItems.length === 0 && componentItems.length === 0) {
@@ -372,7 +376,7 @@ async function updateCotizacion(idCotizacion, { productos, componentes, moneda, 
       descuento: it.descuento,
       subtotal: lineSubtotal,
       ordenVisual: idx + 1,
-      observaciones: null,
+      observaciones: it.observaciones ?? null,
     };
   });
 
@@ -393,7 +397,7 @@ async function updateCotizacion(idCotizacion, { productos, componentes, moneda, 
       descuento: it.descuento,
       subtotal: lineSubtotal,
       ordenVisual: baseOrdenComponentes + idx + 1,
-      observaciones: null,
+      observaciones: it.observaciones ?? null,
     };
   });
 

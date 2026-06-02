@@ -40,7 +40,6 @@ async function getSettings() {
     return settings;
   } catch (err) {
     // Si hay error (tabla no existe, etc), devolver defaults
-    // console.warn('Warning: getSettings fallback to defaults:', err.message);
     return DEFAULT_SETTINGS;
   }
 }

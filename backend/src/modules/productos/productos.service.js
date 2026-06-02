@@ -119,6 +119,23 @@ async function validateComponentes(componentes = []) {
   return normalized;
 }
 
+async function assertSkuDisponible(sku, idProducto = null) {
+  if (!sku) return;
+
+  const conflict = await prisma.producto.findFirst({
+    where: {
+      sku,
+      estado: 'activo',
+      ...(idProducto ? { idProducto: { not: idProducto } } : {}),
+    },
+    select: { idProducto: true },
+  });
+
+  if (conflict) {
+    throw new HttpError(409, `SKU '${sku}' ya esta en uso por otro producto`);
+  }
+}
+
 function buildProductoWhere({ search, idCategoria, idSubcategoria }) {
   const where = { estado: 'activo' };
 
@@ -173,7 +190,7 @@ async function getSubcategoriasByCategoria(idCategoria) {
 
 async function listProductos({ take = 50, skip = 0, search, idCategoria, idSubcategoria } = {}) {
   const where = buildProductoWhere({ search, idCategoria, idSubcategoria });
-  const [productos, total] = await prisma.$transaction([
+  const [productos, total] = await Promise.all([
     prisma.producto.findMany({
       take,
       skip,
@@ -203,9 +220,11 @@ async function createProducto({ nombre, descripcion, precioBase, cantidad, sku, 
   const catId = parseId(idCategoria, 'idCategoria');
   const subCatId = parseId(idSubcategoria, 'idSubcategoria');
   const comps = await validateComponentes(componentes);
+  const normalizedSku = sku?.trim() || null;
 
   await validateCategoria(catId);
   await validateSubcategoria(subCatId, catId);
+  await assertSkuDisponible(normalizedSku);
 
   const producto = await prisma.producto.create({
     data: {
@@ -213,7 +232,7 @@ async function createProducto({ nombre, descripcion, precioBase, cantidad, sku, 
       descripcion: descripcion?.trim() || null,
       precioBase: parsePositiveInt(precioBase, 'Precio'),
       cantidad: parsePositiveInt(cantidad ?? 1, 'Cantidad'),
-      sku: sku?.trim() || null,
+      sku: normalizedSku,
       idCategoria: catId,
       idSubcategoria: subCatId,
       estado: 'activo',
@@ -249,7 +268,11 @@ async function updateProducto(idProducto, updateData) {
   if (updateData.descripcion !== undefined) data.descripcion = updateData.descripcion?.trim() || null;
   if (updateData.precioBase !== undefined) data.precioBase = parsePositiveInt(updateData.precioBase, 'Precio');
   if (updateData.cantidad !== undefined) data.cantidad = parsePositiveInt(updateData.cantidad, 'Cantidad');
-  if (updateData.sku !== undefined) data.sku = updateData.sku?.trim() || null;
+  if (updateData.sku !== undefined) {
+    const normalizedSku = updateData.sku?.trim() || null;
+    await assertSkuDisponible(normalizedSku, prodId);
+    data.sku = normalizedSku;
+  }
 
   if (updateData.idCategoria !== undefined) {
     const catId = parseId(updateData.idCategoria, 'idCategoria');

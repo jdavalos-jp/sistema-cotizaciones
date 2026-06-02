@@ -10,17 +10,14 @@ async function start() {
   try {
     await prisma.$connect();
   } catch (err) {
-    // eslint-disable-next-line no-console
     console.error('No se pudo autenticar/conectar a Postgres. Revisa DATABASE_URL en backend/.env.');
-    // eslint-disable-next-line no-console
     console.error(err);
     await shutdown();
     process.exit(1);
   }
 
   server = app.listen(env.port, () => {
-    // eslint-disable-next-line no-console
-    console.log(`Backend listening on http://localhost:${env.port}`);
+    console.log(`Backend listening on port ${env.port}`);
   });
 }
 
