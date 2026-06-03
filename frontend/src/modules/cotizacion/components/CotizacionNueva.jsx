@@ -1,301 +1,491 @@
-import React, { useState } from 'react';
-import { Button, Space, Typography, message, Card, Row, Col, Divider, InputNumber, Input } from 'antd';
-import { CheckCircleOutlined, PlusOutlined, FileTextOutlined } from '@ant-design/icons';
+import React, { useEffect, useMemo, useRef, useState } from 'react'
+import {
+  Space,
+  Typography,
+  message,
+  Card,
+  Row,
+  Col,
+  Divider,
+  InputNumber,
+  Input,
+} from 'antd'
+import {
+  CheckCircleOutlined,
+  PlusOutlined,
+  FileTextOutlined,
+} from '@ant-design/icons'
 
 import {
   ClienteDatosSection,
   FechaValidacionSection,
   AgregarProductosSection,
   ProductosSeleccionadosTable,
-  ModalNuevoCliente
-} from './sections';
+  ModalNuevoCliente,
+} from './sections'
 
-import { useCatalogSearch } from '../hooks/useCatalogSearch';
-import { useClientesSearch } from '../hooks/useClientesSearch';
-import { useCotizacionCart } from '../hooks/useCotizacionCart';
-import { useCotizacionPreview } from '../hooks/useCotizacionPreview';
+import { useCatalogSearch } from '../hooks/useCatalogSearch'
+import { useClientesSearch } from '../hooks/useClientesSearch'
+import { useCotizacionCart } from '../hooks/useCotizacionCart'
+import { useCotizacionPreview } from '../hooks/useCotizacionPreview'
+import FormActionBar from '../../../shared/components/FormActionBar'
 
-import { fetchProductos, fetchComponentes } from '../services/api/catalogoApi';
-import { createAndDownloadPdf } from '../services/api/cotizacionesApi';
+import { fetchProductos, fetchComponentes } from '../services/api/catalogoApi'
+import { createAndDownloadPdf } from '../services/api/cotizacionesApi'
+import './CotizacionNueva.css'
+
+const { Title, Text } = Typography
+
+const pageStyle = {
+  backgroundColor: '#f5f5f5',
+  padding: 24,
+  minHeight: '100vh',
+  margin: '-24px',
+  boxSizing: 'border-box',
+  width: 'calc(100% + 48px)',
+}
+
+const cardStyle = {
+  borderRadius: 8,
+  boxShadow: '0 1px 2px rgba(0,0,0,0.05)',
+}
+
+const cardBodyStyle = {
+  padding: 24,
+}
 
 function CotizacionNueva() {
-  const [idCliente, setIdCliente] = useState(null);
-  const [clienteLabel, setClienteLabel] = useState('');
-  const [diasValidez, setDiasValidez] = useState(10);
-  const [diasEntrega, setDiasEntrega] = useState(5);
-  const [moneda] = useState('Bs');
-  const [observaciones, setObservaciones] = useState('');
-  const [descuento, setDescuento] = useState(0);
-  const [impuestos, setImpuestos] = useState(0);
-  const [loadingSubmit, setLoadingSubmit] = useState(false);
-  const [showSuccess, setShowSuccess] = useState(false);
-  const [modalNuevoClienteVisible, setModalNuevoClienteVisible] = useState(false);
+  const [idCliente, setIdCliente] = useState(null)
+  const [clienteLabel, setClienteLabel] = useState('')
+  const [diasValidez, setDiasValidez] = useState(15)
+  const [diasEntrega, setDiasEntrega] = useState(10)
+  const [moneda] = useState('Bs')
+  const [observaciones, setObservaciones] = useState('')
+  const [descuento, setDescuento] = useState(0)
+  const [impuestos, setImpuestos] = useState(0)
+  const [loadingSubmit, setLoadingSubmit] = useState(false)
+  const [showSuccess, setShowSuccess] = useState(false)
+  const [modalNuevoClienteVisible, setModalNuevoClienteVisible] = useState(false)
+  const resetTimerRef = useRef(null)
 
-  const clientes = useClientesSearch();
-  const productos = useCatalogSearch(fetchProductos);
-  const componentes = useCatalogSearch(fetchComponentes);
-  const cart = useCotizacionCart();
-  const preview = useCotizacionPreview({ idCliente, moneda, cart: cart.cart });
+  const clientes = useClientesSearch()
+  const productos = useCatalogSearch(fetchProductos)
+  const componentes = useCatalogSearch(fetchComponentes)
+  const cart = useCotizacionCart({ persistent: false })
 
-  const lineas = preview.data?.lineas ?? [];
+  const preview = useCotizacionPreview({
+    idCliente,
+    moneda,
+    cart: cart.cart,
+    removeItem: cart.removeItem,
+  })
 
-  const lineasConEdiciones = lineas.map((linea) => {
-    const cartItem = cart.cart.find((x) => x.tipo === linea.tipo && String(x.id) === String(linea.id));
-    if (cartItem) {
+  const subtotal = Number(preview.data?.totales?.subtotal || 0)
+  const descuentoSeguro = Math.min(Number(descuento || 0), subtotal)
+
+  const total = useMemo(() => {
+    return Math.max(0, subtotal - descuentoSeguro + Number(impuestos || 0))
+  }, [subtotal, descuentoSeguro, impuestos])
+
+  useEffect(() => {
+    return () => {
+      if (resetTimerRef.current) {
+        clearTimeout(resetTimerRef.current)
+      }
+    }
+  }, [])
+
+  const lineasConEdiciones = useMemo(() => {
+    const lineas = preview.data?.lineas ?? []
+
+    return lineas.map((linea) => {
+      const cartItem = cart.cart.find(
+        (item) =>
+          item.tipo === linea.tipo &&
+          String(item.id) === String(linea.id)
+      )
+
+      if (!cartItem) return linea
+
       return {
         ...linea,
         nombre: cartItem.nombre ?? linea.nombre,
         descripcion: cartItem.descripcion ?? linea.descripcion,
-      };
-    }
-    return linea;
-  });
+        observaciones: cartItem.observaciones ?? linea.observaciones,
+      }
+    })
+  }, [preview.data?.lineas, cart.cart])
 
-  const getFechaInicio = () => new Date().toISOString().split('T')[0];
   const getFechaFin = () => {
-    const hoy = new Date();
-    hoy.setDate(hoy.getDate() + (diasValidez || 0));
-    return hoy.toISOString().split('T')[0];
-  };
+    const hoy = new Date()
+    hoy.setDate(hoy.getDate() + Number(diasValidez || 0))
+    return hoy.toISOString().split('T')[0]
+  }
 
-  const onRemove = (tipo, id) => cart.removeItem(tipo, String(id));
-  const onSetCantidad = (tipo, id, cantidad) => cart.setCantidad(tipo, String(id), cantidad);
-  const onSetPrecio = (tipo, id, precio) => cart.setPrecioUnitario(tipo, String(id), precio);
-  const onSetNombre = (tipo, id, nombre) => cart.setNombre(tipo, String(id), nombre);
-  const onSetDescripcion = (tipo, id, descripcion) => cart.setDescripcion(tipo, String(id), descripcion);
+  const resetForm = () => {
+    cart.clear()
+    setIdCliente(null)
+    setClienteLabel('')
+    setDiasValidez(15)
+    setDiasEntrega(10)
+    setObservaciones('')
+    setDescuento(0)
+    setImpuestos(0)
+    setShowSuccess(false)
+  }
+
+  const downloadPdfBlob = (blob, filename) => {
+    const url = URL.createObjectURL(blob)
+    const link = document.createElement('a')
+
+    try {
+      link.href = url
+      link.download = filename
+      document.body.appendChild(link)
+      link.click()
+    } finally {
+      link.remove()
+      URL.revokeObjectURL(url)
+    }
+  }
 
   const handleGenerarCotizacion = async () => {
-    if (!idCliente) return message.warning('Selecciona un cliente');
-    if (!cart.cart.length) return message.warning('Selecciona al menos un producto o componente');
-    if (!diasValidez) return message.warning('Ingresa los días de validez');
-    if (!diasEntrega) return message.warning('Ingresa los días de entrega');
+    if (!idCliente) {
+      message.warning('Selecciona un cliente')
+      return
+    }
 
-    setLoadingSubmit(true);
+    if (!cart.cart.length) {
+      message.warning('Selecciona al menos un producto o componente')
+      return
+    }
+
+    if (!diasValidez) {
+      message.warning('Ingresa los días de validez')
+      return
+    }
+
+    if (!diasEntrega) {
+      message.warning('Ingresa los días de entrega')
+      return
+    }
+
+    setLoadingSubmit(true)
+
     try {
-      const fechaValidezStr = getFechaFin();
-
       const payload = {
         idCliente: String(idCliente),
         moneda,
-        diasEntrega,
+        diasEntrega: Number(diasEntrega),
+        descuento: Number(descuento) || 0,
+        impuestos: Number(impuestos) || 0,
         observaciones: observaciones || null,
-        ...(fechaValidezStr && { fechaValidez: fechaValidezStr }),
+        fechaValidez: getFechaFin(),
+
         productos: cart.cart
-          .filter((x) => x.tipo === 'producto')
-          .map((x) => ({
-            idProducto: String(x.id),
-            cantidad: Math.max(1, Number(x.cantidad) || 1),
-            ...(x.precioUnitario !== undefined && { precioUnitario: x.precioUnitario }),
-            ...(x.nombre && { nombre: x.nombre }),
-            ...(x.descripcion && { descripcion: x.descripcion }),
+          .filter((item) => item.tipo === 'producto')
+          .map((item) => ({
+            idProducto: String(item.id),
+            cantidad: Math.max(1, Number(item.cantidad) || 1),
+            ...(item.precioUnitario !== undefined && {
+              precioUnitario: Number(item.precioUnitario),
+            }),
+            ...(item.nombre && { nombre: item.nombre }),
+            ...(item.descripcion && { descripcion: item.descripcion }),
+            ...(item.observaciones && { observaciones: item.observaciones }),
           })),
+
         componentes: cart.cart
-          .filter((x) => x.tipo === 'componente')
-          .map((x) => ({
-            idComponente: String(x.id),
-            cantidad: Math.max(1, Number(x.cantidad) || 1),
-            ...(x.precioUnitario !== undefined && { precioUnitario: x.precioUnitario }),
-            ...(x.nombre && { nombre: x.nombre }),
-            ...(x.descripcion && { descripcion: x.descripcion }),
+          .filter((item) => item.tipo === 'componente')
+          .map((item) => ({
+            idComponente: String(item.id),
+            cantidad: Math.max(1, Number(item.cantidad) || 1),
+            ...(item.precioUnitario !== undefined && {
+              precioUnitario: Number(item.precioUnitario),
+            }),
+            ...(item.nombre && { nombre: item.nombre }),
+            ...(item.descripcion && { descripcion: item.descripcion }),
+            ...(item.observaciones && { observaciones: item.observaciones }),
           })),
-      };
+      }
 
-      const pdfBlob = await createAndDownloadPdf(payload);
-      const url = URL.createObjectURL(pdfBlob);
-      const a = document.createElement('a');
-      a.href = url;
-      a.download = `cotizacion-${payload.idCliente}.pdf`;
-      document.body.appendChild(a);
-      a.click();
-      a.remove();
-      URL.revokeObjectURL(url);
+      if (payload.descuento > subtotal) {
+        message.warning('El descuento no puede ser mayor al subtotal')
+        return
+      }
 
-      message.success('¡Cotización creada exitosamente!');
-      setShowSuccess(true);
+      const pdfBlob = await createAndDownloadPdf(payload)
 
-      setTimeout(() => {
-        cart.clear();
-        setIdCliente(null);
-        setClienteLabel('');
-        setDiasValidez(10);
-        setDiasEntrega(5);
-        setObservaciones('');
-        setDescuento(0);
-        setImpuestos(0);
-        setShowSuccess(false);
-      }, 3000);
-    } catch (err) {
-      message.error(String(err?.message || err));
+      downloadPdfBlob(pdfBlob, `cotizacion-${Date.now()}.pdf`)
+
+      message.success('Cotización creada exitosamente')
+      setShowSuccess(true)
+
+      resetTimerRef.current = setTimeout(resetForm, 3000)
+    } catch (error) {
+      message.error(String(error?.message || error))
     } finally {
-      setLoadingSubmit(false);
+      setLoadingSubmit(false)
     }
-  };
+  }
 
-  return (
-    <div>
-      {showSuccess && (
-        <Card>
+  if (showSuccess) {
+    return (
+      <div className="cotizacion-nueva-page" style={pageStyle}>
+        <Card variant="borderless" style={cardStyle} styles={{ body: cardBodyStyle }}>
           <div style={{ textAlign: 'center', padding: '60px 20px' }}>
-            <CheckCircleOutlined style={{ fontSize: 64, color: '#52c41a', marginBottom: 24 }} />
-            <Typography.Title level={2}>¡Cotización Completada!</Typography.Title>
-            <Typography.Text>La cotización ha sido creada y descargada exitosamente</Typography.Text>
+            <CheckCircleOutlined
+              style={{
+                fontSize: 64,
+                color: '#52c41a',
+                marginBottom: 24,
+              }}
+            />
+
+            <Title level={2}>Cotización completada</Title>
+
+            <Text>
+              La cotización ha sido creada y descargada exitosamente.
+            </Text>
           </div>
         </Card>
-      )}
+      </div>
+    )
+  }
 
-      <div style={{ display: showSuccess ? 'none' : 'block' }} aria-hidden={showSuccess}>
-        <Space orientation="vertical" size={24} style={{ width: '100%' }}>
-          <div>
-            <Typography.Title level={3} style={{ marginTop: 0, marginBottom: 0 }}>
-              Nueva Cotización
-            </Typography.Title>
-            <Typography.Text type="secondary">Completa los datos para crear una cotización</Typography.Text>
-          </div>
+  return (
+    <div className="cotizacion-nueva-page" style={pageStyle}>
+      <Space
+        className="cotizacion-nueva-stack"
+        orientation="vertical"
+        size={20}
+        style={{
+          width: '100%',
+          paddingBottom: 80,
+          maxWidth: 'none',
+          margin: 0,
+        }}
+      >
+        <div style={{ marginBottom: 24 }}>
+          <Title level={3} style={{ margin: 0, fontWeight: 600 }}>
+            Nueva Cotización
+          </Title>
 
-          <ClienteDatosSection
-            clientes={clientes}
-            idCliente={idCliente}
-            setIdCliente={setIdCliente}
-            clienteLabel={clienteLabel}
-            setClienteLabel={setClienteLabel}
-            onNewCliente={() => setModalNuevoClienteVisible(true)}
-          />
+          <Text type="secondary" style={{ fontSize: 14 }}>
+            Inicio / Cotizaciones / Crear cotización
+          </Text>
+        </div>
 
-          <FechaValidacionSection
-            diasValidez={diasValidez}
-            setDiasValidez={setDiasValidez}
-            diasEntrega={diasEntrega}
-            setDiasEntrega={setDiasEntrega}
-          />
+        <ClienteDatosSection
+          clientes={clientes}
+          idCliente={idCliente}
+          setIdCliente={setIdCliente}
+          clienteLabel={clienteLabel}
+          setClienteLabel={setClienteLabel}
+          onNewCliente={() => setModalNuevoClienteVisible(true)}
+        />
 
-          <AgregarProductosSection
-            productos={productos}
-            componentes={componentes}
-            cart={cart}
-          />
+        <FechaValidacionSection
+          diasValidez={diasValidez}
+          setDiasValidez={setDiasValidez}
+          diasEntrega={diasEntrega}
+          setDiasEntrega={setDiasEntrega}
+        />
 
-          <ProductosSeleccionadosTable
-            lineas={lineasConEdiciones}
-            moneda={moneda}
-            onRemove={onRemove}
-            onSetCantidad={onSetCantidad}
-            onSetPrecio={onSetPrecio}
-            onSetNombre={onSetNombre}
-            onSetDescripcion={onSetDescripcion}
-          />
+        <AgregarProductosSection
+          productos={productos}
+          componentes={componentes}
+          cart={cart}
+        />
 
-          {/* Resumen y Totales */}
-          <Card
-            title={
-              <Space>
-                <FileTextOutlined />
-                <span>Resumen y Totales</span>
-              </Space>
-            }
-          >
-            <Row gutter={[24, 16]}>
-              <Col xs={24} md={12}>
-                <Typography.Text type="secondary">Observaciones</Typography.Text>
-                <Input.TextArea
-                  value={observaciones}
-                  onChange={(e) => setObservaciones(e.target.value)}
-                  rows={4}
-                  placeholder="Notas u observaciones adicionales..."
-                  style={{ marginTop: 8 }}
-                />
-              </Col>
-              <Col xs={24} md={12}>
-                <div style={{ display: 'grid', gap: '16px' }}>
-                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                    <Typography.Text>Subtotal:</Typography.Text>
-                    <Typography.Text strong style={{ fontSize: '15px' }}>
-                      {(preview.data?.totales?.subtotal || 0).toLocaleString('es-BO')} {moneda}
-                    </Typography.Text>
-                  </div>
+        <ProductosSeleccionadosTable
+          lineas={lineasConEdiciones}
+          moneda={moneda}
+          onRemove={(tipo, id) => cart.removeItem(tipo, String(id))}
+          onSetCantidad={(tipo, id, cantidad) =>
+            cart.setCantidad(tipo, String(id), cantidad)
+          }
+          onSetPrecio={(tipo, id, precio) =>
+            cart.setPrecioUnitario(tipo, String(id), precio)
+          }
+          onSetNombre={(tipo, id, nombre) =>
+            cart.setNombre(tipo, String(id), nombre)
+          }
+          onSetDescripcion={(tipo, id, descripcion) =>
+            cart.setDescripcion(tipo, String(id), descripcion)
+          }
+          onSetObservaciones={(tipo, id, observaciones) =>
+            cart.setObservaciones(tipo, String(id), observaciones)
+          }
+        />
 
-                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                    <Typography.Text>Descuento:</Typography.Text>
-                    <Space.Compact style={{ width: 140 }}>
-                      <InputNumber
-                        value={descuento}
-                        onChange={(val) => setDescuento(val || 0)}
-                        min={0}
-                        step={1}
-                        precision={0}
-                        style={{ width: 100 }}
-                      />
-                      <span style={{ display: 'flex', alignItems: 'center', paddingLeft: 4 }}>
-                        {moneda}
-                      </span>
-                    </Space.Compact>
-                  </div>
+        <Card
+          variant="borderless"
+          style={cardStyle}
+          styles={{ body: cardBodyStyle }}
+          title={
+            <Space>
+              <FileTextOutlined />
+              <span>Resumen y Totales</span>
+            </Space>
+          }
+        >
+          <Row gutter={[24, 16]}>
+            <Col xs={24} md={12}>
+              <Text type="secondary">Observaciones</Text>
 
-                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                    <Typography.Text>Impuestos:</Typography.Text>
-                    <Space.Compact style={{ width: 140 }}>
-                      <InputNumber
-                        value={impuestos}
-                        onChange={(val) => setImpuestos(val || 0)}
-                        min={0}
-                        step={1}
-                        precision={0}
-                        style={{ width: 100 }}
-                      />
-                      <span style={{ display: 'flex', alignItems: 'center', paddingLeft: 4 }}>
-                        {moneda}
-                      </span>
-                    </Space.Compact>
-                  </div>
-
-                  <Divider style={{ margin: '4px 0' }} />
-
-                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                    <Typography.Text strong style={{ fontSize: '18px' }}>TOTAL:</Typography.Text>
-                    <Typography.Text strong style={{ fontSize: '18px', color: '#389e0d' }}>
-                      {((preview.data?.totales?.subtotal || 0) - Number(descuento) + Number(impuestos)).toLocaleString('es-BO')} {moneda}
-                    </Typography.Text>
-                  </div>
-                </div>
-              </Col>
-            </Row>
-          </Card>
-
-          <Divider style={{ margin: '8px 0' }} />
-
-          <Row justify="space-between" align="middle">
-            <Col>
-              <Typography.Text type="secondary">{cart.cart.length} producto(s) en cotización</Typography.Text>
+              <Input.TextArea
+                value={observaciones}
+                onChange={(event) => setObservaciones(event.target.value)}
+                rows={4}
+                placeholder="Notas u observaciones adicionales..."
+                style={{ marginTop: 8, borderRadius: 6 }}
+              />
             </Col>
-            <Col>
-              <Space>
-                <Button onClick={() => cart.clear()}>Limpiar</Button>
-                <Button
-                  type="primary"
-                  icon={<PlusOutlined />}
-                  loading={loadingSubmit}
-                  onClick={handleGenerarCotizacion}
-                  disabled={!idCliente || !cart.cart.length || !diasValidez || !diasEntrega}
-                >
-                  Generar Cotización
-                </Button>
-              </Space>
+
+            <Col xs={24} md={12}>
+              <div
+                style={{
+                  display: 'grid',
+                  gap: 16,
+                  background: '#fafafa',
+                  border: '1px solid #f0f0f0',
+                  borderRadius: 8,
+                  padding: 16,
+                }}
+              >
+                <ResumenFila
+                  label="Subtotal:"
+                  value={`${subtotal.toLocaleString('es-BO')} ${moneda}`}
+                />
+
+                <ResumenInput
+                  label="Descuento:"
+                  value={descuento}
+                  onChange={(value) => setDescuento(Math.min(value, subtotal))}
+                  moneda={moneda}
+                />
+
+                <ResumenInput
+                  label="Impuestos:"
+                  value={impuestos}
+                  onChange={setImpuestos}
+                  moneda={moneda}
+                />
+
+                <Divider style={{ margin: '4px 0' }} />
+
+                <ResumenFila
+                  label="TOTAL:"
+                  value={`${total.toLocaleString('es-BO')} ${moneda}`}
+                  strong
+                  color="#389e0d"
+                />
+              </div>
             </Col>
           </Row>
-        </Space>
+        </Card>
 
-        <ModalNuevoCliente
-          visible={modalNuevoClienteVisible}
-          onClose={() => setModalNuevoClienteVisible(false)}
-          onSuccess={(nuevoCliente) => {
-            setIdCliente(nuevoCliente.id || Date.now());
-            setClienteLabel(nuevoCliente.nombre);
-            clientes.setSearch(nuevoCliente.nombre);
-            message.success('Cliente registrado exitosamente');
-          }}
+        <FormActionBar
+          maxWidth="none"
+          left={`${cart.cart.length} producto(s) en cotización`}
+          actions={[
+            {
+              key: 'clear',
+              label: 'Limpiar',
+              onClick: resetForm,
+              disabled: loadingSubmit,
+            },
+            {
+              key: 'submit',
+              label: 'Generar Cotización',
+              type: 'primary',
+              icon: <PlusOutlined />,
+              loading: loadingSubmit,
+              disabled: !idCliente || !cart.cart.length || !diasValidez || !diasEntrega,
+              onClick: handleGenerarCotizacion,
+              minWidth: 170,
+            },
+          ]}
         />
-      </div>
+      </Space>
+
+      <ModalNuevoCliente
+        visible={modalNuevoClienteVisible}
+        onClose={() => setModalNuevoClienteVisible(false)}
+        onSuccess={(nuevoCliente) => {
+          const clienteId = nuevoCliente.idCliente ?? nuevoCliente.id
+          const clienteNombre = nuevoCliente.nombreCompleto ?? nuevoCliente.nombre ?? ''
+
+          setIdCliente(clienteId)
+          setClienteLabel(clienteNombre)
+          clientes.setSearch(clienteNombre)
+          message.success('Cliente registrado exitosamente')
+        }}
+      />
     </div>
-  );
+  )
 }
 
-export default CotizacionNueva;
+function ResumenFila({ label, value, strong = false, color }) {
+  return (
+    <div
+      style={{
+        display: 'flex',
+        justifyContent: 'space-between',
+        alignItems: 'center',
+      }}
+    >
+      <Text strong={strong} style={{ fontSize: strong ? 18 : 15 }}>
+        {label}
+      </Text>
+
+      <Text
+        strong={strong}
+        style={{
+          fontSize: strong ? 18 : 15,
+          color,
+        }}
+      >
+        {value}
+      </Text>
+    </div>
+  )
+}
+
+function ResumenInput({ label, value, onChange, moneda }) {
+  return (
+    <div
+      style={{
+        display: 'flex',
+        justifyContent: 'space-between',
+        alignItems: 'center',
+      }}
+    >
+      <Text>{label}</Text>
+
+      <Space.Compact style={{ width: 140 }}>
+        <InputNumber
+          value={value}
+          onChange={(val) => onChange(val || 0)}
+          min={0}
+          step={1}
+          precision={0}
+          style={{ width: 100 }}
+        />
+
+        <span
+          style={{
+            display: 'flex',
+            alignItems: 'center',
+            paddingLeft: 4,
+          }}
+        >
+          {moneda}
+        </span>
+      </Space.Compact>
+    </div>
+  )
+}
+
+export default CotizacionNueva

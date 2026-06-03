@@ -5,6 +5,15 @@ const { health, dbHealth } = require('../controllers/health.controller');
 
 const router = express.Router();
 
+router.get('/', (_req, res) => {
+  res.json({
+    ok: true,
+    service: 'cotizaciones-backend',
+    health: '/health',
+    api: '/api',
+  });
+});
+
 router.get('/health', asyncHandler(health));
 router.get('/db/health', asyncHandler(dbHealth));
 

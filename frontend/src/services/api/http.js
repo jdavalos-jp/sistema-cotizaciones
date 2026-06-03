@@ -108,10 +108,13 @@ async function handleErrorResponse(res) {
  * Parsea la respuesta según el tipo esperado
  */
 async function parseResponse(res, responseType) {
+  if (res.status === 204 || res.status === 205) return null
+
   if (responseType === 'blob') return res.blob()
 
   const contentType = res.headers.get('content-type') || ''
   if (contentType.includes('application/pdf')) return res.arrayBuffer()
+  if (!contentType) return null
 
   return res.json()
 }
@@ -156,13 +159,18 @@ export async function apiPost(path, body, { signal, headers, responseType = 'jso
 
 export async function apiPut(path, body, { signal, headers, responseType = 'json' } = {}) {
   const url = `${getApiBaseUrl()}${path}`
+  const isFormData = body instanceof FormData
 
-  const res = await fetchWithRetry(url, {
+  const requestOptions = {
     method: 'PUT',
-    headers: { 'Content-Type': 'application/json', ...(headers || {}) },
-    body: JSON.stringify(body ?? {}),
     signal,
-  })
+    headers: isFormData
+      ? headers || {}
+      : { 'Content-Type': 'application/json', ...(headers || {}) },
+    body: isFormData ? body : JSON.stringify(body ?? {}),
+  }
+
+  const res = await fetchWithRetry(url, requestOptions)
 
   if (!res.ok) throw await handleErrorResponse(res)
 

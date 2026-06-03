@@ -1,5 +1,5 @@
 import React, { useState, useMemo, useEffect } from 'react'
-import { Button, Space, Typography, message, Card, Row, Col, Divider, Spin, Alert, InputNumber, Input } from 'antd'
+import { Space, Typography, message, Card, Row, Col, Divider, Spin, Alert, InputNumber, Input } from 'antd'
 import { SaveOutlined, UserOutlined, FileTextOutlined } from '@ant-design/icons'
 
 import {
@@ -10,6 +10,7 @@ import {
 
 import { useCotizacionEdit } from '../hooks/useCotizacionEdit'
 import { useCotizacionPreview } from '../hooks/useCotizacionPreview'
+import FormActionBar from '../../../shared/components/FormActionBar'
 
 const { Title, Text } = Typography
 
@@ -56,6 +57,7 @@ export default function CotizacionEditar({ idCotizacion, onSuccess, onCancel }) 
     idCliente: cotizacion?.idCliente,
     moneda: cotizacion?.moneda || 'Bs',
     cart: cart.cart,
+    removeItem: cart.removeItem,
   })
 
   const lineas = preview.data?.lineas ?? []
@@ -71,6 +73,7 @@ export default function CotizacionEditar({ idCotizacion, onSuccess, onCancel }) 
           ...linea,
           nombre: cartItem.nombre ?? linea.nombre,
           descripcion: cartItem.descripcion ?? linea.descripcion,
+          observaciones: cartItem.observaciones ?? linea.observaciones,
         }
       }
       return linea
@@ -104,6 +107,7 @@ export default function CotizacionEditar({ idCotizacion, onSuccess, onCancel }) 
       id: item.id,
       nombre: item.nombre,
       descripcion: item.descripcion,
+      observaciones: item.observaciones,
       cantidad: item.cantidad,
       precioUnitario: item.precioUnitario || 0,
       totalLinea: (item.precioUnitario || 0) * item.cantidad,
@@ -139,6 +143,7 @@ export default function CotizacionEditar({ idCotizacion, onSuccess, onCancel }) 
             ...(x.precioUnitario !== undefined && { precioUnitario: x.precioUnitario }),
             ...(x.nombre && { nombre: x.nombre }),
             ...(x.descripcion && { descripcion: x.descripcion }),
+            ...(x.observaciones && { observaciones: x.observaciones }),
           })),
         componentes: cart.cart
           .filter((x) => x.tipo === 'componente')
@@ -148,6 +153,7 @@ export default function CotizacionEditar({ idCotizacion, onSuccess, onCancel }) 
             ...(x.precioUnitario !== undefined && { precioUnitario: x.precioUnitario }),
             ...(x.nombre && { nombre: x.nombre }),
             ...(x.descripcion && { descripcion: x.descripcion }),
+            ...(x.observaciones && { observaciones: x.observaciones }),
           })),
         moneda,
         observaciones: observaciones || null,
@@ -196,10 +202,10 @@ export default function CotizacionEditar({ idCotizacion, onSuccess, onCancel }) 
   }
 
   return (
-    <div>
+    <div className="cotizacion-edit">
       <Space direction="vertical" size={24} style={{ width: '100%' }}>
         {/* Encabezado */}
-        <div>
+        <div className="cotizacion-edit__header">
           <Title level={3} style={{ marginTop: 0, marginBottom: 0 }}>
             Editar Cotización #{cotizacion.numeroCotizacion}
           </Title>
@@ -290,6 +296,7 @@ export default function CotizacionEditar({ idCotizacion, onSuccess, onCancel }) 
           onSetPrecio={onSetPrecio}
           onSetNombre={onSetNombre}
           onSetDescripcion={onSetDescripcion}
+          onSetObservaciones={(tipo, id, ob) => cart.setObservaciones(tipo, String(id), ob)}
         />
 
         {/* Resumen y Totales */}
@@ -359,32 +366,27 @@ export default function CotizacionEditar({ idCotizacion, onSuccess, onCancel }) 
             </Col>
           </Row>
         </Card>
-
-        {/* Botones de acción */}
-        <Divider style={{ margin: '8px 0' }} />
-
-        <Row justify="space-between" align="middle">
-          <Col>
-            <Text type="secondary">{cart.cart.length} producto(s) en cotización</Text>
-          </Col>
-          <Col>
-            <Space>
-              <Button onClick={onCancel} size="large">
-                Cancelar
-              </Button>
-              <Button
-                type="primary"
-                size="large"
-                loading={saving}
-                icon={<SaveOutlined />}
-                onClick={handleGuardarCambios}
-                disabled={!cart.cart.length}
-              >
-                Guardar Cambios
-              </Button>
-            </Space>
-          </Col>
-        </Row>
+        <FormActionBar
+          left={`${cart.cart.length} producto(s) en cotización`}
+          actions={[
+            {
+              key: 'cancel',
+              label: 'Cancelar',
+              onClick: onCancel,
+              disabled: saving,
+            },
+            {
+              key: 'save',
+              label: 'Guardar Cambios',
+              type: 'primary',
+              icon: <SaveOutlined />,
+              loading: saving,
+              onClick: handleGuardarCambios,
+              disabled: !cart.cart.length,
+              minWidth: 160,
+            },
+          ]}
+        />
       </Space>
     </div>
   )

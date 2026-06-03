@@ -34,13 +34,13 @@ export async function getSubcategoriasByCategoria(idCategoria, fetchOptions = {}
 export async function getProductos(options = {}, fetchOptions = {}) {
   const { skip = 0, take = 50, search, idCategoria, idSubcategoria, signal } = options
   const params = new URLSearchParams()
-  params.append('skip', skip)
-  params.append('take', take)
-  if (search) params.append('search', search)
+  params.append('skip', String(skip))
+  params.append('take', String(take))
+  if (search?.trim()) params.append('search', search.trim())
   if (idCategoria) params.append('idCategoria', idCategoria)
   if (idSubcategoria) params.append('idSubcategoria', idSubcategoria)
 
-  return unwrapData(await apiGet(`${BASE_URL}?${params.toString()}`, { signal, ...fetchOptions }))
+  return apiGet(`${BASE_URL}?${params.toString()}`, { signal, ...fetchOptions })
 }
 
 

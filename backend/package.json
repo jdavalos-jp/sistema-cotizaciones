@@ -4,7 +4,14 @@
   "description": "",
   "main": "server.js",
   "scripts": {
-    "dev": "nodemon server.js"
+    "dev": "nodemon server.js",
+    "start": "node server.js",
+    "prisma:generate": "prisma generate",
+    "prisma:migrate:deploy": "prisma migrate deploy",
+    "postinstall": "prisma generate"
+  },
+  "engines": {
+    "node": ">=22.12"
   },
   "keywords": [],
   "author": "",

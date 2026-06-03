@@ -63,6 +63,7 @@ export function useCotizacionEdit(idCotizacion) {
               id: String(p.idProducto),
               nombre: p.nombreItem || 'Producto sin nombre',
               descripcion: p.descripcionItem || '',
+              observaciones: p.observaciones || '',
               cantidad: Number(p.cantidad) || 1,
               precioUnitario: Number(p.precioUnitario) || 0,
             }
@@ -77,6 +78,7 @@ export function useCotizacionEdit(idCotizacion) {
               id: String(c.idComponente),
               nombre: c.nombreItem || 'Componente sin nombre',
               descripcion: c.descripcionItem || '',
+              observaciones: c.observaciones || '',
               cantidad: Number(c.cantidad) || 1,
               precioUnitario: Number(c.precioUnitario) || 0,
             }
@@ -119,8 +121,14 @@ export function useCotizacionEdit(idCotizacion) {
       setSaving(true)
       try {
         const response = await updateCotizacion(idCotizacion, {
-          productos: payload.productos,
-          componentes: payload.componentes,
+          productos: payload.productos.map(x => ({
+            ...x,
+            observaciones: x.observaciones
+          })),
+          componentes: payload.componentes.map(x => ({
+            ...x,
+            observaciones: x.observaciones
+          })),
           moneda: payload.moneda,
           observaciones: payload.observaciones,
           descuento: payload.descuento,

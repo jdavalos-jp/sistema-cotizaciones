@@ -9,28 +9,38 @@ import {
   downloadCotizacionPdf,
 } from '../../cotizacion/services/api/cotizacionesApi'
 
-/**
- * Hook para gestionar cotizaciones
- * Proporciona métodos para listar, crear, actualizar, eliminar y cambiar estado de cotizaciones
- */
 export function useCotizacionesList() {
   const [cotizaciones, setCotizaciones] = useState([])
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState(null)
+  const [pagination, setPagination] = useState({ total: 0, skip: 0, take: 10 })
 
   const loadCotizaciones = useCallback(async (options = {}) => {
     setLoading(true)
     setError(null)
     try {
       const response = await getCotizaciones(options)
-      setCotizaciones(response.data || [])
-      return response.data || []
+      const rows = Array.isArray(response?.data) ? response.data : []
+      const total = Number.isFinite(response?.meta?.total)
+        ? response.meta.total
+        : Number.isFinite(response?.total)
+          ? response.total
+          : rows.length
+
+      setCotizaciones(rows)
+      setPagination({
+        total,
+        skip: Number(response?.meta?.skip ?? options.skip ?? 0),
+        take: Number(response?.meta?.take ?? options.take ?? rows.length),
+      })
+      return rows
     } catch (err) {
+      if (err.name === 'AbortError') return []
       const errorMsg = err.message || 'Error al cargar cotizaciones'
       setError(errorMsg)
       throw err
     } finally {
-      setLoading(false)
+      if (!options.signal?.aborted) setLoading(false)
     }
   }, [])
 
@@ -41,9 +51,10 @@ export function useCotizacionesList() {
       const response = await createCotizacion(data)
       const newCotizacion = response.data
       setCotizaciones((prev) => [newCotizacion, ...prev])
+      setPagination((prev) => ({ ...prev, total: prev.total + 1 }))
       return newCotizacion
     } catch (err) {
-      const errorMsg = err.message || 'Error al crear cotización'
+      const errorMsg = err.message || 'Error al crear cotizacion'
       setError(errorMsg)
       throw err
     } finally {
@@ -57,12 +68,12 @@ export function useCotizacionesList() {
     try {
       await deleteCotizacion(idCotizacion)
       setCotizaciones((prev) =>
-        prev.filter((c) => String(c.idCotizacion) !== String(idCotizacion))
+        prev.filter((cotizacion) => String(cotizacion.idCotizacion) !== String(idCotizacion))
       )
+      setPagination((prev) => ({ ...prev, total: Math.max(0, prev.total - 1) }))
     } catch (err) {
-      const errorMsg = err.message || 'Error al eliminar cotización'
+      const errorMsg = err.message || 'Error al eliminar cotizacion'
       setError(errorMsg)
-      console.error(errorMsg, err)
       throw err
     } finally {
       setLoading(false)
@@ -76,8 +87,8 @@ export function useCotizacionesList() {
       const response = await changeCotizacionStatus(idCotizacion, estado)
       const updated = response.data
       setCotizaciones((prev) =>
-        prev.map((c) =>
-          String(c.idCotizacion) === String(idCotizacion) ? updated : c
+        prev.map((cotizacion) =>
+          String(cotizacion.idCotizacion) === String(idCotizacion) ? updated : cotizacion
         )
       )
       return updated
@@ -94,6 +105,7 @@ export function useCotizacionesList() {
     cotizaciones,
     loading,
     error,
+    pagination,
     loadCotizaciones,
     createNew,
     remove,
@@ -101,39 +113,36 @@ export function useCotizacionesList() {
   }
 }
 
-/**
- * Hook para trabajar con una cotización específica
- */
 export function useCotizacion(idCotizacion) {
   const [cotizacion, setCotizacion] = useState(null)
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState(null)
 
-  const load = useCallback(async () => {
+  const load = useCallback(async (options = {}) => {
     if (!idCotizacion) {
       setCotizacion(null)
-      return
+      return null
     }
 
     setLoading(true)
     setError(null)
     try {
-      const response = await getCotizacion(idCotizacion)
+      const response = await getCotizacion(idCotizacion, { signal: options.signal })
       setCotizacion(response.data)
       return response.data
     } catch (err) {
-      const errorMsg = err.message || 'Error al cargar cotización'
+      if (err.name === 'AbortError') return null
+      const errorMsg = err.message || 'Error al cargar cotizacion'
       setError(errorMsg)
-
       throw err
     } finally {
-      setLoading(false)
+      if (!options.signal?.aborted) setLoading(false)
     }
   }, [idCotizacion])
 
   const update = useCallback(
     async (data) => {
-      if (!idCotizacion) throw new Error('ID de cotización no disponible')
+      if (!idCotizacion) throw new Error('ID de cotizacion no disponible')
 
       setLoading(true)
       setError(null)
@@ -143,7 +152,7 @@ export function useCotizacion(idCotizacion) {
         setCotizacion(updated)
         return updated
       } catch (err) {
-        const errorMsg = err.message || 'Error al actualizar cotización'
+        const errorMsg = err.message || 'Error al actualizar cotizacion'
         setError(errorMsg)
         throw err
       } finally {
@@ -155,7 +164,7 @@ export function useCotizacion(idCotizacion) {
 
   const changeStatus = useCallback(
     async (estado) => {
-      if (!idCotizacion) throw new Error('ID de cotización no disponible')
+      if (!idCotizacion) throw new Error('ID de cotizacion no disponible')
 
       setLoading(true)
       setError(null)
@@ -176,13 +185,12 @@ export function useCotizacion(idCotizacion) {
   )
 
   const downloadPdf = useCallback(async () => {
-    if (!idCotizacion) throw new Error('ID de cotización no disponible')
+    if (!idCotizacion) throw new Error('ID de cotizacion no disponible')
 
     setLoading(true)
     setError(null)
     try {
-      const blob = await downloadCotizacionPdf(idCotizacion)
-      return blob
+      return await downloadCotizacionPdf(idCotizacion)
     } catch (err) {
       const errorMsg = err.message || 'Error al descargar PDF'
       setError(errorMsg)

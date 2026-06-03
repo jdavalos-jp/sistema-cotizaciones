@@ -1,128 +1,216 @@
-import { Card, Button, Table, Input, Popconfirm, message, Typography, Spin, Select } from 'antd'
-import { PlusOutlined, SearchOutlined } from '@ant-design/icons'
+import { Avatar, Button, Card, Dropdown, Empty, Input, message, Popconfirm, Space, Table, Tag, Typography } from 'antd'
+import { DeleteOutlined, EditOutlined, MoreOutlined, PlusOutlined, SearchOutlined, UserOutlined } from '@ant-design/icons'
 import { useEffect, useState } from 'react'
+import { useNavigate } from 'react-router-dom'
 import { useClientes } from '../hooks/useClientes'
+import * as clientesApi from '../api/clientesApi'
+
+const { Title, Text } = Typography
+
+function getInitials(name = '') {
+  return name
+    .split(' ')
+    .filter(Boolean)
+    .slice(0, 2)
+    .map((part) => part[0]?.toUpperCase())
+    .join('') || null
+}
 
 function ClientesListPage() {
   const [searchTerm, setSearchTerm] = useState('')
+  const navigate = useNavigate()
   const { clientes, loading, pagination, loadClientes, deleteCliente, setPagination } = useClientes()
 
   useEffect(() => {
-    loadClientes(0, searchTerm).catch(() => {
+    const controller = new AbortController()
+
+    loadClientes({ page: 1, pageSize: pagination.pageSize, search: '', signal: controller.signal }).catch((error) => {
+      if (error.name === 'AbortError') return
       message.error('Error al cargar clientes')
     })
-  }, [])
+
+    return () => controller.abort()
+  }, [loadClientes, pagination.pageSize])
 
   const handleSearch = async (value) => {
     setSearchTerm(value)
     setPagination((prev) => ({ ...prev, current: 1 }))
-    try {
-      await loadClientes(0, value)
-    } catch {}
-  }
-
-  const handlePaginationChange = async (page) => {
-    const skip = (page - 1) * pagination.pageSize
-    setPagination((prev) => ({ ...prev, current: page }))
-    try {
-      await loadClientes(skip, searchTerm)
-    } catch {}
-  }
-
-  const handleShowSizeChange = async (current, pageSize) => {
-    const skip = (current - 1) * pageSize
-    setPagination((prev) => ({ ...prev, current, pageSize }))
-    try {
-      await loadClientes(skip, searchTerm)
-    } catch {}
-  }
-
-  const handleDelete = async (idCliente) => {
-    const confirmed = window.confirm('¿Está seguro que desea eliminar este cliente?')
-    if (!confirmed) return
 
     try {
-      deleteCliente(idCliente)
-      message.success('Cliente eliminado')
+      await loadClientes({ page: 1, pageSize: pagination.pageSize, search: value })
     } catch {
-      message.error('Error al eliminar cliente')
+      message.error('Error al buscar clientes')
     }
   }
 
-  const handleActionChange = (value, record) => {
-    if (value === 'editar') {
-      console.log('Editar cliente:', record.idCliente)
-    } else if (value === 'eliminar') {
-      handleDelete(record.idCliente)
+  const handlePaginationChange = async (page) => {
+    try {
+      await loadClientes({ page, pageSize: pagination.pageSize, search: searchTerm })
+    } catch {
+      message.error('Error al cargar clientes')
+    }
+  }
+
+  const handleShowSizeChange = async (current, pageSize) => {
+    try {
+      await loadClientes({ page: current, pageSize, search: searchTerm })
+    } catch {
+      message.error('Error al cargar clientes')
+    }
+  }
+
+  const handleDelete = async (idCliente) => {
+    try {
+      await clientesApi.deleteCliente(idCliente)
+      deleteCliente(idCliente)
+      message.success('Cliente eliminado')
+    } catch (error) {
+      message.error(error.message || 'Error al eliminar cliente')
     }
   }
 
   const columns = [
-    { title: 'Nombre', dataIndex: 'nombreCompleto', key: 'nombreCompleto' },
-    { title: 'Email', dataIndex: 'email', key: 'email' },
-    { title: 'Teléfono', dataIndex: 'telefono', key: 'telefono' },
-    { title: 'Institución', dataIndex: 'institucion', key: 'institucion' },
     {
-      title: 'Acciones',
-      key: 'acciones',
+      title: 'Cliente',
+      dataIndex: 'nombreCompleto',
+      key: 'nombreCompleto',
+      render: (name, record) => (
+        <Space size={12}>
+          <Avatar icon={getInitials(name) ? null : <UserOutlined />}>
+            {getInitials(name)}
+          </Avatar>
+          <div>
+            <Text strong>{name || 'Sin nombre'}</Text>
+            <div>
+              <Text type="secondary" style={{ fontSize: 12 }}>
+                {record.cargo || 'Sin cargo'}
+              </Text>
+            </div>
+          </div>
+        </Space>
+      ),
+    },
+    {
+      title: 'Contacto',
+      key: 'contacto',
       render: (_, record) => (
-        <Select
-          placeholder="Acciones"
-          style={{ width: 100, textAlign: 'left' }}
-          onChange={(value) => handleActionChange(value, record)}
-          options={[
-            { label: 'Editar', value: 'editar' },
-            { label: 'Eliminar', value: 'eliminar' },
-          ]}
-        />
+        <div>
+          <Text>{record.email || '-'}</Text>
+          <div>
+            <Text type="secondary" style={{ fontSize: 12 }}>
+              {record.telefono || 'Sin telefono'}
+            </Text>
+          </div>
+        </div>
+      ),
+    },
+    {
+      title: 'Institucion',
+      dataIndex: 'institucion',
+      key: 'institucion',
+      render: (institucion) => institucion ? <Tag>{institucion}</Tag> : <Text type="secondary">-</Text>,
+    },
+    {
+      title: 'Ciudad',
+      dataIndex: 'ciudad',
+      key: 'ciudad',
+      render: (ciudad) => ciudad || '-',
+    },
+    {
+      title: '',
+      key: 'acciones',
+      width: 64,
+      align: 'right',
+      render: (_, record) => (
+        <Dropdown
+          menu={{
+            items: [
+              {
+                key: 'edit',
+                label: 'Editar',
+                icon: <EditOutlined />,
+                onClick: () => navigate(`/clientes/editar/${record.idCliente}`),
+              },
+              { type: 'divider' },
+              {
+                key: 'delete',
+                label: (
+                  <Popconfirm
+                    title="Eliminar cliente"
+                    description="Esta accion no se puede deshacer."
+                    onConfirm={() => handleDelete(record.idCliente)}
+                    okText="Eliminar"
+                    cancelText="Cancelar"
+                    okButtonProps={{ danger: true }}
+                  >
+                    <span style={{ color: '#ff4d4f' }}>Eliminar</span>
+                  </Popconfirm>
+                ),
+                icon: <DeleteOutlined style={{ color: '#ff4d4f' }} />,
+                danger: true,
+              },
+            ],
+          }}
+          trigger={['click']}
+          placement="bottomRight"
+        >
+          <Button type="text" icon={<MoreOutlined />} />
+        </Dropdown>
       ),
     },
   ]
 
   return (
-    <div>
-      <div style={{ marginBottom: 24, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-        <div>
-          <Typography.Title level={1} style={{ marginTop: 0, marginBottom: 8 }}>
-            Clientes
-          </Typography.Title>
-          <Typography.Text type="secondary">Gestión de clientes y contactos</Typography.Text>
-        </div>
+    <div style={{ backgroundColor: '#f5f5f5', minHeight: '100vh', margin: '-24px', padding: 24 }}>
+      <div style={{ marginBottom: 24 }}>
+        <Title level={3} style={{ margin: 0 }}>
+          Clientes
+        </Title>
+        <Text type="secondary" style={{ fontSize: 14 }}>
+          Inicio / Clientes
+        </Text>
       </div>
 
-      <Card>
-        <Spin spinning={loading}>
-          <div style={{ marginBottom: 16 }}>
-            <Input
-              placeholder="Buscar por nombre o email..."
-              prefix={<SearchOutlined />}
-              value={searchTerm}
-              onChange={(e) => handleSearch(e.target.value)}
-              style={{ maxWidth: 737, marginRight: 17 }}
-            />
-            <Button type="primary" icon={<PlusOutlined />}>
-              Agregar Cliente
-            </Button>
-          </div>
-
-          <Table
-            columns={columns}
-            dataSource={clientes}
-            rowKey="idCliente"
-            pagination={{
-              pageSize: pagination.pageSize,
-              current: pagination.current,
-              total: pagination.total,
-              onChange: handlePaginationChange,
-              onShowSizeChange: handleShowSizeChange,
-              showSizeChanger: true,
-              showQuickJumper: true,
-              pageSizeOptions: ['5', '10', '20', '50'],
-              showTotal: (total) => `Total: ${total} clientes`,
-            }}
-            loading={loading}
+      <Card
+        variant="borderless"
+        style={{
+          borderRadius: 8,
+          boxShadow: '0 1px 2px rgba(0,0,0,0.05)',
+        }}
+        styles={{ body: { padding: 24 } }}
+      >
+        <div style={{ display: 'flex', gap: 16, marginBottom: 24 }}>
+          <Input
+            allowClear
+            placeholder="Buscar cliente"
+            value={searchTerm}
+            onChange={(event) => handleSearch(event.target.value)}
+            style={{ flex: 1 }}
+            suffix={<SearchOutlined style={{ color: 'rgba(0,0,0,.45)' }} />}
           />
-        </Spin>
+          <Button type="primary" icon={<PlusOutlined />} onClick={() => navigate('/clientes/crear')}>
+            Anadir cliente
+          </Button>
+        </div>
+
+        <Table
+          columns={columns}
+          dataSource={clientes}
+          rowKey="idCliente"
+          loading={loading}
+          pagination={{
+            pageSize: pagination.pageSize,
+            current: pagination.current,
+            total: pagination.total,
+            onChange: handlePaginationChange,
+            onShowSizeChange: handleShowSizeChange,
+            showSizeChanger: false,
+            showQuickJumper: true,
+            showTotal: (total) => `Total: ${total} cliente${total !== 1 ? 's' : ''}`,
+          }}
+          locale={{ emptyText: <Empty description="No hay clientes" /> }}
+          scroll={{ x: true }}
+        />
       </Card>
     </div>
   )

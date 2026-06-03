@@ -10,6 +10,7 @@ function ProductosSeleccionadosTable({
   onSetPrecio = () => { },
   onSetNombre = () => { },
   onSetDescripcion = () => { },
+  onSetObservaciones = () => { },
 }) {
   const total = useMemo(() => lineas.reduce((acc, l) => acc + (Number(l.totalLinea) || 0), 0), [lineas]);
 
@@ -41,6 +42,20 @@ function ProductosSeleccionadosTable({
           value={text || ''}
           onChange={(e) => onSetDescripcion(record.tipo, String(record.id), e.target.value)}
           placeholder="Sin descripción"
+          size="small"
+        />
+      ),
+    },
+    {
+      title: 'NOTAS / ENTREGA',
+      dataIndex: 'observaciones',
+      key: 'observaciones',
+      width: 140,
+      render: (text, record) => (
+        <Input
+          value={text || ''}
+          onChange={(e) => onSetObservaciones(record.tipo, String(record.id), e.target.value)}
+          placeholder="Ej: Inmediata"
           size="small"
         />
       ),
@@ -120,6 +135,15 @@ function ProductosSeleccionadosTable({
 
   return (
     <Card
+      variant="borderless"
+      style={{
+        borderRadius: 8,
+        boxShadow: '0 1px 2px rgba(0,0,0,0.05)',
+      }}
+      styles={{
+        header: { padding: '16px 24px', borderBottom: '1px solid #f0f0f0' },
+        body: { padding: 24 },
+      }}
       title={
         <Space>
           <Typography.Title level={5} style={{ margin: 0 }}>
@@ -137,10 +161,11 @@ function ProductosSeleccionadosTable({
         <>
           <Table
             columns={columns}
-            rowKey={(record) => `${record.tipo}-${record.id}-${record.nombre}`} // por si hay duplicados
+            rowKey={(record) => `${record.tipo}-${record.id}`}
             dataSource={lineas}
             pagination={false}
             size="small"
+            scroll={{ x: 900 }}
           />
           <Row justify="end" style={{ marginTop: 16 }} gutter={[16, 16]}>
             <Col xs={24} md={6}>

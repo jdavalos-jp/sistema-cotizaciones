@@ -1,6 +1,6 @@
 const { prisma } = require('../../db/prisma');
 
-async function listClientes({ take = 50, search } = {}) {
+async function listClientes({ take = 50, skip = 0, search } = {}) {
   const q = search?.trim();
   const where = q
     ? {
@@ -8,15 +8,23 @@ async function listClientes({ take = 50, search } = {}) {
           { nombreCompleto: { contains: q, mode: 'insensitive' } },
           { email: { contains: q, mode: 'insensitive' } },
           { telefono: { contains: q, mode: 'insensitive' } },
+          { institucion: { contains: q, mode: 'insensitive' } },
+          { ciudad: { contains: q, mode: 'insensitive' } },
         ],
       }
     : undefined;
 
-  return prisma.cliente.findMany({
-    take,
-    where,
-    orderBy: { idCliente: 'desc' },
-  });
+  const [items, total] = await Promise.all([
+    prisma.cliente.findMany({
+      take,
+      skip,
+      where,
+      orderBy: { idCliente: 'desc' },
+    }),
+    prisma.cliente.count({ where }),
+  ]);
+
+  return { items, total };
 }
 
 async function getClienteById(idCliente) {

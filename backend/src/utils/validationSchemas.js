@@ -75,6 +75,33 @@ const CreateProductoSchema = z.object({
 
 const UpdateProductoSchema = CreateProductoSchema.partial();
 
+// ==================== COMPONENTES ====================
+
+const CreateComponenteSchema = z.object({
+  nombre: z
+    .string()
+    .min(3, 'Nombre debe tener al menos 3 caracteres')
+    .max(200, 'Nombre no puede exceder 200 caracteres')
+    .trim(),
+  descripcion: z
+    .string()
+    .max(1000, 'Descripción no puede exceder 1000 caracteres')
+    .trim()
+    .optional()
+    .nullable(),
+  precioBase: z
+    .union([z.number(), z.string()])
+    .pipe(z.coerce.number().int().positive('Precio debe ser un número entero positivo')),
+  sku: z
+    .string()
+    .max(100, 'SKU no puede exceder 100 caracteres')
+    .trim()
+    .optional()
+    .nullable(),
+});
+
+const UpdateComponenteSchema = CreateComponenteSchema.partial();
+
 // ==================== CLIENTES ====================
 
 const CreateClienteSchema = z.object({
@@ -123,6 +150,10 @@ const UpdateClienteSchema = CreateClienteSchema.partial();
 const CotizacionItemSchema = z.object({
   id: z.union([z.number(), z.string(), z.bigint()]).pipe(z.coerce.bigint().positive()),
   cantidad: z.union([z.number(), z.string()]).pipe(z.coerce.number().int().positive()),
+  nombre: z.string().max(200).optional(),
+  descripcion: z.string().optional(),
+  observaciones: z.string().optional(),
+  precioUnitario: z.union([z.number(), z.string()]).pipe(z.coerce.number().min(0)).optional(),
 });
 
 const CreateCotizacionSchema = z.object({
@@ -194,6 +225,8 @@ module.exports = {
   // Schemas
   CreateProductoSchema,
   UpdateProductoSchema,
+  CreateComponenteSchema,
+  UpdateComponenteSchema,
   CreateClienteSchema,
   UpdateClienteSchema,
   CreateCotizacionSchema,

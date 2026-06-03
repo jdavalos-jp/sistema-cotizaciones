@@ -1,5 +1,5 @@
-import React, { useCallback, useEffect, useMemo, useState } from 'react'
-import { Button, Form, message, Row, Col, Spin, Typography, theme, Flex, Divider } from 'antd'
+import React, { useCallback, useEffect, useMemo, useState, useRef } from 'react'
+import { Form, message, Row, Col, Spin, Typography, theme, Flex, Divider } from 'antd'
 import { useCategoriesAndSubcategories } from '../hooks/useCategoriesAndSubcategories'
 import { useProducto } from '../hooks/useProductosManager'
 import { useImagenesProducto } from '../../../hooks/useImagenes'
@@ -9,6 +9,7 @@ import { uploadImagenProducto } from '../../../services/api/imagenes'
 import ProductoImagenYCategoria from './ProductoImagenYCategoria'
 import ProductoInfoGeneral from './ProductoInfoGeneral'
 import ProductoInventarioPreciosMultimedia from './ProductoInventarioPreciosMultimedia'
+import FormActionBar from '../../../shared/components/FormActionBar'
 
 const { Title, Text } = Typography
 
@@ -24,15 +25,16 @@ function ProductoForm({ onSuccess, onCancel, idProductoEdit = null }) {
   const [categoriaOptions, setCategoriaOptions] = useState([])
   const [uploadPhase, setUploadPhase] = useState('')
   const [componentesAgregados, setComponentesAgregados] = useState([])
+  const hasHydrated = useRef(false)
 
   const { categorias, loadingCategorias } = useCategoriesAndSubcategories()
   const { producto, loading: loadingProducto, createProducto, updateProducto } = useProducto(idProductoEdit)
-  const { subirImagen: subirImagenProductoHook } = useImagenesProducto(idProductoEdit)
+  const { subirImagen: subirImagenProductoHook, eliminarImagen: eliminarImagenProductoHook } = useImagenesProducto(idProductoEdit)
 
-  const title = idProductoEdit ? 'Editar Producto' : 'Crear Nuevo Producto'
-  const subtitle = idProductoEdit
-    ? 'Actualiza la información del producto en el catálogo.'
-    : 'Completa la información detallada para publicar el producto en el catálogo.'
+  const title = idProductoEdit ? 'Editar Producto' : 'Crear Producto'
+  const breadcrumb = idProductoEdit
+    ? 'Inicio / Productos / Editar producto'
+    : 'Inicio / Productos / Añadir producto'
 
   // Rebuild hierarchy - optimizado (una sola query)
   const rebuildHierarchy = useCallback(async () => {
@@ -71,13 +73,18 @@ function ProductoForm({ onSuccess, onCancel, idProductoEdit = null }) {
 
   // Cargar datos en edición
   useEffect(() => {
-    if (!idProductoEdit || !producto) return
+    if (!idProductoEdit || !producto || categoriaOptions.length === 0) return
+    if (hasHydrated.current) return // Evitar que backend resetee el form mientras se edita
+
+    // Considerar que el backend puede devolver idCategoria anidado dentro de categoria
+    const catId = producto.idCategoria || producto.categoria?.idCategoria;
+    const subId = producto.idSubcategoria || producto.subcategoria?.idSubcategoria;
 
     form.setFieldsValue({
       nombre: producto.nombre || '',
-      categoriaPath: producto.idSubcategoria
-        ? [Number(producto.idCategoria), Number(producto.idSubcategoria)]
-        : [Number(producto.idCategoria)],
+      categoriaPath: subId
+        ? [Number(catId), Number(subId)]
+        : catId ? [Number(catId)] : [],
       descripcion: producto.descripcion || '',
       sku: producto.sku || '',
       precioBase: producto.precioBase ? Number(producto.precioBase) : undefined,
@@ -105,8 +112,23 @@ function ProductoForm({ onSuccess, onCancel, idProductoEdit = null }) {
     }
 
     setImageHovered(false)
-    setComponentesAgregados([])
-  }, [idProductoEdit, producto, form])
+    
+    // Recuperar componentes asociados al cargar edición
+    if (producto.componentes && producto.componentes.length > 0) {
+      const componentesMap = producto.componentes.map((c) => ({
+        idComponente: c.componente?.idComponente,
+        nombre: c.componente?.nombre,
+        sku: c.componente?.sku || '',
+        cantidad: c.cantidad,
+        precioBase: c.precioReferencial || c.componente?.precioBase,
+      }));
+      setComponentesAgregados(componentesMap);
+    } else {
+      setComponentesAgregados([]);
+    }
+    
+    hasHydrated.current = true;
+  }, [idProductoEdit, producto, form, categoriaOptions])
 
   // Watch fields para validación
   const watchedNombre = Form.useWatch('nombre', form)
@@ -166,8 +188,20 @@ function ProductoForm({ onSuccess, onCancel, idProductoEdit = null }) {
         setUploadPhase('Actualizando producto...')
         await updateProducto(basePayload)
 
+        const imagenAntigua = producto?.imagenes?.find((img) => img.principal) || producto?.imagenes?.[0]
+        
+        // Si se eliminó la imagen O se seleccionó una nueva, debemos eliminar la antigua del servidor
+        if (imagenAntigua && (fileList.length === 0 || selectedFile)) {
+          setUploadPhase('Reemplazando imagen...')
+          try {
+            await eliminarImagenProductoHook(imagenAntigua.idImagen)
+          } catch (e) {
+            console.error('No se pudo eliminar la imagen anterior', e)
+          }
+        }
+
         if (selectedFile) {
-          setUploadPhase('Subiendo imagen...')
+          setUploadPhase('Subiendo nueva imagen...')
           await subirImagenProductoHook(selectedFile)
         }
 
@@ -202,11 +236,13 @@ function ProductoForm({ onSuccess, onCancel, idProductoEdit = null }) {
   }
 
   return (
-    <div style={{ width: '100%' }}>
-      <div style={{ marginBottom: token.marginLG }}>
-        <Title level={3} style={{ margin: 0 }}>{title}</Title>
-        <Text type="secondary" style={{ fontSize: 14 }}>{subtitle}</Text>
-      </div>
+    <div style={{ backgroundColor: '#f5f5f5', padding: '24px', minHeight: '100vh', margin: '-24px' }}>
+      <div style={{ flex: 1, maxWidth: 1200, margin: '0 auto', width: '100%', paddingBottom: '80px' }}>
+        {/* Header Breadcrumb & Title */}
+        <div style={{ marginBottom: 24 }}>
+          <Title level={3} style={{ margin: 0, fontWeight: 600 }}>{title}</Title>
+          <Text type="secondary" style={{ fontSize: '14px' }}>{breadcrumb}</Text>
+        </div>
 
       {loadingProducto ? (
         <Flex justify="center" style={{ padding: token.paddingXL }}>
@@ -274,26 +310,28 @@ function ProductoForm({ onSuccess, onCancel, idProductoEdit = null }) {
             </Col>
           </Row>
 
-          <Divider style={{ margin: `${token.marginLG}px 0` }} />
-
-          {/* Botones de acción */}
-          <Flex justify="flex-end" gap={token.marginMD}>
-            <Button onClick={onCancel} size="large" style={{ borderRadius: token.borderRadiusLG }} disabled={submitting}>
-              Cancelar
-            </Button>
-            <Button
-              type="primary"
-              htmlType="submit"
-              loading={submitting}
-              disabled={submitting || !canSubmit}
-              size="large"
-              style={{ borderRadius: token.borderRadiusLG, fontWeight: 600 }}
-            >
-              {idProductoEdit ? 'Actualizar Producto' : 'Crear Producto'}
-            </Button>
-          </Flex>
-        </Form>
+          <Divider style={{ margin: `${token.marginLG}px 0`, display: 'none' }} />
+          <FormActionBar
+            left={idProductoEdit ? 'Editando producto' : 'Nuevo producto'}
+            actions={[
+              {
+                key: 'cancel',
+                label: 'Cancelar',
+                onClick: onCancel,
+                disabled: submitting,
+              },
+              {
+                key: 'save',
+                label: 'Guardar',
+                type: 'primary',
+                htmlType: 'submit',
+                loading: submitting,
+                disabled: submitting || !canSubmit,
+              },
+            ]}
+          /></Form>
       )}
+      </div>
     </div>
   )
 }

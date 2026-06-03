@@ -3,6 +3,9 @@
   "private": true,
   "version": "0.0.0",
   "type": "module",
+  "engines": {
+    "node": ">=22.12"
+  },
   "scripts": {
     "dev": "vite",
     "build": "vite build",
@@ -13,10 +16,12 @@
     "@ant-design/icons": "^6.1.0",
     "@supabase/supabase-js": "^2.99.1",
     "antd": "^6.3.2",
+    "antd-img-crop": "^4.30.0",
     "axios": "^1.13.6",
     "react": "^19.2.4",
     "react-dom": "^19.2.4",
-    "react-router-dom": "^7.13.1"
+    "react-router-dom": "^7.13.1",
+    "suneditor-react": "^3.6.1"
   },
   "devDependencies": {
     "@eslint/js": "^9.39.4",

@@ -1,125 +1,201 @@
-import { Card, Button, Table, Space, Input, Popconfirm, message, Typography, Spin } from 'antd'
-import { PlusOutlined, SearchOutlined, EditOutlined, DeleteOutlined } from '@ant-design/icons'
-import { useEffect, useState } from 'react'
-import { useComponentes } from '../hooks/useComponentes'
+import { Card, Button, Table, Input, Popconfirm, message, Typography, Spin, Image, Dropdown } from 'antd'
+import { SearchOutlined, EditOutlined, DeleteOutlined, MoreOutlined, PlusOutlined } from '@ant-design/icons'
+import { useCallback, useMemo } from 'react'
+import { useNavigate } from 'react-router-dom'
+import { useComponentesManager } from '../hooks/useComponentesManager'
 
-/**
- * Componente ComponentesListPage
- */
+const { Title, Text } = Typography
+
 export default function ComponentesListPage() {
-  const [searchTerm, setSearchTerm] = useState('')
-  const { componentes, loading, pagination, loadComponentes, deleteComponente, setPagination } = useComponentes()
+  const navigate = useNavigate()
 
-  useEffect(() => {
-    loadComponentes(0, searchTerm).catch((error) => {
-      message.error('Error al cargar componentes')
-    })
-  }, [])
+  const {
+    componentes = [],
+    loading,
+    pagination,
+    filters,
+    handleFilterChange,
+    handlePagination,
+    deleteComponente,
+  } = useComponentesManager()
 
-  const handleSearch = async (value) => {
-    setSearchTerm(value)
-    setPagination((prev) => ({ ...prev, current: 1 }))
-    try {
-      await loadComponentes(0, value)
-    } catch {}
+  const handleSearch = (value) => {
+    handleFilterChange({ search: value })
   }
 
-  const handlePaginationChange = async (page) => {
-    const skip = (page - 1) * pagination.pageSize
-    setPagination((prev) => ({ ...prev, current: page }))
-    try {
-      await loadComponentes(skip, searchTerm)
-    } catch {}
+  const handlePaginationChange = (page) => {
+    handlePagination(page, pagination.take)
   }
 
-  const handleShowSizeChange = async (current, pageSize) => {
-    console.log(current, pageSize)
-    const skip = (current - 1) * pageSize
-    setPagination((prev) => ({ ...prev, current, pageSize }))
-    try {
-      await loadComponentes(skip, searchTerm)
-    } catch {}
+  const handleShowSizeChange = (current, pageSize) => {
+    handlePagination(current, pageSize)
   }
 
-  const handleDelete = async (idComponente) => {
+  const handleDelete = useCallback(async (idComponente) => {
     try {
-      deleteComponente(idComponente)
+      await deleteComponente(idComponente)
       message.success('Componente eliminado')
     } catch (error) {
-      message.error('Error al eliminar componente')
+      message.error(error?.message || 'Error al eliminar componente')
     }
-  }
+  }, [deleteComponente])
 
-  const columns = [
-    { title: 'Nombre', dataIndex: 'nombre', key: 'nombre' },
-    { title: 'Código', dataIndex: 'codigo', key: 'codigo' },
-    { title: 'Descripción', dataIndex: 'descripcion', key: 'descripcion' },
+  const handleEditClick = useCallback((idComponente) => {
+    navigate(`/componentes/editar/${idComponente}`)
+  }, [navigate])
+
+  const columns = useMemo(() => [
+    {
+      title: 'Nombre',
+      dataIndex: 'nombre',
+      key: 'nombre',
+      width: 250,
+      render: (nombre, record) => (
+        <div style={{ display: 'flex', gap: 12, alignItems: 'flex-start' }}>
+          <div
+            style={{
+              width: 60,
+              height: 60,
+              flexShrink: 0,
+              background: '#f5f5f5',
+              borderRadius: 5,
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              overflow: 'hidden',
+            }}
+          >
+            {Array.isArray(record.imagenes) && record.imagenes.length > 0 ? (
+              <Image
+                src={record.imagenes[0]?.urlImagen}
+                alt={nombre || 'Imagen del componente'}
+                style={{ width: '100%', height: '100%', objectFit: 'cover' }}
+                preview={{ mask: 'Ver' }}
+                fallback=""
+              />
+            ) : (
+              <span style={{ fontSize: 11, color: '#999' }}>Sin imagen</span>
+            )}
+          </div>
+
+          <div style={{ flex: 1 }}>
+            <div style={{ fontWeight: 500, marginBottom: 4 }}>
+              {nombre || 'Sin nombre'}
+            </div>
+          </div>
+        </div>
+      ),
+    },
+    {
+      title: 'SKU',
+      dataIndex: 'sku',
+      key: 'sku',
+      width: 120,
+      render: (sku) => sku || '-',
+    },
+    {
+      title: 'Precio Base',
+      dataIndex: 'precioBase',
+      key: 'precioBase',
+      width: 120,
+      render: (price) => (
+        <span style={{ color: '#000000' }}>
+          Bs {Number(price || 0).toLocaleString('es-BO')}
+        </span>
+      ),
+    },
     {
       title: 'Acciones',
       key: 'acciones',
+      width: 100,
+      align: 'center',
       render: (_, record) => (
-        <Space>
-          <Button type="text" size="small" icon={<EditOutlined />}>
-            Editar
-          </Button>
-          <Popconfirm
-            title="Eliminar"
-            description="¿Está seguro que desea eliminar?"
-            onConfirm={() => handleDelete(record.idComponente)}
-            okText="Sí"
-            cancelText="No"
-          >
-            <Button type="text" size="small" danger icon={<DeleteOutlined />}>
-              Eliminar
-            </Button>
-          </Popconfirm>
-        </Space>
+        <Dropdown
+          menu={{
+            items: [
+              {
+                key: 'edit',
+                label: 'Editar',
+                icon: <EditOutlined />,
+                onClick: () => handleEditClick(record.idComponente),
+              },
+              { type: 'divider' },
+              {
+                key: 'delete',
+                label: (
+                  <Popconfirm
+                    title="Eliminar Componente"
+                    description="Esta accion no se puede deshacer."
+                    onConfirm={() => handleDelete(record.idComponente)}
+                    okText="Eliminar"
+                    cancelText="Cancelar"
+                    okButtonProps={{ danger: true }}
+                  >
+                    <div style={{ color: '#ff4d4f', width: '100%' }}>Eliminar</div>
+                  </Popconfirm>
+                ),
+                icon: <DeleteOutlined style={{ color: '#ff4d4f' }} />,
+                danger: true,
+              },
+            ],
+          }}
+          trigger={['click']}
+          placement="bottomRight"
+        >
+          <Button type="text" icon={<MoreOutlined style={{ fontSize: 18 }} />} />
+        </Dropdown>
       ),
     },
-  ]
+  ], [handleDelete, handleEditClick])
 
   return (
-    <div>
-      <div style={{ marginBottom: 24, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-        <div>
-          <Typography.Title level={1} style={{ marginTop: 0, marginBottom: 8 }}>
-            Componentes
-          </Typography.Title>
-          <Typography.Text type="secondary">Gestión de componentes y piezas</Typography.Text>
-        </div>
+    <div style={{ backgroundColor: '#f5f5f5', padding: 24, minHeight: '100vh', margin: '-24px' }}>
+      <div style={{ marginBottom: 24 }}>
+        <Title level={3} style={{ margin: 0 }}>
+          Componentes
+        </Title>
+        <Text type="secondary" style={{ fontSize: 14 }}>
+          Inicio / Componentes
+        </Text>
       </div>
 
-      <Card>
+      <Card
+        variant="borderless"
+        style={{ borderRadius: 8, boxShadow: '0 1px 2px rgba(0,0,0,0.05)' }}
+        styles={{ body: { padding: 24 } }}
+      >
         <Spin spinning={loading}>
-          <div style={{ marginBottom: 16 }}>
+          <div style={{ display: 'flex', gap: 16, marginBottom: 24 }}>
             <Input
-              placeholder="Buscar componente..."
-              prefix={<SearchOutlined />}
-              value={searchTerm}
-              onChange={(e) => handleSearch(e.target.value)}
-              style={{ maxWidth: 708, marginRight: 17 }}
+              placeholder="Buscar componente por nombre o SKU..."
+              value={filters.search}
+              onChange={(event) => handleSearch(event.target.value)}
+              style={{ flex: 1 }}
+              suffix={<SearchOutlined style={{ color: 'rgba(0,0,0,.45)' }} />}
+              allowClear
             />
-          <Button type="primary" icon={<PlusOutlined />}>
-          Agregar Componente  
-          </Button>
+
+            <Button type="primary" icon={<PlusOutlined />} onClick={() => navigate('/componentes/crear')}>
+              Crear Componente
+            </Button>
           </div>
 
           <Table
             columns={columns}
             dataSource={componentes}
-            rowKey="idComponente"
+            rowKey={(record) => String(record.idComponente)}
+            loading={loading}
             pagination={{
-              pageSize: pagination.pageSize,
               current: pagination.current,
+              pageSize: pagination.take,
               total: pagination.total,
               onChange: handlePaginationChange,
               onShowSizeChange: handleShowSizeChange,
               showSizeChanger: true,
-              showQuickJumper: true,
-              pageSizeOptions: ['5', '10', '20', '50'],
               showTotal: (total) => `Total: ${total} componentes`,
+              pageSizeOptions: ['10', '20', '50'],
             }}
-            loading={loading}
+            scroll={{ x: true }}
           />
         </Spin>
       </Card>

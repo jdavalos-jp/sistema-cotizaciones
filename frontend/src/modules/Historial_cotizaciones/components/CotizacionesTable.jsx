@@ -1,32 +1,35 @@
-import React from 'react'
-import {
-  Table,
-  Button,
-  Space,
-  Tag,
-  Tooltip,
-  Popconfirm,
-  Empty,
-} from 'antd'
-
+import { Table, Button, Tag, Tooltip, Popconfirm, Empty, Dropdown } from 'antd'
 import {
   EyeOutlined,
   DeleteOutlined,
   SendOutlined,
   CheckOutlined,
   CloseOutlined,
+  MoreOutlined,
 } from '@ant-design/icons'
+import { formatDateDMY } from '../../../shared/utils'
 
 const estadoColors = {
-  borrador: 'orange',
-  enviada: 'blue',
-  aceptada: 'green',
-  rechazada: 'red',
+  borrador: 'default',
+  enviada: 'processing',
+  aceptada: 'success',
+  rechazada: 'error',
+  cancelada: 'default',
+}
+
+function formatCurrency(value, moneda) {
+  const number = Number(value || 0)
+  return `${number.toLocaleString('es-BO')} ${moneda || ''}`.trim()
+}
+
+function formatDate(value) {
+  return formatDateDMY(value)
 }
 
 function CotizacionesTable({
   cotizaciones,
   paginacion,
+  total,
   setPaginacion,
   onVer,
   onEliminar,
@@ -34,90 +37,135 @@ function CotizacionesTable({
 }) {
   const columns = [
     {
-      title: '#',
+      title: 'Cotizacion',
       dataIndex: 'numeroCotizacion',
-      render: (t) => <strong>{t}</strong>,
+      width: 160,
+      render: (text) => <span className="cotizaciones-number">{text}</span>,
     },
     {
       title: 'Cliente',
       dataIndex: ['cliente', 'nombreCompleto'],
+      ellipsis: true,
+      render: (text, record) => (
+        <div>
+          <div className="cotizaciones-client">{text || '-'}</div>
+          <div className="cotizaciones-muted">{record.cliente?.email || record.cliente?.telefono || '-'}</div>
+        </div>
+      ),
+    },
+    {
+      title: 'Emision',
+      dataIndex: 'fechaEmision',
+      width: 120,
+      render: formatDate,
     },
     {
       title: 'Total',
       dataIndex: 'total',
-      render: (t, r) => `${t} ${r.moneda}`,
+      align: 'right',
+      width: 140,
+      render: (totalValue, record) => (
+        <span className="cotizaciones-total">
+          {formatCurrency(totalValue, record.moneda)}
+        </span>
+      ),
     },
     {
       title: 'Estado',
       dataIndex: 'estado',
+      width: 120,
       render: (estado) => (
-        <Tag color={estadoColors[estado]}>{estado}</Tag>
+        <Tag color={estadoColors[estado]} className="cotizaciones-status">
+          {estado || 'sin estado'}
+        </Tag>
       ),
     },
     {
-      title: 'Acciones',
-      render: (_, r) => (
-        <Space wrap>
-          <Tooltip title="Ver">
-            <Button icon={<EyeOutlined />} onClick={() => onVer(r)} />
-          </Tooltip>
+      title: '',
+      align: 'right',
+      width: 70,
+      render: (_, record) => {
+        const menuItems = [
+          {
+            key: 'view',
+            label: 'Ver detalle',
+            icon: <EyeOutlined />,
+            onClick: () => onVer(record),
+          },
+        ]
 
-          {r.estado === 'borrador' && (
-            <>
-              <Button
-                icon={<SendOutlined />}
-                onClick={() => onCambiarEstado(r.idCotizacion, 'enviada')}
-              />
+        if (record.estado === 'borrador') {
+          menuItems.push(
+            {
+              key: 'sent',
+              label: 'Marcar enviada',
+              icon: <SendOutlined />,
+              onClick: () => onCambiarEstado(record.idCotizacion, 'enviada'),
+            },
+            { type: 'divider' },
+            {
+              key: 'delete',
+              label: (
+                <Popconfirm
+                  title="Eliminar cotizacion"
+                  description="Esta accion no se puede deshacer."
+                  okText="Eliminar"
+                  cancelText="Cancelar"
+                  okButtonProps={{ danger: true }}
+                  onConfirm={() => onEliminar(record.idCotizacion)}
+                >
+                  <span style={{ color: '#ff4d4f' }}>Eliminar</span>
+                </Popconfirm>
+              ),
+              icon: <DeleteOutlined style={{ color: '#ff4d4f' }} />,
+              danger: true,
+            }
+          )
+        }
 
-              <Popconfirm
-                title="¿Eliminar?"
-                onConfirm={() => onEliminar(r.idCotizacion)}
-              >
-                <Button danger icon={<DeleteOutlined />} />
-              </Popconfirm>
-            </>
-          )}
+        if (record.estado === 'enviada') {
+          menuItems.push(
+            {
+              key: 'accept',
+              label: 'Aceptar',
+              icon: <CheckOutlined />,
+              onClick: () => onCambiarEstado(record.idCotizacion, 'aceptada'),
+            },
+            {
+              key: 'reject',
+              label: 'Rechazar',
+              icon: <CloseOutlined />,
+              danger: true,
+              onClick: () => onCambiarEstado(record.idCotizacion, 'rechazada'),
+            }
+          )
+        }
 
-          {r.estado === 'enviada' && (
-            <>
-              <Button
-                icon={<CheckOutlined />}
-                onClick={() => onCambiarEstado(r.idCotizacion, 'aceptada')}
-              />
-              <Button
-                danger
-                icon={<CloseOutlined />}
-                onClick={() => onCambiarEstado(r.idCotizacion, 'rechazada')}
-              />
-            </>
-          )}
-        </Space>
-      ),
+        return (
+          <Dropdown menu={{ items: menuItems }} trigger={['click']} placement="bottomRight">
+            <Button type="text" icon={<MoreOutlined style={{ fontSize: 18 }} />} />
+          </Dropdown>
+        )
+      },
     },
   ]
-
-  const handleShowSizeChange = (current, pageSize) => {
-    console.log(current, pageSize)
-    setPaginacion({ current, pageSize })
-  }
 
   return (
     <Table
       columns={columns}
       dataSource={cotizaciones}
-      rowKey="idCotizacion"
+      rowKey={(record) => String(record.idCotizacion)}
+      scroll={{ x: true }}
       pagination={{
         ...paginacion,
+        total,
         showSizeChanger: true,
-        showQuickJumper: true,
         pageSizeOptions: ['5', '10', '20', '50'],
-        showTotal: (total) => `Total: ${total} cotizaciones`,
-        onShowSizeChange: handleShowSizeChange,
-        onChange: (page) => {
-          setPaginacion({ ...paginacion, current: page })
-        },
+        showTotal: (count) => `Total: ${count} cotizaciones`,
+        onShowSizeChange: (current, pageSize) => setPaginacion({ current, pageSize }),
+        onChange: (page, pageSize) => setPaginacion({ current: page, pageSize }),
       }}
-      locale={{ emptyText: <Empty /> }}
+      locale={{ emptyText: <Empty description="Sin cotizaciones" /> }}
     />
   )
 }

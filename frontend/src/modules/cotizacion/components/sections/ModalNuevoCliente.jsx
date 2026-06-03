@@ -22,9 +22,15 @@ function ModalNuevoCliente({ visible, onClose, onSuccess }) {
 			}
 
 			const responseData = await apiPost('/clientes', payload)
+			const cliente = responseData?.data ?? responseData
+
 			message.success('Cliente creado exitosamente')
 			form.resetFields()
-			onSuccess(responseData.data)
+			onSuccess({
+				...cliente,
+				id: cliente?.idCliente ?? cliente?.id,
+				nombre: cliente?.nombreCompleto ?? cliente?.nombre ?? values.nombre,
+			})
 			onClose()
 		} catch (err) {
 			message.error(err.message || 'Error al crear cliente')

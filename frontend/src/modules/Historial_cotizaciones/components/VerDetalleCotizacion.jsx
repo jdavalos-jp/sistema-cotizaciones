@@ -1,72 +1,87 @@
 import React, { useEffect, useState } from 'react'
-import { Spin, Card, Descriptions, Table, Tag, Button, Space, message, Modal } from 'antd'
+import { Spin, Descriptions, Table, Tag, Button, Space, message, Modal } from 'antd'
 import { DownloadOutlined, PrinterOutlined, EditOutlined } from '@ant-design/icons'
 import { useCotizacion } from '../hooks/useCotizacionesManager'
 import { CotizacionEditar } from '../../cotizacion/components'
+import { formatDateDMY } from '../../../shared/utils'
 
 const estadoColors = {
-  borrador: 'orange',
-  enviada: 'blue',
-  aceptada: 'green',
-  rechazada: 'red',
+  borrador: 'default',
+  enviada: 'processing',
+  aceptada: 'success',
+  rechazada: 'error',
   cancelada: 'default',
+}
+
+function formatMoney(value, moneda = 'Bs') {
+  return `${Number(value || 0).toLocaleString('es-BO')} ${moneda}`
 }
 
 export default function VerDetalleCotizacion({
   idCotizacion,
-  onClose,
 }) {
   const [modalEditarVisible, setModalEditarVisible] = useState(false)
   const { cotizacion, loading, error, load, downloadPdf } =
     useCotizacion(idCotizacion)
 
   useEffect(() => {
-    load()
+    const controller = new AbortController()
+    load({ signal: controller.signal })
+    return () => controller.abort()
   }, [load])
 
-  const handleEditarSuccess = (updated) => {
-    load() // Recargar datos
+  const handleEditarSuccess = () => {
+    load()
     setModalEditarVisible(false)
   }
 
   if (error) {
-    return <div style={{ color: 'red' }}>Error: {error}</div>
+    return <div className="cotizaciones-error">Error: {error}</div>
   }
 
   if (loading || !cotizacion) {
-    return <Spin />
+    return (
+      <div className="cotizaciones-loading">
+        <Spin />
+      </div>
+    )
   }
 
   const columnsProductos = [
     {
-      title: 'Ítem',
+      title: 'Item',
       dataIndex: 'nombreItem',
       key: 'nombreItem',
+      render: (text) => <span className="cotizaciones-item-name">{text}</span>,
     },
     {
-      title: 'Descripción',
+      title: 'Descripcion',
       dataIndex: 'descripcionItem',
       key: 'descripcionItem',
+      render: (text) => text || '-',
     },
     {
       title: 'Cantidad',
       dataIndex: 'cantidad',
       key: 'cantidad',
       align: 'center',
+      width: 110,
     },
     {
-      title: 'P. Unit.',
+      title: 'Precio',
       dataIndex: 'precioUnitario',
       key: 'precioUnitario',
-      render: (price) => `${price} Bs`,
+      render: (price) => formatMoney(price, cotizacion.moneda),
       align: 'right',
+      width: 130,
     },
     {
       title: 'Subtotal',
       dataIndex: 'subtotal',
       key: 'subtotal',
-      render: (total) => `${total} Bs`,
+      render: (total) => formatMoney(total, cotizacion.moneda),
       align: 'right',
+      width: 130,
     },
   ]
 
@@ -91,27 +106,29 @@ export default function VerDetalleCotizacion({
       a.click()
       URL.revokeObjectURL(url)
       message.success('PDF descargado')
-    } catch (err) {
+    } catch {
       message.error('Error al descargar PDF')
     }
   }
 
+  const puedeEditar = cotizacion?.estado === 'borrador' || cotizacion?.estado === 'pendiente'
+
   return (
-    <div className="ver-detalle-cotizacion">
-      <div style={{ marginBottom: 20 }}>
-        <Space>
-          <Button
-            type="primary"
-            icon={<DownloadOutlined />}
-            onClick={handleDescargar}
-          >
-            Descargar PDF
+    <div className="cotizacion-detail">
+      <div className="cotizacion-detail__topbar">
+        <div>
+          <span className="cotizaciones-eyebrow">Cotizacion</span>
+          <h3>{cotizacion.numeroCotizacion}</h3>
+        </div>
+
+        <Space wrap>
+          <Button icon={<DownloadOutlined />} onClick={handleDescargar}>
+            PDF
           </Button>
-          <Button icon={<PrinterOutlined />}>Imprimir</Button>
-          {(cotizacion?.estado === 'borrador' || cotizacion?.estado === 'pendiente') && (
+          <Button icon={<PrinterOutlined />} onClick={() => window.print()}>Imprimir</Button>
+          {puedeEditar && (
             <Button
               type="primary"
-              danger
               icon={<EditOutlined />}
               onClick={() => setModalEditarVisible(true)}
             >
@@ -121,13 +138,14 @@ export default function VerDetalleCotizacion({
         </Space>
       </div>
 
-      {/* Modal de edición */}
       <Modal
         open={modalEditarVisible}
         onCancel={() => setModalEditarVisible(false)}
-        width="90%"
+        width={1120}
         footer={null}
-        title="Editar Cotización"
+        title="Editar cotizacion"
+        className="cotizaciones-modal"
+        centered
       >
         {modalEditarVisible && (
           <CotizacionEditar
@@ -138,78 +156,71 @@ export default function VerDetalleCotizacion({
         )}
       </Modal>
 
-      <Card title="Información General" style={{ marginBottom: 20 }}>
-        <Descriptions column={2} bordered size="small">
-          <Descriptions.Item label="Cotización">
-            <strong>{cotizacion.numeroCotizacion}</strong>
-          </Descriptions.Item>
+      <section className="cotizacion-detail__section">
+        <div className="cotizacion-detail__section-title">Informacion general</div>
+        <Descriptions column={{ xs: 1, sm: 2 }} size="small">
           <Descriptions.Item label="Estado">
-            <Tag color={estadoColors[cotizacion.estado]}>
+            <Tag color={estadoColors[cotizacion.estado]} className="cotizaciones-status">
               {cotizacion.estado}
             </Tag>
           </Descriptions.Item>
-
           <Descriptions.Item label="Cliente">
-            {cotizacion.cliente?.nombreCompleto}
+            {cotizacion.cliente?.nombreCompleto || '-'}
           </Descriptions.Item>
           <Descriptions.Item label="Email">
             {cotizacion.cliente?.email || '-'}
           </Descriptions.Item>
-
-          <Descriptions.Item label="Teléfono">
+          <Descriptions.Item label="Telefono">
             {cotizacion.cliente?.telefono || '-'}
           </Descriptions.Item>
           <Descriptions.Item label="Ciudad">
             {cotizacion.cliente?.ciudad || '-'}
           </Descriptions.Item>
-
-          <Descriptions.Item label="Fecha Emisión">
-            {new Date(cotizacion.fechaEmision).toLocaleDateString(
-              'es-BO'
-            )}
+          <Descriptions.Item label="Fecha emision">
+            {formatDateDMY(cotizacion.fechaEmision)}
           </Descriptions.Item>
           <Descriptions.Item label="Moneda">
             {cotizacion.moneda}
           </Descriptions.Item>
         </Descriptions>
-      </Card>
+      </section>
 
-      <Card title="Detalles de Ítems" style={{ marginBottom: 20 }}>
+      <section className="cotizacion-detail__section">
+        <div className="cotizacion-detail__section-title">Items</div>
         <Table
           columns={columnsProductos}
           dataSource={productosData}
           pagination={false}
-          bordered
           size="small"
+          scroll={{ x: true }}
+          className="cotizaciones-table"
         />
-      </Card>
+      </section>
 
-      <Card title="Resumen" style={{ marginBottom: 20 }}>
-        <Descriptions column={1} size="small">
-          <Descriptions.Item label="Moneda">
-            {cotizacion.moneda}
-          </Descriptions.Item>
-          <Descriptions.Item label="Subtotal">
-            {cotizacion.moneda} {cotizacion.subtotal || '0'}
-          </Descriptions.Item>
-          <Descriptions.Item label="Descuento">
-            {cotizacion.moneda} {cotizacion.descuento || '0'}
-          </Descriptions.Item>
-          <Descriptions.Item label="Impuestos">
-            {cotizacion.moneda} {cotizacion.impuestos || '0'}
-          </Descriptions.Item>
-          <Descriptions.Item label="Total" style={{ fontSize: 16 }}>
-            <strong>
-              {cotizacion.moneda} {cotizacion.total || '0'}
-            </strong>
-          </Descriptions.Item>
-        </Descriptions>
-      </Card>
+      <section className="cotizacion-detail__summary">
+        <div className="cotizacion-summary-row">
+          <span>Subtotal</span>
+          <strong>{formatMoney(cotizacion.subtotal, cotizacion.moneda)}</strong>
+        </div>
+        <div className="cotizacion-summary-row">
+          <span>Descuento</span>
+          <strong>{formatMoney(cotizacion.descuento, cotizacion.moneda)}</strong>
+        </div>
+        <div className="cotizacion-summary-row">
+          <span>Impuestos</span>
+          <strong>{formatMoney(cotizacion.impuestos, cotizacion.moneda)}</strong>
+        </div>
+        <div className="cotizacion-summary-row cotizacion-summary-row--total">
+          <span>Total</span>
+          <strong>{formatMoney(cotizacion.total, cotizacion.moneda)}</strong>
+        </div>
+      </section>
 
       {cotizacion.observaciones && (
-        <Card title="Observaciones">
+        <section className="cotizacion-detail__section">
+          <div className="cotizacion-detail__section-title">Observaciones</div>
           <p>{cotizacion.observaciones}</p>
-        </Card>
+        </section>
       )}
     </div>
   )

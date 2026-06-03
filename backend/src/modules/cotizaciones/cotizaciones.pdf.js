@@ -13,9 +13,64 @@ function formatMoney(value, moneda) {
   return `${curr} ${Math.floor(n).toLocaleString('es-BO')}`;
 }
 
+function formatAmount(value) {
+  const n = Number(value ?? 0);
+  return Math.floor(n).toLocaleString('es-BO');
+}
+
+function formatBrandName(value) {
+  const text = safeText(value).trim();
+  if (!text) return '';
+  return text.replace(/\s+y\s+de\s+/i, '\nY DE ');
+}
+
 function safeText(value) {
   if (value === null || value === undefined) return '';
   return String(value);
+}
+
+function decodeHtmlEntities(value) {
+  return safeText(value)
+    .replace(/&nbsp;/gi, ' ')
+    .replace(/&amp;/gi, '&')
+    .replace(/&lt;/gi, '<')
+    .replace(/&gt;/gi, '>')
+    .replace(/&quot;/gi, '"')
+    .replace(/&#39;/gi, "'")
+    .replace(/&#(\d+);/g, (_, code) => {
+      const n = Number(code);
+      return Number.isFinite(n) ? String.fromCodePoint(n) : _;
+    })
+    .replace(/&#x([0-9a-f]+);/gi, (_, code) => {
+      const n = Number.parseInt(code, 16);
+      return Number.isFinite(n) ? String.fromCodePoint(n) : _;
+    });
+}
+
+function richTextToPdfText(value) {
+  const raw = safeText(value).trim();
+  if (!raw) return '';
+
+  const hasHtml = /<\/?[a-z][\s\S]*>/i.test(raw);
+  if (!hasHtml) return decodeHtmlEntities(raw);
+
+  return decodeHtmlEntities(raw)
+    .replace(/\r?\n/g, ' ')
+    .replace(/<br\s*\/?>/gi, '\n')
+    .replace(/<\/p\s*>/gi, '\n')
+    .replace(/<p\b[^>]*>/gi, '')
+    .replace(/<\/div\s*>/gi, '\n')
+    .replace(/<div\b[^>]*>/gi, '')
+    .replace(/<\/h[1-6]\s*>/gi, '\n')
+    .replace(/<h[1-6]\b[^>]*>/gi, '')
+    .replace(/<li\b[^>]*>/gi, '\n- ')
+    .replace(/<\/li\s*>/gi, '')
+    .replace(/<\/?(ul|ol)\b[^>]*>/gi, '\n')
+    .replace(/<[^>]+>/g, '')
+    .split('\n')
+    .map((line) => line.replace(/[ \t]+/g, ' ').trim())
+    .filter(Boolean)
+    .join('\n');
 }
 
 function joinNonEmpty(lines) {
@@ -112,7 +167,7 @@ function drawHeader(doc, cotizacion, brand, { moneda, compact = false } = {}) {
   doc.fillColor('#111827');
   if (brand.brandName) {
     doc.font('Helvetica-Bold').fontSize(compact ? 11 : 13);
-    doc.text(safeText(brand.brandName), left, textY, { width: leftColW, align: 'left' });
+    doc.text(formatBrandName(brand.brandName), left, textY, { width: leftColW, align: 'left' });
   } else {
     doc.y = textY;
   }
@@ -298,7 +353,7 @@ function drawRow(doc, row, cols, { moneda, zebra, index } = {}) {
   doc.font('Helvetica').fontSize(9);
   const itemCol = cols.find((c) => c.key === 'item');
   const itemText = safeText(row.item);
-  const descText = safeText(row.descripcion);
+  const descText = richTextToPdfText(row.descripcion);
   const itemHeight = doc.heightOfString(itemText, { width: itemCol.w, align: 'left' });
   doc.font('Helvetica').fontSize(8);
   const descHeight = descText
@@ -337,8 +392,8 @@ function drawRow(doc, row, cols, { moneda, zebra, index } = {}) {
     if (c.key === 'sku') text = safeText(row.sku || '-');
     if (c.key === 'dias') text = safeText(row.diasHabiles || '-');
     if (c.key === 'cant') text = safeText(row.cantidad);
-    if (c.key === 'unit') text = formatMoney(row.unitario, moneda);
-    if (c.key === 'total') text = formatMoney(row.total, moneda);
+    if (c.key === 'unit') text = formatAmount(row.unitario);
+    if (c.key === 'total') text = formatAmount(row.total);
 
     doc.save();
     doc.font('Helvetica').fontSize(9).fillColor('#111827');
@@ -455,15 +510,36 @@ function buildCotizacionPdf(cotizacion) {
 
       // Asegurar que validez es un Date o string en formato ISO
       if (!validezTable) {
-        validezTable = addDays(fechaEmisionTable, 7);
+        validezTable = addDaysToDate(fechaEmisionTable, 7);
       }
 
       const validezStr = toDateOnlyString(validezTable);
 
       // USAR diasEntrega del objeto cotizacion, NO calcular
-      const diasHabiles = cotizacion.diasEntrega ?? 5;
+      const diasHabilesGlobal = cotizacion.diasEntrega ?? 5;
 
-      // DEBUG: PDF generated with dates
+      const calcularDiasPorItem = (observaciones) => {
+        if (!observaciones) return diasHabilesGlobal;
+        const textoOriginal = safeText(observaciones).trim();
+        const texto = textoOriginal.toLowerCase();
+        
+        if (texto.includes('inmediata') || texto.includes('inmedita')) {
+          return 'Inmediata';
+        }
+        
+        // Buscar un patrón como "entrega: X" o "dias: X"
+        const match = textoOriginal.match(/(?:entrega|dias|días)\s*:\s*([^,;\n]+)/i);
+        if (match && match[1]) {
+          return match[1].trim();
+        }
+
+        const daysMatch = textoOriginal.match(/^(\d+)(?:\s*(?:dias|días|d\.?))?$/i);
+        if (daysMatch && daysMatch[1]) {
+          return daysMatch[1];
+        }
+        
+        return diasHabilesGlobal;
+      };
 
       const items = [
         ...(cotizacion.productos ?? [])
@@ -472,11 +548,11 @@ function buildCotizacionPdf(cotizacion) {
           .map((p) => ({
             sku: p?.producto?.sku ?? null,
             item: p.nombreItem,
-            descripcion: joinNonEmpty([p.descripcionItem, formatIncludedComponents(p?.producto)]),
+            descripcion: joinNonEmpty([richTextToPdfText(p.descripcionItem), formatIncludedComponents(p?.producto)]),
             cantidad: p.cantidad,
             unitario: p.precioUnitario,
             total: p.subtotal,
-            diasHabiles: diasHabiles,
+            diasHabiles: calcularDiasPorItem(p.observaciones),
           })),
         ...(cotizacion.componentes ?? [])
           .slice()
@@ -484,11 +560,11 @@ function buildCotizacionPdf(cotizacion) {
           .map((c) => ({
             sku: c?.componente?.sku ?? null,
             item: c.nombreItem,
-            descripcion: c.descripcionItem,
+            descripcion: richTextToPdfText(c.descripcionItem),
             cantidad: c.cantidad,
             unitario: c.precioUnitario,
             total: c.subtotal,
-            diasHabiles: diasHabiles,
+            diasHabiles: calcularDiasPorItem(c.observaciones),
           })),
       ];
 

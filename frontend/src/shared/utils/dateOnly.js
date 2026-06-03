@@ -9,15 +9,19 @@ export function toDateOnlyString(value) {
 
   if (typeof value === 'string') {
     const s = value.trim()
-    if (/^\d{4}-\d{2}-\d{2}$/.test(s)) return s
+    const dateOnlyMatch = s.match(/^(\d{4}-\d{2}-\d{2})/)
+    if (dateOnlyMatch) return dateOnlyMatch[1]
     const d = dayjs(s)
     return d.isValid() ? d.format('YYYY-MM-DD') : ''
   }
 
   // Date
   if (value instanceof Date) {
-    const d = dayjs(value)
-    return d.isValid() ? d.format('YYYY-MM-DD') : ''
+    if (Number.isNaN(value.getTime())) return ''
+    const y = value.getUTCFullYear()
+    const m = String(value.getUTCMonth() + 1).padStart(2, '0')
+    const d = String(value.getUTCDate()).padStart(2, '0')
+    return `${y}-${m}-${d}`
   }
 
   // dayjs-like / moment-like
@@ -38,6 +42,6 @@ export function toDateOnlyString(value) {
 export function formatDateDMY(value, fallback = '-') {
   const ymd = toDateOnlyString(value)
   if (!ymd) return fallback
-  const d = dayjs(`${ymd}T00:00:00Z`)
-  return d.isValid() ? d.format('DD/MM/YYYY') : fallback
+  const [y, m, d] = ymd.split('-')
+  return y && m && d ? `${d}/${m}/${y}` : fallback
 }
