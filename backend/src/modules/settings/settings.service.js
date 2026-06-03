@@ -9,7 +9,7 @@ const DEFAULT_SETTINGS = {
   brandEmail: 'servicios@tecnoequip.com.bo',
   brandPhone: '(4)4292937',
   brandPhone2: '70769521',
-  brandAddress: 'Av. Circumvalación entre Vaticano y C.F. Pérez Saavedra',
+  brandAddress: 'Av. Circunvalación entre Vaticano y C.F. Pérez Saavedra',
   brandWebsite: 'www.jdblab.com.bo',
   brandTagline: '',
 };

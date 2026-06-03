@@ -21,10 +21,50 @@ function createNumeroCotizacion() {
   // <= 50 chars, único “suficientemente” para MVP
   const date = new Date();
   const ymd = date.toISOString().slice(0, 10).replaceAll('-', '');
-  const rnd = Math.floor(Math.random() * 1_000_000)
+  const rnd = Math.floor(Math.random() * 1_000_0)
     .toString()
     .padStart(6, '0');
   return `COT-${ymd}-${rnd}`;
+}
+
+function getNumeroCotizacionPrefix(date = new Date()) {
+  const ymd = date.toISOString().slice(0, 10).replaceAll('-', '');
+  return `COT-${ymd}-`;
+}
+
+async function createNumeroCotizacionCorrelativo(tx, date = new Date()) {
+  const prefix = getNumeroCotizacionPrefix(date);
+  const ymd = prefix.slice(4, 12);
+
+  await tx.$executeRaw`SELECT pg_advisory_xact_lock(${Number(ymd)})`;
+
+  const cotizacionesDelDia = await tx.cotizacion.findMany({
+    where: {
+      numeroCotizacion: {
+        startsWith: prefix,
+      },
+    },
+    select: {
+      numeroCotizacion: true,
+    },
+  });
+
+  const usados = new Set();
+  for (const cotizacion of cotizacionesDelDia) {
+    const suffix = String(cotizacion.numeroCotizacion || '').slice(prefix.length);
+    if (/^\d{6}$/.test(suffix)) {
+      usados.add(Number(suffix));
+    }
+  }
+
+  let correlativo = 1;
+  while (usados.has(correlativo)) correlativo += 1;
+
+  if (correlativo > 999) {
+    throw new HttpError(500, 'No hay correlativos disponibles para la fecha actual');
+  }
+
+  return `${prefix}${String(correlativo).padStart(6, '0')}`;
 }
 
 async function createCotizacionWithItems({
@@ -147,9 +187,9 @@ async function createCotizacionWithItems({
 
   const total = subtotal - desc + imp;
 
-  const numeroCotizacion = createNumeroCotizacion();
-
   const result = await prisma.$transaction(async (tx) => {
+    const numeroCotizacion = await createNumeroCotizacionCorrelativo(tx);
+
     const cotizacion = await tx.cotizacion.create({
       data: {
         numeroCotizacion,

@@ -18,12 +18,6 @@ function formatAmount(value) {
   return Math.floor(n).toLocaleString('es-BO');
 }
 
-function formatBrandName(value) {
-  const text = safeText(value).trim();
-  if (!text) return '';
-  return text.replace(/\s+y\s+de\s+/i, '\nY DE ');
-}
-
 function safeText(value) {
   if (value === null || value === undefined) return '';
   return String(value);
@@ -138,8 +132,8 @@ function drawHeader(doc, cotizacion, brand, { moneda, compact = false } = {}) {
   const topY = 40;
 
   const logoPath = resolveCompanyLogoPath();
-  const logoW = compact ? 120 : 200;
-  const logoH = compact ? 80 : 100;
+  const logoW = compact ? 150 : 260;
+  const logoH = compact ? 95 : 135;
   const hasLogo = Boolean(logoPath);
 
   // Cuadro datos (derecha)
@@ -165,12 +159,7 @@ function drawHeader(doc, cotizacion, brand, { moneda, compact = false } = {}) {
   const textY = topY + (hasLogo ? logoH + (compact ? 4 : 6) : 0);
   doc.save();
   doc.fillColor('#111827');
-  if (brand.brandName) {
-    doc.font('Helvetica-Bold').fontSize(compact ? 11 : 13);
-    doc.text(formatBrandName(brand.brandName), left, textY, { width: leftColW, align: 'left' });
-  } else {
-    doc.y = textY;
-  }
+  doc.y = textY;
 
   // Dirección
   doc.font('Helvetica').fontSize(compact ? 7 : 8).fillColor('#374151');
@@ -180,25 +169,36 @@ function drawHeader(doc, cotizacion, brand, { moneda, compact = false } = {}) {
 
   // Teléfonos
   doc.font('Helvetica').fontSize(compact ? 7 : 8).fillColor('#374151');
-  const phones = [brand.brandPhone ? `Tel: ${safeText(brand.brandPhone)}` : null, brand.brandPhone2 ? `Tel: ${safeText(brand.brandPhone2)}` : null]
+
+  const phones = [
+    brand.brandPhone ? `Tel: ${safeText(brand.brandPhone)}` : null,
+    brand.brandPhone2 ? `Tel: ${safeText(brand.brandPhone2)}` : null,
+  ]
     .filter(Boolean)
-    .join('   ');
+    .join('     |    ');
+
   if (phones) {
-    doc.text(phones, left, doc.y + 2, { width: leftColW, align: 'left' });
+    doc.text(phones, left, doc.y + 2, {
+      width: leftColW,
+      align: 'left',
+    });
   }
-
-  // Website
+  // Web y Email en la misma línea
   doc.font('Helvetica').fontSize(compact ? 7 : 8).fillColor('#374151');
-  if (brand.brandWebsite) {
-    doc.text(`Web: ${safeText(brand.brandWebsite)}`, left, doc.y + 2, { width: leftColW, align: 'left' });
-  }
 
-  // Email
-  doc.font('Helvetica').fontSize(compact ? 7 : 8).fillColor('#374151');
-  if (brand.brandEmail) {
-    doc.text(`Email: ${safeText(brand.brandEmail)}`, left, doc.y + 2, { width: leftColW, align: 'left' });
-  }
+  const webEmail = [
+    brand.brandWebsite ? `Web: ${safeText(brand.brandWebsite)}` : null,
+    brand.brandEmail ? `Email: ${safeText(brand.brandEmail)}` : null,
+  ]
+    .filter(Boolean)
+    .join('     |    ');
 
+  if (webEmail) {
+    doc.text(webEmail, left, doc.y + 2, {
+      width: leftColW,
+      align: 'left',
+    });
+  }
   const tagline = brand.brandTagline;
   if (tagline) {
     doc.font('Helvetica-Oblique').fontSize(compact ? 6.5 : 7.5).fillColor('#9CA3AF');
@@ -499,7 +499,7 @@ function buildCotizacionPdf(cotizacion) {
       const cols = [
         { key: 'item', title: 'Ítem', x: tableLeft + 0, w: Math.floor(tableWidth * 0.42), align: 'left' },
         { key: 'sku', title: 'SKU', x: tableLeft + Math.floor(tableWidth * 0.42), w: Math.floor(tableWidth * 0.18), align: 'left' },
-        { key: 'dias', title: 'Entrega de Días Hábiles', x: tableLeft + Math.floor(tableWidth * 0.60), w: Math.floor(tableWidth * 0.14), align: 'center' },
+        { key: 'dias', title: 'Entrega dias', x: tableLeft + Math.floor(tableWidth * 0.60), w: Math.floor(tableWidth * 0.14), align: 'center' },
         { key: 'cant', title: 'Cant.', x: tableLeft + Math.floor(tableWidth * 0.74), w: Math.floor(tableWidth * 0.08), align: 'right' },
         { key: 'unit', title: 'P. Unit', x: tableLeft + Math.floor(tableWidth * 0.82), w: Math.floor(tableWidth * 0.09), align: 'right' },
         { key: 'total', title: 'Total', x: tableLeft + Math.floor(tableWidth * 0.91), w: Math.floor(tableWidth * 0.09), align: 'right' },
@@ -633,7 +633,7 @@ function buildCotizacionPdf(cotizacion) {
         .fontSize(9)
         .fillColor('#374151')
       doc.text(
-        'Banco de credito.\nJorge Davalos Crespo.\nNº Cuenta: 3015040742318.\n',
+        'Banco de Credito.\nJorge Davalos Crespo.\nNº Cuenta: 3015040742318.\n',
         { width: right - left }
       );
 
