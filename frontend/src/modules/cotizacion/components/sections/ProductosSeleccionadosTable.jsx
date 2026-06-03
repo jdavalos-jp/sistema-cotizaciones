@@ -47,7 +47,7 @@ function ProductosSeleccionadosTable({
       ),
     },
     {
-      title: 'NOTAS / ENTREGA',
+      title: 'ENTREGA DIAS',
       dataIndex: 'observaciones',
       key: 'observaciones',
       width: 140,
