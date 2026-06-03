@@ -165,7 +165,7 @@ function ProductosSeleccionadosTable({
             dataSource={lineas}
             pagination={false}
             size="small"
-            scroll={{ x: true }}
+            scroll={{ x: 900 }}
           />
           <Row justify="end" style={{ marginTop: 16 }} gutter={[16, 16]}>
             <Col xs={24} md={6}>

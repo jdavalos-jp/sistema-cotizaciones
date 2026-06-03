@@ -32,6 +32,7 @@ import FormActionBar from '../../../shared/components/FormActionBar'
 
 import { fetchProductos, fetchComponentes } from '../services/api/catalogoApi'
 import { createAndDownloadPdf } from '../services/api/cotizacionesApi'
+import './CotizacionNueva.css'
 
 const { Title, Text } = Typography
 
@@ -40,6 +41,8 @@ const pageStyle = {
   padding: 24,
   minHeight: '100vh',
   margin: '-24px',
+  boxSizing: 'border-box',
+  width: 'calc(100% + 48px)',
 }
 
 const cardStyle = {
@@ -228,7 +231,7 @@ function CotizacionNueva() {
 
   if (showSuccess) {
     return (
-      <div style={pageStyle}>
+      <div className="cotizacion-nueva-page" style={pageStyle}>
         <Card variant="borderless" style={cardStyle} styles={{ body: cardBodyStyle }}>
           <div style={{ textAlign: 'center', padding: '60px 20px' }}>
             <CheckCircleOutlined
@@ -251,15 +254,16 @@ function CotizacionNueva() {
   }
 
   return (
-    <div style={pageStyle}>
+    <div className="cotizacion-nueva-page" style={pageStyle}>
       <Space
+        className="cotizacion-nueva-stack"
         orientation="vertical"
         size={20}
         style={{
           width: '100%',
           paddingBottom: 80,
-          maxWidth: 1180,
-          margin: '0 auto',
+          maxWidth: 'none',
+          margin: 0,
         }}
       >
         <div style={{ marginBottom: 24 }}>
@@ -383,6 +387,7 @@ function CotizacionNueva() {
         </Card>
 
         <FormActionBar
+          maxWidth="none"
           left={`${cart.cart.length} producto(s) en cotización`}
           actions={[
             {
