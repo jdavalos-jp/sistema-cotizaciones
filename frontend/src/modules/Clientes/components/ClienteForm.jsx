@@ -187,11 +187,11 @@ function ClienteForm({ onSuccess, onCancel, idClienteEdit = null }) {
 
                   <Col xs={24}>
                     <Form.Item
-                      label="Observaciones"
+                      label="Contacto en la institucion"
                       name="observaciones"
-                      rules={[{ max: 1000, message: 'Las observaciones no pueden exceder 1000 caracteres' }]}
+                      rules={[{ max: 1000, message: 'El contacto en la institucion no puede exceder 1000 caracteres' }]}
                     >
-                      <Input.TextArea rows={3} placeholder="Notas internas" />
+                      <Input.TextArea rows={3} placeholder="Nombre de la persona de contacto" />
                     </Form.Item>
                   </Col>
                 </Row>

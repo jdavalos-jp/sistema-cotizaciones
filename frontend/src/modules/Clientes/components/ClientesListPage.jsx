@@ -101,6 +101,13 @@ function ClientesListPage() {
               {record.telefono || 'Sin telefono'}
             </Text>
           </div>
+          {record.observaciones && (
+            <div>
+              <Text type="secondary" style={{ fontSize: 12 }}>
+                Contacto: {record.observaciones}
+              </Text>
+            </div>
+          )}
         </div>
       ),
     },

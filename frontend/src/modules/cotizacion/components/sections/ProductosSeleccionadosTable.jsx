@@ -50,12 +50,12 @@ function ProductosSeleccionadosTable({
       title: 'ENTREGA DIAS',
       dataIndex: 'observaciones',
       key: 'observaciones',
-      width: 140,
+      width: 190,
       render: (text, record) => (
         <Input
           value={text || ''}
           onChange={(e) => onSetObservaciones(record.tipo, String(record.id), e.target.value)}
-          placeholder="Ej: Inmediata"
+          placeholder="Ej: Inmediata, 5 dias habiles"
           size="small"
         />
       ),
