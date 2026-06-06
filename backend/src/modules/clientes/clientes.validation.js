@@ -24,7 +24,7 @@ const clienteBaseSchema = z.object({
   cargo: optionalText(150, 'Cargo'),
   institucion: optionalText(150, 'Institucion'),
   direccion: optionalText(500, 'Direccion'),
-  observaciones: optionalText(1000, 'Observaciones'),
+  observaciones: optionalText(1000, 'Contacto en la institucion'),
 });
 
 const createClienteSchema = clienteBaseSchema;

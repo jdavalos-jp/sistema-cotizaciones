@@ -19,12 +19,7 @@ function enriquecerCotizacion(cotizacion) {
 
 function createNumeroCotizacion() {
   // <= 50 chars, único “suficientemente” para MVP
-  const date = new Date();
-  const ymd = date.toISOString().slice(0, 10).replaceAll('-', '');
-  const rnd = Math.floor(Math.random() * 1_000_0)
-    .toString()
-    .padStart(6, '0');
-  return `COT-${ymd}-${rnd}`;
+  return `${getNumeroCotizacionPrefix()}001`;
 }
 
 function getNumeroCotizacionPrefix(date = new Date()) {
@@ -34,9 +29,6 @@ function getNumeroCotizacionPrefix(date = new Date()) {
 
 async function createNumeroCotizacionCorrelativo(tx, date = new Date()) {
   const prefix = getNumeroCotizacionPrefix(date);
-  const ymd = prefix.slice(4, 12);
-
-  await tx.$executeRaw`SELECT pg_advisory_xact_lock(${Number(ymd)})`;
 
   const cotizacionesDelDia = await tx.cotizacion.findMany({
     where: {
@@ -52,7 +44,7 @@ async function createNumeroCotizacionCorrelativo(tx, date = new Date()) {
   const usados = new Set();
   for (const cotizacion of cotizacionesDelDia) {
     const suffix = String(cotizacion.numeroCotizacion || '').slice(prefix.length);
-    if (/^\d{6}$/.test(suffix)) {
+    if (/^\d{3,6}$/.test(suffix)) {
       usados.add(Number(suffix));
     }
   }
@@ -64,7 +56,14 @@ async function createNumeroCotizacionCorrelativo(tx, date = new Date()) {
     throw new HttpError(500, 'No hay correlativos disponibles para la fecha actual');
   }
 
-  return `${prefix}${String(correlativo).padStart(6, '0')}`;
+  return `${prefix}${String(correlativo).padStart(3, '0')}`;
+}
+
+function isNumeroCotizacionUniqueError(err) {
+  if (err?.code !== 'P2002') return false;
+  const target = err?.meta?.target;
+  if (Array.isArray(target)) return target.includes('numero_cotizacion') || target.includes('numeroCotizacion');
+  return String(target || '').includes('numero_cotizacion') || String(target || '').includes('numeroCotizacion');
 }
 
 async function createCotizacionWithItems({
@@ -187,65 +186,76 @@ async function createCotizacionWithItems({
 
   const total = subtotal - desc + imp;
 
-  const result = await prisma.$transaction(async (tx) => {
-    const numeroCotizacion = await createNumeroCotizacionCorrelativo(tx);
+  let result;
+  const maxNumeroRetries = 5;
+  for (let attempt = 1; attempt <= maxNumeroRetries; attempt += 1) {
+    try {
+      result = await prisma.$transaction(async (tx) => {
+        const numeroCotizacion = await createNumeroCotizacionCorrelativo(tx);
 
-    const cotizacion = await tx.cotizacion.create({
-      data: {
-        numeroCotizacion,
-        idCliente: clienteId,
-        estado: 'borrador',
-        subtotal,
-        descuento: desc,
-        impuestos: imp,
-        total,
-        moneda: validMoneda,
-        observaciones: observaciones ? String(observaciones) : null,
-        terminosCondiciones: null,
-        idUsuarioCreador: null,
-        diasEntrega: entrega,
-        fechaValidez: fechaValidezDate ?? undefined,
-        productos: cotizacionProductosData.length
-          ? { create: cotizacionProductosData }
-          : undefined,
-        componentes: cotizacionComponentesData.length
-          ? { create: cotizacionComponentesData }
-          : undefined,
-      },
-      include: {
-        cliente: true,
-        productos: {
+        const cotizacion = await tx.cotizacion.create({
+          data: {
+            numeroCotizacion,
+            idCliente: clienteId,
+            estado: 'borrador',
+            subtotal,
+            descuento: desc,
+            impuestos: imp,
+            total,
+            moneda: validMoneda,
+            observaciones: observaciones ? String(observaciones) : null,
+            terminosCondiciones: null,
+            idUsuarioCreador: null,
+            diasEntrega: entrega,
+            fechaValidez: fechaValidezDate ?? undefined,
+            productos: cotizacionProductosData.length
+              ? { create: cotizacionProductosData }
+              : undefined,
+            componentes: cotizacionComponentesData.length
+              ? { create: cotizacionComponentesData }
+              : undefined,
+          },
           include: {
-            producto: {
-              select: {
-                sku: true,
-                componentes: {
+            cliente: true,
+            productos: {
+              include: {
+                producto: {
                   select: {
-                    cantidad: true,
-                    componente: {
+                    sku: true,
+                    componentes: {
                       select: {
-                        nombre: true,
+                        cantidad: true,
+                        componente: {
+                          select: {
+                            nombre: true,
+                          },
+                        },
                       },
+                      orderBy: { idProductoComponente: 'asc' },
                     },
                   },
-                  orderBy: { idProductoComponente: 'asc' },
+                },
+              },
+            },
+            componentes: {
+              include: {
+                componente: {
+                  select: { sku: true },
                 },
               },
             },
           },
-        },
-        componentes: {
-          include: {
-            componente: {
-              select: { sku: true },
-            },
-          },
-        },
-      },
-    });
+        });
 
-    return cotizacion;
-  });
+        return cotizacion;
+      });
+      break;
+    } catch (err) {
+      if (!isNumeroCotizacionUniqueError(err) || attempt === maxNumeroRetries) {
+        throw err;
+      }
+    }
+  }
 
   return enriquecerCotizacion(result);
 }

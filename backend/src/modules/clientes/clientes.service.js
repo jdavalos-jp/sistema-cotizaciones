@@ -9,6 +9,7 @@ async function listClientes({ take = 50, skip = 0, search } = {}) {
           { email: { contains: q, mode: 'insensitive' } },
           { telefono: { contains: q, mode: 'insensitive' } },
           { institucion: { contains: q, mode: 'insensitive' } },
+          { observaciones: { contains: q, mode: 'insensitive' } },
           { ciudad: { contains: q, mode: 'insensitive' } },
         ],
       }
