@@ -8,6 +8,7 @@ const { router: componentesRouter } = require('../modules/componentes/componente
 const { router: categoriasRouter } = require('../modules/categorias/categorias.routes');
 const { router: subcategoriasRouter } = require('../modules/subcategorias/subcategorias.routes');
 const { router: imagenesRouter } = require('../modules/imagenes/imagenes.routes');
+const { router: dashboardRouter } = require('../modules/dashboard/dashboard.routes');
 
 const router = express.Router();
 
@@ -16,6 +17,7 @@ router.use('/auth', authRouter);
 
 // Protected routes
 router.use('/clientes', clientesRouter);
+router.use('/dashboard', dashboardRouter);
 router.use('/productos', productosRouter);
 router.use('/componentes', componentesRouter);
 router.use('/cotizaciones', cotizacionesRouter);
