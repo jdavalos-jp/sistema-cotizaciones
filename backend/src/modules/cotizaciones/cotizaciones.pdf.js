@@ -453,7 +453,22 @@ function buildCotizacionPdf(cotizacion) {
 
       const cliente = cotizacion.cliente ?? null;
       const contactoCliente = safeText(cliente?.observaciones).trim();
-      const clientBoxH = contactoCliente ? 108 : 90;
+      const line1 = [
+        cliente?.institucion ? `${safeText(cliente.institucion)}` : null,
+        cliente?.cargo ? `Cargo: ${safeText(cliente.cargo)}` : null,
+      ]
+        .filter(Boolean)
+        .join('   |   ');
+      const line2 = [
+        cliente?.email ? `Email: ${cliente.email}` : null,
+        cliente?.telefono ? `Tel: ${cliente.telefono}` : null,
+        cliente?.ciudad ? `Ciudad: ${cliente.ciudad}` : null,
+      ]
+        .filter(Boolean)
+        .join('   |   ');
+      const direccion = cliente?.direccion ? `Direccion: ${safeText(cliente.direccion)}` : '';
+      const clientExtraLines = [line1, line2, direccion, contactoCliente].filter(Boolean).length;
+      const clientBoxH = 36 + clientExtraLines * 18;
       const clientBoxY = doc.y;
       doc
         .roundedRect(left, clientBoxY, right - left, clientBoxH, 6)
@@ -465,34 +480,27 @@ function buildCotizacionPdf(cotizacion) {
         width: right - left - 24,
       });
 
-      // Institución + Cargo
       doc.font('Helvetica').fontSize(9).fillColor('#374151');
-      const line1 = [
-        cliente?.institucion ? `${safeText(cliente.institucion)}` : null,
-        cliente?.cargo ? `Cargo: ${safeText(cliente.cargo)}` : null,
-      ]
-        .filter(Boolean)
-        .join('   |   ');
-      doc.text(line1 || ' ', left + 12, clientBoxY + 30, { width: right - left - 24 });
+      let clientLineY = clientBoxY + 30;
+      if (line1) {
+        doc.text(line1, left + 12, clientLineY, { width: right - left - 24 });
+        clientLineY += 18;
+      }
 
-      // Email, Teléfono, Ciudad
-      const line2 = [
-        cliente?.email ? `Email: ${cliente.email}` : null,
-        cliente?.telefono ? `Tel: ${cliente.telefono}` : null,
-        cliente?.ciudad ? `Ciudad: ${cliente.ciudad}` : null,
-      ]
-        .filter(Boolean)
-        .join('   |   ');
-      doc.text(line2 || ' ', left + 12, clientBoxY + 48, { width: right - left - 24 });
+      if (line2) {
+        doc.text(line2, left + 12, clientLineY, { width: right - left - 24 });
+        clientLineY += 18;
+      }
 
-      // Dirección
       doc.font('Helvetica').fontSize(8).fillColor('#6B7280');
-      const direccion = cliente?.direccion ? `Dirección: ${safeText(cliente.direccion)}` : '';
-      doc.text(direccion || ' ', left + 12, clientBoxY + 66, { width: right - left - 24 });
+      if (direccion) {
+        doc.text(direccion, left + 12, clientLineY, { width: right - left - 24 });
+        clientLineY += 18;
+      }
 
       if (contactoCliente) {
         doc.font('Helvetica').fontSize(8).fillColor('#6B7280');
-        doc.text(`Contacto: ${contactoCliente}`, left + 12, clientBoxY + 84, { width: right - left - 24 });
+        doc.text(`Contacto: ${contactoCliente}`, left + 12, clientLineY, { width: right - left - 24 });
       }
 
       const line3 = [brand.brandEmail ? `Email: ${brand.brandEmail}` : null, brand.brandPhone ? `Tel: ${brand.brandPhone}` : null]
