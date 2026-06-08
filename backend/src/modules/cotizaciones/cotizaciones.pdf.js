@@ -145,18 +145,23 @@ function drawHeader(doc, cotizacion, brand, { moneda, compact = false } = {}) {
   // Columna izquierda (logo + datos debajo)
   const gap = 12;
   const leftColW = Math.max(100, boxX - left - gap);
+  let logoDrawnH = 0;
 
   // Logo (arriba a la izquierda)
   if (hasLogo) {
     try {
-      doc.image(logoPath, left, topY, { fit: [Math.min(logoW, leftColW), logoH] });
+      const maxLogoW = Math.min(logoW, leftColW);
+      const image = doc.openImage(logoPath);
+      const scale = Math.min(maxLogoW / image.width, logoH / image.height);
+      logoDrawnH = image.height * scale;
+      doc.image(logoPath, left, topY, { fit: [maxLogoW, logoH] });
     } catch {
       // ignore (imagen inválida/no soportada)
     }
   }
 
   // Bloque empresa: JUSTO debajo del logo
-  const textY = topY + (hasLogo ? logoH + (compact ? 4 : 6) : 0);
+  const textY = topY + (logoDrawnH ? logoDrawnH + (compact ? 2 : 3) : 0);
   doc.save();
   doc.fillColor('#111827');
   doc.y = textY;
@@ -205,7 +210,7 @@ function drawHeader(doc, cotizacion, brand, { moneda, compact = false } = {}) {
     doc.text(safeText(tagline), left, doc.y + 3, { width: leftColW, align: 'left' });
   }
 
-  const leftBlockBottom = Math.max(topY + (hasLogo ? logoH : 0), doc.y);
+  const leftBlockBottom = Math.max(topY + logoDrawnH, doc.y);
   doc.restore();
 
   doc.save();
@@ -447,9 +452,11 @@ function buildCotizacionPdf(cotizacion) {
       doc.moveDown(0.3);
 
       const cliente = cotizacion.cliente ?? null;
+      const contactoCliente = safeText(cliente?.observaciones).trim();
+      const clientBoxH = contactoCliente ? 108 : 90;
       const clientBoxY = doc.y;
       doc
-        .roundedRect(left, clientBoxY, right - left, 90, 6)
+        .roundedRect(left, clientBoxY, right - left, clientBoxH, 6)
         .fillAndStroke('#FFFFFF', '#E5E7EB');
 
       // Nombre del cliente (Bold)
@@ -483,11 +490,16 @@ function buildCotizacionPdf(cotizacion) {
       const direccion = cliente?.direccion ? `Dirección: ${safeText(cliente.direccion)}` : '';
       doc.text(direccion || ' ', left + 12, clientBoxY + 66, { width: right - left - 24 });
 
+      if (contactoCliente) {
+        doc.font('Helvetica').fontSize(8).fillColor('#6B7280');
+        doc.text(`Contacto: ${contactoCliente}`, left + 12, clientBoxY + 84, { width: right - left - 24 });
+      }
+
       const line3 = [brand.brandEmail ? `Email: ${brand.brandEmail}` : null, brand.brandPhone ? `Tel: ${brand.brandPhone}` : null]
         .filter(Boolean)
         .join('   |   ');
 
-      doc.y = clientBoxY + 102;
+      doc.y = clientBoxY + clientBoxH + 12;
 
       // Items
       doc.font('Helvetica-Bold').fontSize(11).fillColor('#111827').text('Detalle de ítems', left, doc.y);
@@ -497,9 +509,9 @@ function buildCotizacionPdf(cotizacion) {
       const tableWidth = right - left;
 
       const cols = [
-        { key: 'item', title: 'Ítem', x: tableLeft + 0, w: Math.floor(tableWidth * 0.42), align: 'left' },
-        { key: 'sku', title: 'SKU', x: tableLeft + Math.floor(tableWidth * 0.39), w: Math.floor(tableWidth * 0.15), align: 'left' },
-        { key: 'dias', title: 'Entrega', x: tableLeft + Math.floor(tableWidth * 0.54), w: Math.floor(tableWidth * 0.20), align: 'center' },
+        { key: 'item', title: 'Ítem', x: tableLeft + 0, w: Math.floor(tableWidth * 0.50), align: 'left' },
+        { key: 'sku', title: 'SKU', x: tableLeft + Math.floor(tableWidth * 0.50), w: Math.floor(tableWidth * 0.10), align: 'center' },
+        { key: 'dias', title: 'Entrega', x: tableLeft + Math.floor(tableWidth * 0.57), w: Math.floor(tableWidth * 0.19), align: 'center' },
         { key: 'cant', title: 'Cant.', x: tableLeft + Math.floor(tableWidth * 0.74), w: Math.floor(tableWidth * 0.08), align: 'right' },
         { key: 'unit', title: 'P. Unit', x: tableLeft + Math.floor(tableWidth * 0.82), w: Math.floor(tableWidth * 0.09), align: 'right' },
         { key: 'total', title: 'Total', x: tableLeft + Math.floor(tableWidth * 0.91), w: Math.floor(tableWidth * 0.09), align: 'right' },
@@ -522,9 +534,18 @@ function buildCotizacionPdf(cotizacion) {
         if (!observaciones) return diasHabilesGlobal;
         const textoOriginal = safeText(observaciones).trim();
         const texto = textoOriginal.toLowerCase();
+        const textoNormalizado = textoOriginal
+          .normalize('NFD')
+          .replace(/[\u0300-\u036f]/g, '')
+          .toLowerCase()
+          .trim();
         
         if (texto.includes('inmediata') || texto.includes('inmedita')) {
           return 'Inmediata';
+        }
+        const normalizedMatch = textoNormalizado.match(/(?:entrega|dias)\s*:\s*([^,;\n]+)/i);
+        if (normalizedMatch && normalizedMatch[1]) {
+          return normalizedMatch[1].trim();
         }
         
         // Buscar un patrón como "entrega: X" o "dias: X"
@@ -536,6 +557,11 @@ function buildCotizacionPdf(cotizacion) {
         const daysMatch = textoOriginal.match(/^(\d+)(?:\s*(?:dias|días|d\.?))?$/i);
         if (daysMatch && daysMatch[1]) {
           return daysMatch[1];
+        }
+
+        const daysPhraseMatch = textoNormalizado.match(/^(\d+)\s*(?:dias?|d\.?)\s*(habiles?|calendario)?$/i);
+        if (daysPhraseMatch && daysPhraseMatch[1]) {
+          return [daysPhraseMatch[1], 'dias', daysPhraseMatch[2]].filter(Boolean).join(' ');
         }
         
         return diasHabilesGlobal;
@@ -626,24 +652,26 @@ function buildCotizacionPdf(cotizacion) {
 
       // Condiciones mínimas (MVP)
       ensureSpace(doc, 70, { meta, onNewPage: redrawOnNewPage });
-      doc.font('Helvetica-Bold').fontSize(10).fillColor('#111827').text('INFORMACION DE PAGO', left, doc.y);
-      doc.moveDown(0.2);
+      const paymentTitleY = doc.y;
+      doc.font('Helvetica-Bold').fontSize(10).fillColor('#111827');
+      doc.text('INFORMACION DE PAGO', left, paymentTitleY, { width: 150 });
+      doc.font('Helvetica').fontSize(9).fillColor('#374151');
+      doc.text('Todos los Equipos o Accesorios cuentan con 1 a\u00f1o de garant\u00eda', left + 155, paymentTitleY + 1, {
+        width: right - left - 155,
+        align: 'right',
+      });
+      doc.y = paymentTitleY + 16;
       doc
         .font('Helvetica')
         .fontSize(9)
         .fillColor('#374151')
       doc.text(
         'Banco de Credito.\nJorge Davalos Crespo.\nNº Cuenta: 3015040742318.\n',
-        { width: right - left }
+        left,
+        doc.y,
+        { width: right - left, align: 'left' }
       );
 
-      doc.text(
-        'Todos los equipos o Accesorios cuentan con 1 año de garantía',
-        {
-          width: right - left,
-          align: 'center'
-        }
-      );
       // Renderizar footers en todas las páginas
       const range = doc.bufferedPageRange();
       meta.totalPages = range.count;
