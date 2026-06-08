@@ -448,12 +448,8 @@ function buildCotizacionPdf(cotizacion) {
 
       const cliente = cotizacion.cliente ?? null;
       const clientBoxY = doc.y;
-      const contactoInstitucion = safeText(cliente?.observaciones).trim();
-      const hasContactoInstitucion = Boolean(contactoInstitucion);
-      const clientBoxH = hasContactoInstitucion ? 102 : 90;
-      const clienteLineOffset = hasContactoInstitucion ? 14 : 0;
       doc
-        .roundedRect(left, clientBoxY, right - left, clientBoxH, 6)
+        .roundedRect(left, clientBoxY, right - left, 90, 6)
         .fillAndStroke('#FFFFFF', '#E5E7EB');
 
       // Nombre del cliente (Bold)
@@ -464,22 +460,13 @@ function buildCotizacionPdf(cotizacion) {
 
       // Institución + Cargo
       doc.font('Helvetica').fontSize(9).fillColor('#374151');
-      if (hasContactoInstitucion) {
-        doc.font('Helvetica').fontSize(9).fillColor('#374151');
-        doc.text(`Contacto: ${contactoInstitucion}`, left + 12, clientBoxY + 30, {
-          width: right - left - 24,
-        });
-      }
-
       const line1 = [
         cliente?.institucion ? `${safeText(cliente.institucion)}` : null,
         cliente?.cargo ? `Cargo: ${safeText(cliente.cargo)}` : null,
       ]
         .filter(Boolean)
         .join('   |   ');
-      if (line1) {
-        doc.text(line1, left + 12, clientBoxY + 30 + clienteLineOffset, { width: right - left - 24 });
-      }
+      doc.text(line1 || ' ', left + 12, clientBoxY + 30, { width: right - left - 24 });
 
       // Email, Teléfono, Ciudad
       const line2 = [
@@ -489,19 +476,18 @@ function buildCotizacionPdf(cotizacion) {
       ]
         .filter(Boolean)
         .join('   |   ');
-      const line2Y = clientBoxY + (line1 ? 48 : 30) + clienteLineOffset;
-      doc.text(line2 || ' ', left + 12, line2Y, { width: right - left - 24 });
+      doc.text(line2 || ' ', left + 12, clientBoxY + 48, { width: right - left - 24 });
 
       // Dirección
       doc.font('Helvetica').fontSize(8).fillColor('#6B7280');
       const direccion = cliente?.direccion ? `Dirección: ${safeText(cliente.direccion)}` : '';
-      doc.text(direccion || ' ', left + 12, line2Y + 18, { width: right - left - 24 });
+      doc.text(direccion || ' ', left + 12, clientBoxY + 66, { width: right - left - 24 });
 
       const line3 = [brand.brandEmail ? `Email: ${brand.brandEmail}` : null, brand.brandPhone ? `Tel: ${brand.brandPhone}` : null]
         .filter(Boolean)
         .join('   |   ');
 
-      doc.y = clientBoxY + clientBoxH + 12;
+      doc.y = clientBoxY + 102;
 
       // Items
       doc.font('Helvetica-Bold').fontSize(11).fillColor('#111827').text('Detalle de ítems', left, doc.y);
@@ -511,9 +497,9 @@ function buildCotizacionPdf(cotizacion) {
       const tableWidth = right - left;
 
       const cols = [
-        { key: 'item', title: 'Ítem', x: tableLeft + 0, w: Math.floor(tableWidth * 0.39), align: 'left' },
+        { key: 'item', title: 'Ítem', x: tableLeft + 0, w: Math.floor(tableWidth * 0.42), align: 'left' },
         { key: 'sku', title: 'SKU', x: tableLeft + Math.floor(tableWidth * 0.39), w: Math.floor(tableWidth * 0.15), align: 'left' },
-        { key: 'dias', title: 'Entrega Dias', x: tableLeft + Math.floor(tableWidth * 0.54), w: Math.floor(tableWidth * 0.20), align: 'center' },
+        { key: 'dias', title: 'Entrega', x: tableLeft + Math.floor(tableWidth * 0.54), w: Math.floor(tableWidth * 0.20), align: 'center' },
         { key: 'cant', title: 'Cant.', x: tableLeft + Math.floor(tableWidth * 0.74), w: Math.floor(tableWidth * 0.08), align: 'right' },
         { key: 'unit', title: 'P. Unit', x: tableLeft + Math.floor(tableWidth * 0.82), w: Math.floor(tableWidth * 0.09), align: 'right' },
         { key: 'total', title: 'Total', x: tableLeft + Math.floor(tableWidth * 0.91), w: Math.floor(tableWidth * 0.09), align: 'right' },
@@ -547,12 +533,12 @@ function buildCotizacionPdf(cotizacion) {
           return match[1].trim();
         }
 
-        const daysMatch = textoOriginal.match(/^(\d+)(?:\s*(?:dias|días|d\.?)(?:\s+(?:h[aá]biles?|habiles?|calendario))?)?$/i);
+        const daysMatch = textoOriginal.match(/^(\d+)(?:\s*(?:dias|días|d\.?))?$/i);
         if (daysMatch && daysMatch[1]) {
-          return textoOriginal;
+          return daysMatch[1];
         }
         
-        return textoOriginal;
+        return diasHabilesGlobal;
       };
 
       const items = [
