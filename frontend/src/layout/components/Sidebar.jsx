@@ -123,7 +123,7 @@ export default function Sidebar() {
           textAlign: 'center',
         }}
       >
-        {collapsed ? 'JDB' : ' JDBLab'}
+        {collapsed ? 'JDB' : ' JDBLab & TECNOequip'}
       </div>
 
       {/* Menú */}
