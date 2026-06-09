@@ -547,7 +547,7 @@ function buildCotizacionPdf(cotizacion) {
           .replace(/[\u0300-\u036f]/g, '')
           .toLowerCase()
           .trim();
-        
+
         if (texto.includes('inmediata') || texto.includes('inmedita')) {
           return 'Inmediata';
         }
@@ -555,7 +555,7 @@ function buildCotizacionPdf(cotizacion) {
         if (normalizedMatch && normalizedMatch[1]) {
           return normalizedMatch[1].trim();
         }
-        
+
         // Buscar un patrón como "entrega: X" o "dias: X"
         const match = textoOriginal.match(/(?:entrega|dias|días)\s*:\s*([^,;\n]+)/i);
         if (match && match[1]) {
@@ -571,7 +571,7 @@ function buildCotizacionPdf(cotizacion) {
         if (daysPhraseMatch && daysPhraseMatch[1]) {
           return [daysPhraseMatch[1], 'dias', daysPhraseMatch[2]].filter(Boolean).join(' ');
         }
-        
+
         return diasHabilesGlobal;
       };
 
@@ -619,7 +619,7 @@ function buildCotizacionPdf(cotizacion) {
       });
 
       // Totales
-      ensureSpace(doc, 140, { meta, onNewPage: redrawOnNewPage });
+      ensureSpace(doc, 180, { meta, onNewPage: redrawOnNewPage });
       doc.moveDown(0.6);
 
       const totalsBoxW = 260;
@@ -644,7 +644,39 @@ function buildCotizacionPdf(cotizacion) {
       lineY(totalsY + 66, 'TOTAL', formatMoney(cotizacion.total, moneda), true);
       doc.restore();
 
-      doc.y = totalsY + 98;
+      const paymentBoxW = totalsX - left - 16;
+      doc.font('Helvetica-Bold').fontSize(10).fillColor('#111827');
+      doc.text('INFORMACION DE PAGO', left, totalsY + 9, { width: paymentBoxW });
+      doc.font('Helvetica').fontSize(9).fillColor('#374151');
+      doc.text(
+        'Banco de Credito.\nJorge Davalos Crespo.\nNº Cuenta: 3015040742318.',
+        left,
+        totalsY + 24,
+        { width: paymentBoxW, align: 'left' }
+      );
+      const avisoY = totalsY + 108;
+      doc.font('Helvetica-Bold').fontSize(9).fillColor('#111827');
+      doc.text(
+        'Todos los Equipos o Accesorios cuentan con 1 año de garantía',
+        left,
+        avisoY - 16,
+        {
+          width: right - left,
+          align: 'center',
+        }
+      );
+
+      doc.font('Helvetica').fontSize(7).fillColor('#6B7280');
+      doc.text(
+        'En caso de que la presente cotización no sea considerada o haya sido postergada, agradeceremos nos lo hagan conocer. Su respuesta nos ayuda a optimizar nuestros tiempos de atención y seguimiento.',
+        left,
+        avisoY,
+        {
+          width: right - left,
+          align: 'center',
+        }
+      );
+      doc.y = totalsY + 140;
 
       // Observaciones y términos
       const obs = safeText(cotizacion.observaciones).trim();
@@ -657,28 +689,6 @@ function buildCotizacionPdf(cotizacion) {
         });
         doc.moveDown(0.6);
       }
-
-      // Condiciones mínimas (MVP)
-      ensureSpace(doc, 70, { meta, onNewPage: redrawOnNewPage });
-      const paymentTitleY = doc.y;
-      doc.font('Helvetica-Bold').fontSize(10).fillColor('#111827');
-      doc.text('INFORMACION DE PAGO', left, paymentTitleY, { width: 150 });
-      doc.font('Helvetica').fontSize(9).fillColor('#374151');
-      doc.text('Todos los Equipos o Accesorios cuentan con 1 a\u00f1o de garant\u00eda', left + 155, paymentTitleY + 1, {
-        width: right - left - 155,
-        align: 'right',
-      });
-      doc.y = paymentTitleY + 16;
-      doc
-        .font('Helvetica')
-        .fontSize(9)
-        .fillColor('#374151')
-      doc.text(
-        'Banco de Credito.\nJorge Davalos Crespo.\nNº Cuenta: 3015040742318.\n',
-        left,
-        doc.y,
-        { width: right - left, align: 'left' }
-      );
 
       // Renderizar footers en todas las páginas
       const range = doc.bufferedPageRange();
