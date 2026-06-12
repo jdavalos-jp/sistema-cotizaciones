@@ -9,6 +9,8 @@ const { router: categoriasRouter } = require('../modules/categorias/categorias.r
 const { router: subcategoriasRouter } = require('../modules/subcategorias/subcategorias.routes');
 const { router: imagenesRouter } = require('../modules/imagenes/imagenes.routes');
 const { router: dashboardRouter } = require('../modules/dashboard/dashboard.routes');
+const { router: usuariosRouter } = require('../modules/usuarios/usuarios.routes');
+const { verifyJwtToken } = require('../middlewares/auth.middleware');
 
 const router = express.Router();
 
@@ -16,6 +18,8 @@ const router = express.Router();
 router.use('/auth', authRouter);
 
 // Protected routes
+router.use(verifyJwtToken);
+
 router.use('/clientes', clientesRouter);
 router.use('/dashboard', dashboardRouter);
 router.use('/productos', productosRouter);
@@ -23,6 +27,7 @@ router.use('/componentes', componentesRouter);
 router.use('/cotizaciones', cotizacionesRouter);
 router.use('/categorias', categoriasRouter);
 router.use('/subcategorias', subcategoriasRouter);
+router.use('/usuarios', usuariosRouter);
 router.use(imagenesRouter);
 
 module.exports = { router };

@@ -13,7 +13,7 @@ model Usuario {
   email               String       @unique @db.VarChar(150)
   telefono            String?      @db.VarChar(30)
   passwordHash        String       @map("password_hash")
-  rol                 String?      @default("admin") @db.VarChar(50)
+  rol                 String?      @default("administrador") @db.VarChar(50)
   estado              String?      @default("activo") @db.VarChar(20)
   fechaCreacion       DateTime?    @default(now()) @map("fecha_creacion") @db.Timestamp(6)
   cotizacionesCreadas Cotizacion[]

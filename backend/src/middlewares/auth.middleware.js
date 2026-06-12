@@ -39,7 +39,7 @@ function verifyJwtToken(req, res, next) {
  * Debe usarse después de verifyJwtToken
  */
 function requireAdmin(req, res, next) {
-  if (req.userRol !== 'admin') {
+  if (req.userRol !== 'administrador') {
     return res.status(403).json({
       ok: false,
       error: 'Se requieren permisos de administrador',
@@ -48,7 +48,21 @@ function requireAdmin(req, res, next) {
   next();
 }
 
+function requireRoles(...roles) {
+  return (req, res, next) => {
+    if (!roles.includes(req.userRol)) {
+      return res.status(403).json({
+        ok: false,
+        error: 'No tienes permisos para realizar esta accion',
+      });
+    }
+
+    next();
+  };
+}
+
 module.exports = {
   verifyJwtToken,
   requireAdmin,
+  requireRoles,
 };

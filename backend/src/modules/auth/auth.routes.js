@@ -1,16 +1,17 @@
 const express = require('express');
 const { asyncHandler } = require('../../utils/asyncHandler');
-const { verifyJwtToken } = require('../../middlewares/auth.middleware');
+const { requireAdmin, verifyJwtToken } = require('../../middlewares/auth.middleware');
 const controller = require('./auth.controller');
 
 const router = express.Router();
 
 // Public routes
-router.post('/register', asyncHandler(controller.register));
 router.post('/login', asyncHandler(controller.login));
 router.post('/logout', asyncHandler(controller.logout));
+router.post('/bootstrap-admin', asyncHandler(controller.bootstrap));
 
 // Protected routes
 router.get('/me', verifyJwtToken, asyncHandler(controller.getCurrentUserHandler));
+router.post('/register', verifyJwtToken, requireAdmin, asyncHandler(controller.register));
 
 module.exports = { router };

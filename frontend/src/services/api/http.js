@@ -5,6 +5,20 @@ export function getApiBaseUrl() {
   return import.meta.env.VITE_API_BASE_URL || '/api'
 }
 
+const TOKEN_STORAGE_KEY = 'cotizaciones_auth_token'
+
+function getAuthHeaders(headers = {}, { skipAuth = false } = {}) {
+  if (skipAuth) return headers
+
+  const token = localStorage.getItem(TOKEN_STORAGE_KEY)
+  if (!token) return headers
+
+  return {
+    ...headers,
+    Authorization: `Bearer ${token}`,
+  }
+}
+
 /**
  * Espera exponencial para reintentos, con un máximo de 10s
  */
@@ -123,12 +137,12 @@ async function parseResponse(res, responseType) {
 // Métodos públicos de la API
 // ─────────────────────────────────────────────
 
-export async function apiGet(path, { signal, responseType = 'json', headers } = {}) {
+export async function apiGet(path, { signal, responseType = 'json', headers, skipAuth = false } = {}) {
   const url = `${getApiBaseUrl()}${path}`
 
   const res = await fetchWithRetry(url, {
     method: 'GET',
-    headers: headers || {},
+    headers: getAuthHeaders(headers || {}, { skipAuth }),
     signal,
   })
 
@@ -137,7 +151,7 @@ export async function apiGet(path, { signal, responseType = 'json', headers } = 
   return parseResponse(res, responseType)
 }
 
-export async function apiPost(path, body, { signal, headers, responseType = 'json' } = {}) {
+export async function apiPost(path, body, { signal, headers, responseType = 'json', skipAuth = false } = {}) {
   const url = `${getApiBaseUrl()}${path}`
   const isFormData = body instanceof FormData
 
@@ -145,8 +159,8 @@ export async function apiPost(path, body, { signal, headers, responseType = 'jso
     method: 'POST',
     signal,
     headers: isFormData
-      ? headers || {}
-      : { 'Content-Type': 'application/json', ...(headers || {}) },
+      ? getAuthHeaders(headers || {}, { skipAuth })
+      : getAuthHeaders({ 'Content-Type': 'application/json', ...(headers || {}) }, { skipAuth }),
     body: isFormData ? body : JSON.stringify(body ?? {}),
   }
 
@@ -157,7 +171,7 @@ export async function apiPost(path, body, { signal, headers, responseType = 'jso
   return parseResponse(res, responseType)
 }
 
-export async function apiPut(path, body, { signal, headers, responseType = 'json' } = {}) {
+export async function apiPut(path, body, { signal, headers, responseType = 'json', skipAuth = false } = {}) {
   const url = `${getApiBaseUrl()}${path}`
   const isFormData = body instanceof FormData
 
@@ -165,8 +179,8 @@ export async function apiPut(path, body, { signal, headers, responseType = 'json
     method: 'PUT',
     signal,
     headers: isFormData
-      ? headers || {}
-      : { 'Content-Type': 'application/json', ...(headers || {}) },
+      ? getAuthHeaders(headers || {}, { skipAuth })
+      : getAuthHeaders({ 'Content-Type': 'application/json', ...(headers || {}) }, { skipAuth }),
     body: isFormData ? body : JSON.stringify(body ?? {}),
   }
 
@@ -177,12 +191,12 @@ export async function apiPut(path, body, { signal, headers, responseType = 'json
   return parseResponse(res, responseType)
 }
 
-export async function apiPatch(path, body, { signal, headers, responseType = 'json' } = {}) {
+export async function apiPatch(path, body, { signal, headers, responseType = 'json', skipAuth = false } = {}) {
   const url = `${getApiBaseUrl()}${path}`
 
   const res = await fetchWithRetry(url, {
     method: 'PATCH',
-    headers: { 'Content-Type': 'application/json', ...(headers || {}) },
+    headers: getAuthHeaders({ 'Content-Type': 'application/json', ...(headers || {}) }, { skipAuth }),
     body: JSON.stringify(body ?? {}),
     signal,
   })
@@ -192,12 +206,12 @@ export async function apiPatch(path, body, { signal, headers, responseType = 'js
   return parseResponse(res, responseType)
 }
 
-export async function apiDelete(path, { signal, headers, responseType = 'json' } = {}) {
+export async function apiDelete(path, { signal, headers, responseType = 'json', skipAuth = false } = {}) {
   const url = `${getApiBaseUrl()}${path}`
 
   const res = await fetchWithRetry(url, {
     method: 'DELETE',
-    headers: headers || {},
+    headers: getAuthHeaders(headers || {}, { skipAuth }),
     signal,
   })
 

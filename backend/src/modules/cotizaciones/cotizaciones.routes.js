@@ -1,6 +1,7 @@
 const express = require('express');
 
 const { asyncHandler } = require('../../utils/asyncHandler');
+const { requireAdmin } = require('../../middlewares/auth.middleware');
 const controller = require('./cotizaciones.controller');
 
 const router = express.Router();
@@ -31,7 +32,7 @@ router.put('/:idCotizacion', asyncHandler(controller.updateCotizacionHandler));
 router.patch('/:idCotizacion/status', asyncHandler(controller.changeStatusHandler));
 
 // DELETE: Eliminar cotización (solo borradores)
-router.delete('/:idCotizacion', asyncHandler(controller.deleteCotizacionHandler));
+router.delete('/:idCotizacion', requireAdmin, asyncHandler(controller.deleteCotizacionHandler));
 
 // GET: Obtener una cotización específica (ÚLTIMA - la más genérica)
 router.get('/:idCotizacion', asyncHandler(controller.getCotizacionByIdHandler));

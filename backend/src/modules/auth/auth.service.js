@@ -9,6 +9,15 @@ if (!process.env.JWT_SECRET) {
 
 const JWT_SECRET = process.env.JWT_SECRET;
 const JWT_EXPIRY = process.env.JWT_EXPIRY || '7d';
+const VALID_ROLES = new Set(['administrador', 'vendedor']);
+
+function normalizeRole(rol = 'vendedor') {
+  const value = String(rol || '').trim().toLowerCase();
+  if (!VALID_ROLES.has(value)) {
+    throw new HttpError(400, 'Rol invalido');
+  }
+  return value;
+}
 
 /**
  * Hash de contraseña
@@ -54,7 +63,7 @@ function verifyToken(token) {
 /**
  * Registrar usuario
  */
-async function registerUser(nombre, email, password) {
+async function registerUser(nombre, email, password, rol = 'vendedor') {
   // Validar que el usuario no exista
   const existingUser = await prisma.usuario.findUnique({
     where: { email },
@@ -73,7 +82,7 @@ async function registerUser(nombre, email, password) {
       nombre,
       email,
       passwordHash,
-      rol: 'admin', // Por defecto admin para MVP
+      rol: normalizeRole(rol),
       estado: 'activo',
     },
   });
@@ -84,6 +93,16 @@ async function registerUser(nombre, email, password) {
     email: usuario.email,
     rol: usuario.rol,
   };
+}
+
+async function bootstrapAdmin(nombre, email, password) {
+  const totalUsers = await prisma.usuario.count();
+
+  if (totalUsers > 0) {
+    throw new HttpError(403, 'El usuario administrador inicial ya fue configurado');
+  }
+
+  return registerUser(nombre, email, password, 'administrador');
 }
 
 /**
@@ -152,8 +171,10 @@ module.exports = {
   generateToken,
   verifyToken,
   registerUser,
+  bootstrapAdmin,
   loginUser,
   getCurrentUser,
+  normalizeRole,
   JWT_SECRET,
   JWT_EXPIRY,
 };

@@ -1,28 +1,18 @@
-import { Layout, Avatar, Dropdown, Badge, Button, Space, Typography } from 'antd'
-import { BellOutlined, LogoutOutlined, UserOutlined } from '@ant-design/icons'
+import { Layout, Avatar, Button, Space, Tag, Typography } from 'antd'
+import { LogoutOutlined, UserOutlined } from '@ant-design/icons'
+import { useNavigate } from 'react-router-dom'
+import { logout } from '../../auth/auth.js'
+import { useAuthUser } from '../../auth/useAuthUser.js'
 
 const { Header: AntHeader } = Layout
 
-/**
- * Componente Header
- * - Muestra información del usuario
- * - Notificaciones
- * - Botón de logout
- * - Responsive
- */
 export default function Header() {
-  const userMenu = [
-    { key: 'profile', label: 'Perfil', icon: <UserOutlined /> },
-    { type: 'divider' },
-    { key: 'logout', label: 'Cerrar sesión', icon: <LogoutOutlined />, danger: true },
-  ]
+  const user = useAuthUser()
+  const navigate = useNavigate()
 
-  const handleUserMenuClick = ({ key }) => {
-    if (key === 'logout') {
-      // Aquí iría la lógica de logout
-    } else if (key === 'profile') {
-      // Aquí iría la lógica de perfil
-    }
+  const handleLogout = () => {
+    logout()
+    navigate('/', { replace: true })
   }
 
   return (
@@ -33,31 +23,30 @@ export default function Header() {
         display: 'flex',
         justifyContent: 'flex-end',
         alignItems: 'center',
-        gap: 24,
-        boxShadow: '0 2px 8px rgba(0, 0, 0, 0.08)',
+        gap: 18,
+        height: 64,
+        lineHeight: 'normal',
+        boxShadow: '0 2px 8px rgba(15, 23, 42, 0.08)',
         position: 'sticky',
         top: 0,
         zIndex: 10,
       }}
     >
-      {/* Notificaciones */}
-      <Badge count={3} color="#1890ff">
-        <Button
-          type="text"
-          icon={<BellOutlined style={{ fontSize: 18 }} />}
-          style={{ border: 'none' }}
-        />
-      </Badge>
-
-      {/* Usuario */}
-      <Space>
-        <Dropdown menu={{ items: userMenu, onClick: handleUserMenuClick }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: 8, cursor: 'pointer' }}>
-            <Avatar icon={<UserOutlined />} style={{ background: '#1890ff' }} />
-            <Typography.Text style={{ fontSize: 14 }}>Admin</Typography.Text>
-          </div>
-        </Dropdown>
+      <Space size={10} align="center">
+        <Avatar icon={<UserOutlined />} style={{ background: '#1677ff' }} />
+        <Space size={8} align="center">
+          <Typography.Text strong style={{ lineHeight: 1.2 }}>
+            {user?.name || 'Usuario'}
+          </Typography.Text>
+          <Tag color={user?.role === 'administrador' ? 'blue' : 'green'} style={{ marginInlineEnd: 0, lineHeight: '20px' }}>
+            {user?.role || 'sin rol'}
+          </Tag>
+        </Space>
       </Space>
+
+      <Button icon={<LogoutOutlined />} onClick={handleLogout}>
+        Cerrar sesión
+      </Button>
     </AntHeader>
   )
 }

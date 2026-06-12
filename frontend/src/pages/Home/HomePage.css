@@ -1,0 +1,131 @@
+.home-page {
+  min-height: 100vh;
+  background:
+    linear-gradient(135deg, rgba(14, 47, 95, 0.94), rgba(30, 64, 112, 0.88)),
+    url('../../assets/hero.png') center/cover no-repeat;
+  color: #ffffff;
+}
+
+.home-shell {
+  width: min(1180px, calc(100% - 40px));
+  min-height: 100vh;
+  margin: 0 auto;
+  display: flex;
+  align-items: center;
+  padding: 56px 0;
+}
+
+.home-grid {
+  width: 100%;
+}
+
+.home-copy {
+  max-width: 720px;
+}
+
+.home-kicker {
+  width: fit-content;
+  padding: 6px 12px;
+  border: 1px solid rgba(255, 255, 255, 0.28);
+  border-radius: 999px;
+  color: #dbeafe;
+  background: rgba(255, 255, 255, 0.1);
+  font-size: 13px;
+  font-weight: 600;
+}
+
+.home-copy h1.ant-typography {
+  margin: 0;
+  color: #ffffff;
+  font-size: 54px;
+  line-height: 1.05;
+  font-weight: 700;
+  letter-spacing: 0;
+}
+
+.home-copy h2.ant-typography {
+  margin: 0;
+  color: #bfdbfe;
+  font-size: 24px;
+  line-height: 1.3;
+  font-weight: 500;
+  letter-spacing: 0;
+}
+
+.home-copy .ant-typography {
+  color: #e5eefb;
+  font-size: 17px;
+  line-height: 1.7;
+}
+
+.home-actions .ant-btn {
+  height: 46px;
+  border-radius: 6px;
+  font-weight: 600;
+}
+
+.home-card {
+  border-radius: 8px;
+  background: rgba(255, 255, 255, 0.94);
+  box-shadow: 0 24px 70px rgba(15, 23, 42, 0.24);
+}
+
+.home-card-header {
+  display: flex;
+  gap: 14px;
+  align-items: flex-start;
+}
+
+.home-card-header > .anticon {
+  color: #1d4ed8;
+  font-size: 30px;
+  margin-top: 4px;
+}
+
+.home-card h3.ant-typography {
+  margin: 0 0 2px;
+  color: #0f172a;
+  font-size: 22px;
+  letter-spacing: 0;
+}
+
+.home-card .ant-typography {
+  color: #475569;
+}
+
+.home-feature {
+  display: flex;
+  gap: 10px;
+  align-items: flex-start;
+  color: #334155;
+  font-size: 15px;
+  line-height: 1.55;
+}
+
+.home-feature .anticon {
+  color: #1677ff;
+  margin-top: 4px;
+}
+
+.login-card {
+  box-shadow: none;
+}
+
+.login-card .ant-card-body {
+  padding: 6px 0 0;
+}
+
+@media (max-width: 768px) {
+  .home-shell {
+    width: min(100% - 28px, 1180px);
+    padding: 36px 0;
+  }
+
+  .home-copy h1.ant-typography {
+    font-size: 38px;
+  }
+
+  .home-copy h2.ant-typography {
+    font-size: 20px;
+  }
+}

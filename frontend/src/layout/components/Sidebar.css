@@ -1,0 +1,76 @@
+.app-sidebar {
+  min-height: 100vh;
+  background: #111827 !important;
+  position: sticky !important;
+  left: 0;
+  top: 0;
+  bottom: 0;
+  box-shadow: 1px 0 0 rgba(255, 255, 255, 0.04);
+}
+
+.app-sidebar .ant-layout-sider-children {
+  display: flex;
+  flex-direction: column;
+}
+
+.app-sidebar__brand {
+  height: 70px;
+  display: flex;
+  align-items: center;
+  padding: 0 8px;
+  color: #ffffff;
+  font-size: 17px;
+  font-weight: 800;
+  overflow: hidden;
+  white-space: nowrap;
+}
+
+.app-sidebar__menu.ant-menu-dark {
+  flex: 1;
+  background: #111827;
+  border-inline-end: 0;
+}
+
+.app-sidebar__menu.ant-menu-dark .ant-menu-item,
+.app-sidebar__menu.ant-menu-dark .ant-menu-submenu-title {
+  height: 44px;
+  line-height: 44px;
+  margin: 0;
+  width: 100%;
+  border-radius: 0;
+  color: #d7e3f5;
+}
+
+.app-sidebar__menu.ant-menu-dark .ant-menu-item-selected {
+  margin: 0 2px;
+  width: calc(100% - 4px);
+  border-radius: 6px;
+  background: #1677ff;
+  color: #ffffff;
+}
+
+.app-sidebar__menu.ant-menu-dark .ant-menu-submenu-open > .ant-menu-submenu-title,
+.app-sidebar__menu.ant-menu-dark .ant-menu-submenu-selected > .ant-menu-submenu-title,
+.app-sidebar__menu.ant-menu-dark .ant-menu-item:not(.ant-menu-item-selected):hover,
+.app-sidebar__menu.ant-menu-dark .ant-menu-submenu-title:hover {
+  color: #ffffff;
+  background: #0b253d;
+}
+
+.app-sidebar__menu.ant-menu-dark .ant-menu-sub {
+  background: #020c14;
+}
+
+.app-sidebar__menu.ant-menu-dark .ant-menu-sub .ant-menu-item {
+  padding-left: 50px !important;
+  color: #c8d6ea;
+}
+
+.app-sidebar__menu .anticon {
+  font-size: 14px;
+}
+
+.app-sidebar .ant-layout-sider-trigger {
+  background: #062f4d;
+  color: #ffffff;
+}

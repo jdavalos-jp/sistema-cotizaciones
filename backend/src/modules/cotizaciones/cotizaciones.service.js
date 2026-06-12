@@ -222,6 +222,11 @@ async function createCotizacionWithItems({
                 producto: {
                   select: {
                     sku: true,
+                    imagenes: {
+                      where: { estado: 'activo' },
+                      select: { urlImagen: true, principal: true, orden: true },
+                      orderBy: [{ principal: 'desc' }, { orden: 'asc' }],
+                    },
                     componentes: {
                       select: {
                         cantidad: true,
@@ -240,7 +245,14 @@ async function createCotizacionWithItems({
             componentes: {
               include: {
                 componente: {
-                  select: { sku: true },
+                  select: {
+                    sku: true,
+                    imagenes: {
+                      where: { estado: 'activo' },
+                      select: { urlImagen: true, principal: true, orden: true },
+                      orderBy: [{ principal: 'desc' }, { orden: 'asc' }],
+                    },
+                  },
                 },
               },
             },
@@ -302,6 +314,11 @@ async function getCotizacionById(idCotizacion) {
           producto: {
             select: {
               sku: true,
+              imagenes: {
+                where: { estado: 'activo' },
+                select: { urlImagen: true, principal: true, orden: true },
+                orderBy: [{ principal: 'desc' }, { orden: 'asc' }],
+              },
               componentes: {
                 select: {
                   cantidad: true,
@@ -321,7 +338,14 @@ async function getCotizacionById(idCotizacion) {
       componentes: {
         include: {
           componente: {
-            select: { sku: true },
+            select: {
+              sku: true,
+              imagenes: {
+                where: { estado: 'activo' },
+                select: { urlImagen: true, principal: true, orden: true },
+                orderBy: [{ principal: 'desc' }, { orden: 'asc' }],
+              },
+            },
           },
         },
         orderBy: { ordenVisual: 'asc' },
@@ -502,6 +526,11 @@ async function updateCotizacion(idCotizacion, { productos, componentes, moneda, 
             producto: {
               select: {
                 sku: true,
+                imagenes: {
+                  where: { estado: 'activo' },
+                  select: { urlImagen: true, principal: true, orden: true },
+                  orderBy: [{ principal: 'desc' }, { orden: 'asc' }],
+                },
                 componentes: {
                   select: {
                     cantidad: true,
@@ -520,7 +549,14 @@ async function updateCotizacion(idCotizacion, { productos, componentes, moneda, 
         componentes: {
           include: {
             componente: {
-              select: { sku: true },
+              select: {
+                sku: true,
+                imagenes: {
+                  where: { estado: 'activo' },
+                  select: { urlImagen: true, principal: true, orden: true },
+                  orderBy: [{ principal: 'desc' }, { orden: 'asc' }],
+                },
+              },
             },
           },
         },

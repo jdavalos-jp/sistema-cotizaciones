@@ -19,12 +19,13 @@ export default function MainLayout() {
         <Header />
         <Content
           style={{
-            margin: '24px 16px',
+            margin: '20px 16px',
             padding: '24px',
             background: '#fff',
             borderRadius: '8px',
             minHeight: 'calc(100vh - 100px)',
             overflow: 'auto',
+            boxShadow: '0 6px 20px rgba(15, 23, 42, 0.06)',
           }}
         >
           <Outlet />

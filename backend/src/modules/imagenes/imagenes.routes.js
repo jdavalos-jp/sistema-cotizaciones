@@ -12,6 +12,7 @@ const {
 } = require('../../services/storage/imageService');
 const { asyncHandler } = require('../../utils/asyncHandler');
 const { HttpError } = require('../../utils/httpError');
+const { requireAdmin } = require('../../middlewares/auth.middleware');
 
 const router = express.Router();
 const ALLOWED_MIMES = ['image/jpeg', 'image/png', 'image/webp'];
@@ -48,6 +49,7 @@ function parseBigIntId(value, fieldName) {
 
 router.post(
   '/productos/:idProducto/imagenes',
+  requireAdmin,
   upload.single('file'),
   asyncHandler(async (req, res) => {
     const idProducto = parseBigIntId(req.params.idProducto, 'idProducto');
@@ -85,6 +87,7 @@ router.get(
 
 router.put(
   '/productos/imagenes/:idImagen/principal',
+  requireAdmin,
   asyncHandler(async (req, res) => {
     const idImagen = parseBigIntId(req.params.idImagen, 'idImagen');
     const imagen = await prisma.productoImagen.findUnique({ where: { idImagen } });
@@ -106,6 +109,7 @@ router.put(
 
 router.delete(
   '/productos/imagenes/:idImagen',
+  requireAdmin,
   asyncHandler(async (req, res) => {
     const idImagen = parseBigIntId(req.params.idImagen, 'idImagen');
     const imagen = await prisma.productoImagen.findUnique({ where: { idImagen } });
@@ -175,6 +179,7 @@ router.delete(
 
 router.post(
   '/componentes/:idComponente/imagenes',
+  requireAdmin,
   upload.single('file'),
   asyncHandler(async (req, res) => {
     const idComponente = parseBigIntId(req.params.idComponente, 'idComponente');
@@ -211,6 +216,7 @@ router.get(
 
 router.put(
   '/componentes/imagenes/:idImagen/principal',
+  requireAdmin,
   asyncHandler(async (req, res) => {
     const idImagen = parseBigIntId(req.params.idImagen, 'idImagen');
     const imagen = await prisma.componenteImagen.findUnique({ where: { idImagen } });
@@ -232,6 +238,7 @@ router.put(
 
 router.delete(
   '/componentes/imagenes/:idImagen',
+  requireAdmin,
   asyncHandler(async (req, res) => {
     const idImagen = parseBigIntId(req.params.idImagen, 'idImagen');
     const imagen = await prisma.componenteImagen.findUnique({ where: { idImagen } });

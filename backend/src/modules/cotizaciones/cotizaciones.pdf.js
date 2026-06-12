@@ -2,12 +2,12 @@ const fs = require('fs');
 const path = require('path');
 
 const PDFDocument = require('pdfkit');
+const sharp = require('sharp');
 const { toDateOnlyString, formatDateDMY, toUtcMidnightDate } = require('../../utils/dateOnly');
 const { getSettings, settingsToBrand } = require('../settings/settings.service');
 const { addDaysToDate, countBusinessDays, formatCurrency } = require('./converters');
 
 function formatMoney(value, moneda) {
-  // Ya están como enteros en la BD, no needed toNumber()
   const n = Number(value ?? 0);
   const curr = String(moneda || '').trim() || 'Bs';
   return `${curr} ${Math.floor(n).toLocaleString('es-BO')}`;
@@ -74,6 +74,51 @@ function joinNonEmpty(lines) {
     .join('\n');
 }
 
+function getPrincipalImageUrl(entity) {
+  const images = entity?.imagenes;
+  if (!Array.isArray(images) || images.length === 0) return null;
+
+  const image = images.find((img) => img?.principal) || images[0];
+  return image?.urlImagen || null;
+}
+
+async function fetchImageBuffer(url, cache) {
+  const imageUrl = safeText(url).trim();
+  if (!imageUrl) return null;
+
+  if (cache.has(imageUrl)) return cache.get(imageUrl);
+
+  const promise = (async () => {
+    try {
+      if (/^data:image\//i.test(imageUrl)) {
+        const [, base64] = imageUrl.split(',');
+        if (!base64) return null;
+        return sharp(Buffer.from(base64, 'base64')).png().toBuffer();
+      }
+
+      if (!/^https?:\/\//i.test(imageUrl)) return null;
+
+      const controller = new AbortController();
+      const timeout = setTimeout(() => controller.abort(), 3500);
+
+      try {
+        const response = await fetch(imageUrl, { signal: controller.signal });
+        if (!response.ok) return null;
+
+        const arrayBuffer = await response.arrayBuffer();
+        return sharp(Buffer.from(arrayBuffer)).png().toBuffer();
+      } finally {
+        clearTimeout(timeout);
+      }
+    } catch {
+      return null;
+    }
+  })();
+
+  cache.set(imageUrl, promise);
+  return promise;
+}
+
 function formatIncludedComponents(producto) {
   const comps = producto?.componentes;
   if (!Array.isArray(comps) || comps.length === 0) return '';
@@ -82,14 +127,16 @@ function formatIncludedComponents(producto) {
     .map((pc) => {
       const name = pc?.componente?.nombre ? String(pc.componente.nombre).trim() : '';
       if (!name) return null;
+
       const qty = Number(pc?.cantidad ?? 1);
       if (Number.isFinite(qty) && qty > 1) return `${name} (x${qty})`;
+
       return name;
     })
     .filter(Boolean);
 
   if (parts.length === 0) return '';
-  // Cada componente en su propia fila
+
   return joinNonEmpty(['Incluye:', ...parts.map((p) => `• ${p}`)]);
 }
 
@@ -103,12 +150,12 @@ function calcularDiasHabiles(desde, hasta) {
 
 function resolveCompanyLogoPath() {
   const fromEnv = (process.env.COMPANY_LOGO_PATH || '').trim();
+
   if (fromEnv) {
     const p = path.isAbsolute(fromEnv) ? fromEnv : path.resolve(process.cwd(), fromEnv);
     if (fs.existsSync(p)) return p;
   }
 
-  // Por defecto, intenta tomar el logo desde el frontend
   const workspaceRoot = path.resolve(__dirname, '../../../../');
   const imagesDir = path.join(workspaceRoot, 'frontend', 'images');
 
@@ -136,18 +183,15 @@ function drawHeader(doc, cotizacion, brand, { moneda, compact = false } = {}) {
   const logoH = compact ? 95 : 135;
   const hasLogo = Boolean(logoPath);
 
-  // Cuadro datos (derecha)
   const boxW = compact ? 220 : 250;
   const boxH = compact ? 52 : 64;
   const boxX = right - boxW;
   const boxY = topY;
 
-  // Columna izquierda (logo + datos debajo)
   const gap = 12;
   const leftColW = Math.max(100, boxX - left - gap);
   let logoDrawnH = 0;
 
-  // Logo (arriba a la izquierda)
   if (hasLogo) {
     try {
       const maxLogoW = Math.min(logoW, leftColW);
@@ -156,24 +200,24 @@ function drawHeader(doc, cotizacion, brand, { moneda, compact = false } = {}) {
       logoDrawnH = image.height * scale;
       doc.image(logoPath, left, topY, { fit: [maxLogoW, logoH] });
     } catch {
-      // ignore (imagen inválida/no soportada)
+      // ignore
     }
   }
 
-  // Bloque empresa: JUSTO debajo del logo
   const textY = topY + (logoDrawnH ? logoDrawnH + (compact ? 2 : 3) : 0);
+
   doc.save();
   doc.fillColor('#111827');
   doc.y = textY;
 
-  // Dirección
   doc.font('Helvetica').fontSize(compact ? 7 : 8).fillColor('#374151');
-  if (brand.brandAddress) {
-    doc.text(`Av. ${safeText(brand.brandAddress)}`, left, doc.y + 2, { width: leftColW, align: 'left' });
-  }
 
-  // Teléfonos
-  doc.font('Helvetica').fontSize(compact ? 7 : 8).fillColor('#374151');
+  if (brand.brandAddress) {
+    doc.text(`Av. ${safeText(brand.brandAddress)}`, left, doc.y + 2, {
+      width: leftColW,
+      align: 'left',
+    });
+  }
 
   const phones = [
     brand.brandPhone ? `Tel: ${safeText(brand.brandPhone)}` : null,
@@ -188,8 +232,6 @@ function drawHeader(doc, cotizacion, brand, { moneda, compact = false } = {}) {
       align: 'left',
     });
   }
-  // Web y Email en la misma línea
-  doc.font('Helvetica').fontSize(compact ? 7 : 8).fillColor('#374151');
 
   const webEmail = [
     brand.brandWebsite ? `Web: ${safeText(brand.brandWebsite)}` : null,
@@ -204,10 +246,15 @@ function drawHeader(doc, cotizacion, brand, { moneda, compact = false } = {}) {
       align: 'left',
     });
   }
+
   const tagline = brand.brandTagline;
+
   if (tagline) {
     doc.font('Helvetica-Oblique').fontSize(compact ? 6.5 : 7.5).fillColor('#9CA3AF');
-    doc.text(safeText(tagline), left, doc.y + 3, { width: leftColW, align: 'left' });
+    doc.text(safeText(tagline), left, doc.y + 3, {
+      width: leftColW,
+      align: 'left',
+    });
   }
 
   const leftBlockBottom = Math.max(topY + logoDrawnH, doc.y);
@@ -232,38 +279,52 @@ function drawHeader(doc, cotizacion, brand, { moneda, compact = false } = {}) {
   const drawKV = (y, label, value) => {
     doc.font('Helvetica-Bold').fontSize(compact ? 8 : 9).fillColor('#111827');
     doc.text(label, boxX + 12, y, { width: labelWidth });
+
     doc.font('Helvetica').fontSize(compact ? 8 : 9).fillColor('#111827');
-    doc.text(safeText(value), boxX + 12 + labelWidth, y, { width: valueWidth });
+    doc.text(safeText(value), boxX + 12 + labelWidth, y, {
+      width: valueWidth,
+    });
   };
 
   drawKV(boxY + 10, 'Nro de Proforma:', safeText(cotizacion.numeroCotizacion));
   drawKV(boxY + 26, 'Fecha:', formatDate(fechaEmision));
   drawKV(boxY + 42, 'Validez:', formatDate(validezStr));
+
   doc.restore();
 
-  // Banda PROFORMA (solo en primera página)
   const bandY = topY + boxH + (compact ? 6 : 10);
+
   if (!compact) {
     const bandW = 250;
     const bandX = right - bandW;
     const bandH = 50;
+
     doc.save();
     doc.rect(bandX, bandY, bandW, bandH).fillAndStroke('#FEF3C7', '#E5E7EB');
     doc.fillColor('#111827').font('Helvetica-Bold').fontSize(22);
-    doc.text('PROFORMA', bandX, bandY + 6, { width: bandW, align: 'center' });
+    doc.text('PROFORMA', bandX, bandY + 6, {
+      width: bandW,
+      align: 'center',
+    });
     doc.restore();
   }
 
   const rightBottom = boxY + boxH;
   const bandBottom = compact ? rightBottom : bandY + 34;
   const endY = Math.max(leftBlockBottom, bandBottom) + 8;
-  hr(doc, endY, { color: '#E5E7EB', thickness: 1 });
+
+  hr(doc, endY, {
+    color: '#E5E7EB',
+    thickness: 1,
+  });
+
   return endY + 10;
 }
 
 function hr(doc, y, { color = '#E5E7EB', thickness = 1 } = {}) {
   const left = doc.page.margins.left;
   const right = doc.page.width - doc.page.margins.right;
+
   doc.save();
   doc
     .lineWidth(thickness)
@@ -276,13 +337,16 @@ function hr(doc, y, { color = '#E5E7EB', thickness = 1 } = {}) {
 
 function drawLabelValue(doc, x, y, label, value, { labelWidth = 85, valueWidth = 220 } = {}) {
   doc.save();
+
   doc.font('Helvetica-Bold').fontSize(9).fillColor('#111827').text(label, x, y, {
     width: labelWidth,
     continued: false,
   });
+
   doc.font('Helvetica').fontSize(9).fillColor('#111827').text(safeText(value), x + labelWidth, y, {
     width: valueWidth,
   });
+
   doc.restore();
 }
 
@@ -292,36 +356,92 @@ function drawFooter(doc, pageNumber, totalPages) {
   const right = doc.page.width - doc.page.margins.right;
 
   const companyName = String(process.env.COMPANY_NAME || '').trim();
+
   const footerLeft = companyName
     ? `Documento generado por ${companyName}`
     : 'Documento generado';
 
   doc.save();
-  hr(doc, bottom - 18, { color: '#E5E7EB', thickness: 1 });
+
+  hr(doc, bottom - 18, {
+    color: '#E5E7EB',
+    thickness: 1,
+  });
+
   doc.font('Helvetica').fontSize(8).fillColor('#6B7280');
+
   doc.text(footerLeft, left, bottom - 14, {
     width: right - left,
     align: 'left',
   });
+
   doc.text(`Página ${pageNumber} de ${totalPages}`, left, bottom - 14, {
     width: right - left,
     align: 'right',
   });
+
   doc.restore();
 }
 
 function addPageWithFooter(doc, meta) {
-  // Renderiza footer de la página anterior
   meta.pageNumber += 1;
   doc.addPage();
 }
 
+function getBottomLimit(doc) {
+  return doc.page.height - doc.page.margins.bottom - 40;
+}
+
 function ensureSpace(doc, neededHeight, { meta, onNewPage } = {}) {
-  const bottomLimit = doc.page.height - doc.page.margins.bottom - 40; // reserva más grande para footer
+  const bottomLimit = getBottomLimit(doc);
+
   if (doc.y + neededHeight <= bottomLimit) return;
+
   addPageWithFooter(doc, meta);
-  if (typeof onNewPage === 'function') onNewPage();
-  doc.y = doc.page.margins.top + 50; // Posicionar correctamente después de nuevo página
+
+  if (typeof onNewPage === 'function') {
+    onNewPage();
+  }
+}
+
+function limitText(value, max = 1800) {
+  const text = safeText(value);
+
+  if (text.length <= max) return text;
+
+  return `${text.slice(0, max).trim()}\n...`;
+}
+
+function getRowHeight(doc, row, cols) {
+  const paddingY = 6;
+  const imageW = row.imageBuffer ? 50 : 0;
+  const imageGap = row.imageBuffer ? 8 : 0;
+  const itemCol = cols.find((c) => c.key === 'item');
+  const textWidth = Math.max(30, itemCol.w - imageW - imageGap);
+
+  const itemText = safeText(row.item);
+  const descText = limitText(richTextToPdfText(row.descripcion), 1800);
+
+  doc.font('Helvetica').fontSize(9);
+
+  const itemHeight = doc.heightOfString(itemText, {
+    width: textWidth,
+    align: 'left',
+  });
+
+  doc.font('Helvetica').fontSize(8);
+
+  const descHeight = descText
+    ? doc.heightOfString(descText, {
+        width: textWidth,
+        align: 'left',
+      })
+    : 0;
+
+  const contentHeight = itemHeight + (descText ? 2 + descHeight : 0);
+  const imageHeight = row.imageBuffer ? 50 : 0;
+
+  return Math.max(22, imageHeight + paddingY * 2, contentHeight + paddingY * 2);
 }
 
 function drawTableHeader(doc, cols) {
@@ -332,20 +452,26 @@ function drawTableHeader(doc, cols) {
   const left = doc.page.margins.left;
   const tableWidth = doc.page.width - doc.page.margins.left - doc.page.margins.right;
 
-  doc
-    .rect(left, y, tableWidth, height)
-    .fill('#F3F4F6');
+  doc.rect(left, y, tableWidth, height).fill('#F3F4F6');
 
   doc.fillColor('#111827').font('Helvetica-Bold').fontSize(9);
 
   for (const c of cols) {
-    doc.text(c.title, c.x, y + 6, { width: c.w, align: c.align ?? 'left' });
+    doc.text(c.title, c.x, y + 6, {
+      width: c.w,
+      align: c.align ?? 'left',
+    });
   }
 
   doc.restore();
+
   doc.moveDown(0.5);
   doc.y = y + height + 6;
-  hr(doc, doc.y - 2, { color: '#E5E7EB', thickness: 1 });
+
+  hr(doc, doc.y - 2, {
+    color: '#E5E7EB',
+    thickness: 1,
+  });
 }
 
 function drawRow(doc, row, cols, { moneda, zebra, index } = {}) {
@@ -354,18 +480,33 @@ function drawRow(doc, row, cols, { moneda, zebra, index } = {}) {
   const paddingY = 6;
   const paddingX = 0;
 
-  // Calcula alturas por celda (solo para la columna de item/desc)
   doc.font('Helvetica').fontSize(9);
+
   const itemCol = cols.find((c) => c.key === 'item');
+  const imageW = row.imageBuffer ? 50 : 0;
+  const imageGap = row.imageBuffer ? 8 : 0;
+  const textX = itemCol.x + paddingX + imageW + imageGap;
+  const textWidth = Math.max(30, itemCol.w - imageW - imageGap);
   const itemText = safeText(row.item);
-  const descText = richTextToPdfText(row.descripcion);
-  const itemHeight = doc.heightOfString(itemText, { width: itemCol.w, align: 'left' });
+  const descText = limitText(richTextToPdfText(row.descripcion), 1800);
+
+  const itemHeight = doc.heightOfString(itemText, {
+    width: textWidth,
+    align: 'left',
+  });
+
   doc.font('Helvetica').fontSize(8);
+
   const descHeight = descText
-    ? doc.heightOfString(descText, { width: itemCol.w, align: 'left' })
+    ? doc.heightOfString(descText, {
+        width: textWidth,
+        align: 'left',
+      })
     : 0;
+
   const contentHeight = itemHeight + (descText ? 2 + descHeight : 0);
-  const rowHeight = Math.max(22, contentHeight + paddingY * 2);
+  const imageHeight = row.imageBuffer ? 50 : 0;
+  const rowHeight = Math.max(22, imageHeight + paddingY * 2, contentHeight + paddingY * 2);
 
   const y = doc.y;
 
@@ -375,25 +516,44 @@ function drawRow(doc, row, cols, { moneda, zebra, index } = {}) {
     doc.restore();
   }
 
-  // item + desc
   doc.save();
+
   doc.fillColor('#111827');
   doc.font('Helvetica').fontSize(9);
-  doc.text(itemText, itemCol.x + paddingX, y + paddingY, { width: itemCol.w, align: 'left' });
+
+  if (row.imageBuffer) {
+    try {
+      doc.image(row.imageBuffer, itemCol.x + paddingX, y + paddingY, {
+        fit: [50, 50],
+        align: 'center',
+        valign: 'center',
+      });
+    } catch {
+      // ignore image rendering errors
+    }
+  }
+
+  doc.text(itemText, textX, y + paddingY, {
+    width: textWidth,
+    align: 'left',
+  });
+
   if (descText) {
     doc.font('Helvetica').fontSize(8).fillColor('#6B7280');
-    doc.text(descText, itemCol.x + paddingX, y + paddingY + itemHeight + 2, {
-      width: itemCol.w,
+
+    doc.text(descText, textX, y + paddingY + itemHeight + 2, {
+      width: textWidth,
       align: 'left',
     });
   }
+
   doc.restore();
 
-  // resto columnas
   for (const c of cols) {
     if (c.key === 'item') continue;
 
     let text = '';
+
     if (c.key === 'sku') text = safeText(row.sku || '-');
     if (c.key === 'dias') text = safeText(row.diasHabiles || '-');
     if (c.key === 'cant') text = safeText(row.cantidad);
@@ -401,16 +561,22 @@ function drawRow(doc, row, cols, { moneda, zebra, index } = {}) {
     if (c.key === 'total') text = formatAmount(row.total);
 
     doc.save();
+
     doc.font('Helvetica').fontSize(9).fillColor('#111827');
+
     doc.text(text, c.x, y + paddingY, {
       width: c.w,
       align: c.align ?? 'left',
     });
+
     doc.restore();
   }
 
-  // Separador inferior
-  hr(doc, y + rowHeight, { color: '#F1F5F9', thickness: 1 });
+  hr(doc, y + rowHeight, {
+    color: '#F1F5F9',
+    thickness: 1,
+  });
+
   doc.y = y + rowHeight + 2;
 
   return rowHeight;
@@ -419,46 +585,52 @@ function drawRow(doc, row, cols, { moneda, zebra, index } = {}) {
 function buildCotizacionPdf(cotizacion) {
   return new Promise(async (resolve, reject) => {
     try {
-      const doc = new PDFDocument({ size: 'A4', margin: 40, bufferPages: true });
+      const doc = new PDFDocument({
+        size: 'A4',
+        margin: 40,
+        bufferPages: true,
+      });
 
       doc.info.Title = `Cotización ${safeText(cotizacion.numeroCotizacion)}`;
       doc.info.Author = String(process.env.COMPANY_NAME || '').trim() || undefined;
 
       const chunks = [];
+
       doc.on('data', (c) => chunks.push(c));
       doc.on('end', () => resolve(Buffer.concat(chunks)));
       doc.on('error', reject);
 
       const moneda = cotizacion.moneda ?? 'Bs';
 
-      // Obtener brand info desde DB
       const settings = await getSettings();
       const brand = settingsToBrand(settings);
 
       const left = doc.page.margins.left;
       const right = doc.page.width - doc.page.margins.right;
 
-      // Meta para footers
       const meta = {
         pageNumber: 0,
         totalPages: 0,
       };
 
-      // Encabezado (estilo proforma)
-      doc.y = drawHeader(doc, cotizacion, brand, { moneda, compact: false });
+      doc.y = drawHeader(doc, cotizacion, brand, {
+        moneda,
+        compact: false,
+      });
 
-      // Cliente + contacto
       doc.font('Helvetica-Bold').fontSize(11).fillColor('#111827').text('Cliente', left, doc.y);
       doc.moveDown(0.3);
 
       const cliente = cotizacion.cliente ?? null;
       const contactoCliente = safeText(cliente?.observaciones).trim();
+
       const line1 = [
         cliente?.institucion ? `${safeText(cliente.institucion)}` : null,
         cliente?.cargo ? `Cargo: ${safeText(cliente.cargo)}` : null,
       ]
         .filter(Boolean)
         .join('   |   ');
+
       const line2 = [
         cliente?.email ? `Email: ${cliente.email}` : null,
         cliente?.telefono ? `Tel: ${cliente.telefono}` : null,
@@ -466,50 +638,61 @@ function buildCotizacionPdf(cotizacion) {
       ]
         .filter(Boolean)
         .join('   |   ');
+
       const direccion = cliente?.direccion ? `Direccion: ${safeText(cliente.direccion)}` : '';
+
       const clientExtraLines = [line1, line2, direccion, contactoCliente].filter(Boolean).length;
       const clientBoxH = 36 + clientExtraLines * 18;
       const clientBoxY = doc.y;
-      doc
-        .roundedRect(left, clientBoxY, right - left, clientBoxH, 6)
-        .fillAndStroke('#FFFFFF', '#E5E7EB');
 
-      // Nombre del cliente (Bold)
+      doc.roundedRect(left, clientBoxY, right - left, clientBoxH, 6).fillAndStroke('#FFFFFF', '#E5E7EB');
+
       doc.font('Helvetica-Bold').fontSize(10).fillColor('#111827');
+
       doc.text(cliente ? safeText(cliente.nombreCompleto) : '—', left + 12, clientBoxY + 12, {
         width: right - left - 24,
       });
 
       doc.font('Helvetica').fontSize(9).fillColor('#374151');
+
       let clientLineY = clientBoxY + 30;
+
       if (line1) {
-        doc.text(line1, left + 12, clientLineY, { width: right - left - 24 });
+        doc.text(line1, left + 12, clientLineY, {
+          width: right - left - 24,
+        });
+
         clientLineY += 18;
       }
 
       if (line2) {
-        doc.text(line2, left + 12, clientLineY, { width: right - left - 24 });
+        doc.text(line2, left + 12, clientLineY, {
+          width: right - left - 24,
+        });
+
         clientLineY += 18;
       }
 
       doc.font('Helvetica').fontSize(8).fillColor('#6B7280');
+
       if (direccion) {
-        doc.text(direccion, left + 12, clientLineY, { width: right - left - 24 });
+        doc.text(direccion, left + 12, clientLineY, {
+          width: right - left - 24,
+        });
+
         clientLineY += 18;
       }
 
       if (contactoCliente) {
         doc.font('Helvetica').fontSize(8).fillColor('#6B7280');
-        doc.text(`Contacto: ${contactoCliente}`, left + 12, clientLineY, { width: right - left - 24 });
-      }
 
-      const line3 = [brand.brandEmail ? `Email: ${brand.brandEmail}` : null, brand.brandPhone ? `Tel: ${brand.brandPhone}` : null]
-        .filter(Boolean)
-        .join('   |   ');
+        doc.text(`Contacto: ${contactoCliente}`, left + 12, clientLineY, {
+          width: right - left - 24,
+        });
+      }
 
       doc.y = clientBoxY + clientBoxH + 12;
 
-      // Items
       doc.font('Helvetica-Bold').fontSize(11).fillColor('#111827').text('Detalle de ítems', left, doc.y);
       doc.moveDown(0.4);
 
@@ -517,31 +700,59 @@ function buildCotizacionPdf(cotizacion) {
       const tableWidth = right - left;
 
       const cols = [
-        { key: 'item', title: 'Ítem', x: tableLeft + 0, w: Math.floor(tableWidth * 0.50), align: 'left' },
-        { key: 'sku', title: 'SKU', x: tableLeft + Math.floor(tableWidth * 0.50), w: Math.floor(tableWidth * 0.10), align: 'center' },
-        { key: 'dias', title: 'Entrega', x: tableLeft + Math.floor(tableWidth * 0.57), w: Math.floor(tableWidth * 0.19), align: 'center' },
-        { key: 'cant', title: 'Cant.', x: tableLeft + Math.floor(tableWidth * 0.74), w: Math.floor(tableWidth * 0.08), align: 'right' },
-        { key: 'unit', title: 'P. Unit', x: tableLeft + Math.floor(tableWidth * 0.82), w: Math.floor(tableWidth * 0.09), align: 'right' },
-        { key: 'total', title: 'Total', x: tableLeft + Math.floor(tableWidth * 0.91), w: Math.floor(tableWidth * 0.09), align: 'right' },
+        {
+          key: 'item',
+          title: 'Ítem',
+          x: tableLeft + Math.floor(tableWidth * 0.00),
+          w: Math.floor(tableWidth * 0.49),
+          align: 'left',
+        },
+        {
+          key: 'sku',
+          title: 'SKU',
+          x: tableLeft + Math.floor(tableWidth * 0.50),
+          w: Math.floor(tableWidth * 0.10),
+          align: 'center',
+        },
+        {
+          key: 'dias',
+          title: 'Entrega',
+          x: tableLeft + Math.floor(tableWidth * 0.61),
+          w: Math.floor(tableWidth * 0.12),
+          align: 'center',
+        },
+        {
+          key: 'cant',
+          title: 'Cant.',
+          x: tableLeft + Math.floor(tableWidth * 0.74),
+          w: Math.floor(tableWidth * 0.07),
+          align: 'right',
+        },
+        {
+          key: 'unit',
+          title: 'P. Unit',
+          x: tableLeft + Math.floor(tableWidth * 0.82),
+          w: Math.floor(tableWidth * 0.08),
+          align: 'right',
+        },
+        {
+          key: 'total',
+          title: 'Total',
+          x: tableLeft + Math.floor(tableWidth * 0.91),
+          w: Math.floor(tableWidth * 0.09),
+          align: 'right',
+        },
       ];
 
-      const fechaEmisionTable = cotizacion.fechaEmision || new Date().toISOString().split('T')[0];
-      let validezTable = cotizacion.fechaValidez;
-
-      // Asegurar que validez es un Date o string en formato ISO
-      if (!validezTable) {
-        validezTable = addDaysToDate(fechaEmisionTable, 7);
-      }
-
-      const validezStr = toDateOnlyString(validezTable);
-
-      // USAR diasEntrega del objeto cotizacion, NO calcular
       const diasHabilesGlobal = cotizacion.diasEntrega ?? 5;
+      const imageCache = new Map();
 
       const calcularDiasPorItem = (observaciones) => {
         if (!observaciones) return diasHabilesGlobal;
+
         const textoOriginal = safeText(observaciones).trim();
         const texto = textoOriginal.toLowerCase();
+
         const textoNormalizado = textoOriginal
           .normalize('NFD')
           .replace(/[\u0300-\u036f]/g, '')
@@ -551,23 +762,27 @@ function buildCotizacionPdf(cotizacion) {
         if (texto.includes('inmediata') || texto.includes('inmedita')) {
           return 'Inmediata';
         }
+
         const normalizedMatch = textoNormalizado.match(/(?:entrega|dias)\s*:\s*([^,;\n]+)/i);
+
         if (normalizedMatch && normalizedMatch[1]) {
           return normalizedMatch[1].trim();
         }
 
-        // Buscar un patrón como "entrega: X" o "dias: X"
         const match = textoOriginal.match(/(?:entrega|dias|días)\s*:\s*([^,;\n]+)/i);
+
         if (match && match[1]) {
           return match[1].trim();
         }
 
         const daysMatch = textoOriginal.match(/^(\d+)(?:\s*(?:dias|días|d\.?))?$/i);
+
         if (daysMatch && daysMatch[1]) {
           return daysMatch[1];
         }
 
         const daysPhraseMatch = textoNormalizado.match(/^(\d+)\s*(?:dias?|d\.?)\s*(habiles?|calendario)?$/i);
+
         if (daysPhraseMatch && daysPhraseMatch[1]) {
           return [daysPhraseMatch[1], 'dias', daysPhraseMatch[2]].filter(Boolean).join(' ');
         }
@@ -575,98 +790,138 @@ function buildCotizacionPdf(cotizacion) {
         return diasHabilesGlobal;
       };
 
-      const items = [
+      const items = await Promise.all([
         ...(cotizacion.productos ?? [])
           .slice()
           .sort((a, b) => Number(a.ordenVisual ?? 0) - Number(b.ordenVisual ?? 0))
-          .map((p) => ({
-            sku: p?.producto?.sku ?? null,
-            item: p.nombreItem,
-            descripcion: joinNonEmpty([richTextToPdfText(p.descripcionItem), formatIncludedComponents(p?.producto)]),
-            cantidad: p.cantidad,
-            unitario: p.precioUnitario,
-            total: p.subtotal,
-            diasHabiles: calcularDiasPorItem(p.observaciones),
-          })),
+          .map(async (p) => {
+            const imageUrl = getPrincipalImageUrl(p?.producto);
+
+            return {
+              sku: p?.producto?.sku ?? null,
+              item: p.nombreItem,
+              descripcion: joinNonEmpty([
+                richTextToPdfText(p.descripcionItem),
+                formatIncludedComponents(p?.producto),
+              ]),
+              cantidad: p.cantidad,
+              unitario: p.precioUnitario,
+              total: p.subtotal,
+              diasHabiles: calcularDiasPorItem(p.observaciones),
+              imageBuffer: await fetchImageBuffer(imageUrl, imageCache),
+            };
+          }),
+
         ...(cotizacion.componentes ?? [])
           .slice()
           .sort((a, b) => Number(a.ordenVisual ?? 0) - Number(b.ordenVisual ?? 0))
-          .map((c) => ({
-            sku: c?.componente?.sku ?? null,
-            item: c.nombreItem,
-            descripcion: richTextToPdfText(c.descripcionItem),
-            cantidad: c.cantidad,
-            unitario: c.precioUnitario,
-            total: c.subtotal,
-            diasHabiles: calcularDiasPorItem(c.observaciones),
-          })),
-      ];
+          .map(async (c) => {
+            const imageUrl = getPrincipalImageUrl(c?.componente);
 
-      // Header tabla
+            return {
+              sku: c?.componente?.sku ?? null,
+              item: c.nombreItem,
+              descripcion: richTextToPdfText(c.descripcionItem),
+              cantidad: c.cantidad,
+              unitario: c.precioUnitario,
+              total: c.subtotal,
+              diasHabiles: calcularDiasPorItem(c.observaciones),
+              imageBuffer: await fetchImageBuffer(imageUrl, imageCache),
+            };
+          }),
+      ]);
+
       drawTableHeader(doc, cols);
 
       const redrawOnNewPage = () => {
-        // En nuevas páginas, solo redibuja el header de tabla (sin encabezado de marca)
-        doc.y = 40; // Margen superior
+        doc.y = 40;
         drawTableHeader(doc, cols);
       };
 
       items.forEach((row, idx) => {
-        // Estimar altura de fila con márgenes de seguridad (puede ser más alta si hay descripciones largas)
-        const estimatedRowHeight = 60; // Margen conservador para descripciones
-        ensureSpace(doc, estimatedRowHeight, { meta, onNewPage: redrawOnNewPage });
-        drawRow(doc, row, cols, { moneda, zebra: true, index: idx });
+        const rowHeight = getRowHeight(doc, row, cols) + 2;
+
+        ensureSpace(doc, rowHeight, {
+          meta,
+          onNewPage: redrawOnNewPage,
+        });
+
+        drawRow(doc, row, cols, {
+          moneda,
+          zebra: true,
+          index: idx,
+        });
       });
 
-      // Totales
-      ensureSpace(doc, 180, { meta, onNewPage: redrawOnNewPage });
+      ensureSpace(doc, 180, {
+        meta,
+        onNewPage: redrawOnNewPage,
+      });
+
       doc.moveDown(0.6);
 
       const totalsBoxW = 260;
       const totalsX = right - totalsBoxW;
       const totalsY = doc.y;
-      doc
-        .roundedRect(totalsX, totalsY, totalsBoxW, 86, 6)
-        .fillAndStroke('#F9FAFB', '#E5E7EB');
+
+      doc.roundedRect(totalsX, totalsY, totalsBoxW, 86, 6).fillAndStroke('#F9FAFB', '#E5E7EB');
 
       doc.font('Helvetica').fontSize(9).fillColor('#111827');
+
       const lineY = (y, label, value, bold = false) => {
         doc.font(bold ? 'Helvetica-Bold' : 'Helvetica');
-        doc.text(label, totalsX + 12, y, { width: 120, align: 'left' });
-        doc.text(value, totalsX + 132, y, { width: totalsBoxW - 144, align: 'right' });
+
+        doc.text(label, totalsX + 12, y, {
+          width: 120,
+          align: 'left',
+        });
+
+        doc.text(value, totalsX + 132, y, {
+          width: totalsBoxW - 144,
+          align: 'right',
+        });
       };
 
       lineY(totalsY + 12, 'Subtotal', formatMoney(cotizacion.subtotal, moneda));
       lineY(totalsY + 30, 'Descuento', formatMoney(cotizacion.descuento, moneda));
       lineY(totalsY + 48, 'Impuestos', formatMoney(cotizacion.impuestos, moneda));
+
       doc.save();
       doc.fillColor('#111827');
       lineY(totalsY + 66, 'TOTAL', formatMoney(cotizacion.total, moneda), true);
       doc.restore();
 
       const paymentBoxW = totalsX - left - 16;
+
       doc.font('Helvetica-Bold').fontSize(10).fillColor('#111827');
-      doc.text('INFORMACION DE PAGO', left, totalsY + 9, { width: paymentBoxW });
+
+      doc.text('INFORMACION DE PAGO', left, totalsY + 9, {
+        width: paymentBoxW,
+      });
+
       doc.font('Helvetica').fontSize(9).fillColor('#374151');
+
       doc.text(
         'Banco de Credito.\nJorge Davalos Crespo.\nNº Cuenta: 3015040742318.',
         left,
         totalsY + 24,
-        { width: paymentBoxW, align: 'left' }
-      );
-      const avisoY = totalsY + 108;
-      doc.font('Helvetica-Bold').fontSize(9).fillColor('#111827');
-      doc.text(
-        'Todos los Equipos o Accesorios cuentan con 1 año de garantía',
-        left,
-        avisoY - 16,
         {
-          width: right - left,
-          align: 'center',
+          width: paymentBoxW,
+          align: 'left',
         }
       );
 
+      const avisoY = totalsY + 108;
+
+      doc.font('Helvetica-Bold').fontSize(9).fillColor('#111827');
+
+      doc.text('Todos los Equipos o Accesorios cuentan con 1 año de garantía', left, avisoY - 16, {
+        width: right - left,
+        align: 'center',
+      });
+
       doc.font('Helvetica').fontSize(7).fillColor('#6B7280');
+
       doc.text(
         'En caso de que la presente cotización no sea considerada o haya sido postergada, agradeceremos nos lo hagan conocer. Su respuesta nos ayuda a optimizar nuestros tiempos de atención y seguimiento.',
         left,
@@ -676,23 +931,30 @@ function buildCotizacionPdf(cotizacion) {
           align: 'center',
         }
       );
+
       doc.y = totalsY + 140;
 
-      // Observaciones y términos
       const obs = safeText(cotizacion.observaciones).trim();
+
       if (obs) {
-        ensureSpace(doc, 80, { meta, onNewPage: redrawOnNewPage });
+        ensureSpace(doc, 80, {
+          meta,
+          onNewPage: redrawOnNewPage,
+        });
+
         doc.font('Helvetica-Bold').fontSize(10).fillColor('#111827').text('Observaciones', left, doc.y);
         doc.moveDown(0.2);
+
         doc.font('Helvetica').fontSize(9).fillColor('#374151').text(obs, {
           width: right - left,
         });
+
         doc.moveDown(0.6);
       }
 
-      // Renderizar footers en todas las páginas
       const range = doc.bufferedPageRange();
       meta.totalPages = range.count;
+
       for (let i = range.start; i < range.start + range.count; i++) {
         doc.switchToPage(i);
         drawFooter(doc, i - range.start + 1, range.count);

@@ -1,6 +1,7 @@
 const express = require('express');
 
 const { asyncHandler } = require('../../utils/asyncHandler');
+const { requireAdmin } = require('../../middlewares/auth.middleware');
 const controller = require('./productos.controller');
 
 const router = express.Router();
@@ -21,13 +22,13 @@ router.get('/', asyncHandler(controller.list));
 router.get('/:id', asyncHandler(controller.getById));
 
 // Crear producto
-router.post('/', asyncHandler(controller.create));
+router.post('/', requireAdmin, asyncHandler(controller.create));
 
 // Actualizar producto
-router.put('/:id', asyncHandler(controller.update));
+router.put('/:id', requireAdmin, asyncHandler(controller.update));
 
 // Eliminar producto
-router.delete('/:id', asyncHandler(controller.deleteOne));
+router.delete('/:id', requireAdmin, asyncHandler(controller.deleteOne));
 
 // ⚠️ IMÁGENES: Usar /productos/:idProducto/imagenes via imagenes.routes.js en su lugar
 
