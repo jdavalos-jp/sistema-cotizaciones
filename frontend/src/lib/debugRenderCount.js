@@ -1,9 +1,5 @@
 import React from 'react'
 
-/**
- * Hook para detectar renders infinitos en componentes
- * Ayuda a diagnosticar infinite loops causados por malas dependencias en useEffect
- */
 export function useRenderCount(componentName) {
   const renderCountRef = React.useRef(0)
 
@@ -13,7 +9,6 @@ export function useRenderCount(componentName) {
       timestamp: new Date().toISOString(),
     })
 
-    // Alertar si se renderiza más de 20 veces en 5 segundos
     if (renderCountRef.current > 20) {
       console.warn(
         `⚠️ [${componentName}] Posible infinite loop detectado! ${renderCountRef.current} renders`,
@@ -24,10 +19,6 @@ export function useRenderCount(componentName) {
   return renderCountRef.current
 }
 
-/**
- * Hook para detectar cuándo cambian las dependencias de useEffect
- * USE: useLogDependencyChanges(dependencies, 'nombreDelHook')
- */
 export function useLogDependencyChanges(deps, hookName) {
   const prevDepsRef = React.useRef()
 
@@ -55,10 +46,6 @@ export function useLogDependencyChanges(deps, hookName) {
   }, deps)
 }
 
-/**
- * Envuelve una función para loguear cada llamada
- * USE: const myFunc = withCallLog((x) => x + 1, 'myFunc')
- */
 export function withCallLog(fn, name) {
   return (...args) => {
     console.log(`[${name}] called with:`, args)

@@ -1,10 +1,6 @@
 import { Button, Result } from 'antd'
 import { useNavigate } from 'react-router-dom'
 
-/**
- * Página 404
- * - Se muestra cuando la ruta no existe
- */
 export default function NotFoundPage() {
   const navigate = useNavigate()
 

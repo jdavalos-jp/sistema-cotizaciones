@@ -1,11 +1,6 @@
 import { useNavigate, useParams } from 'react-router-dom'
 import ProductoForm from '../../modules/Producto/components/ProductoForm'
 
-/**
- * Página Formulario de Producto
- * - Permite crear y editar productos
- * - Wrapper para ProductoForm
- */
 export default function ProductoFormPage() {
   const navigate = useNavigate()
   const { id } = useParams()

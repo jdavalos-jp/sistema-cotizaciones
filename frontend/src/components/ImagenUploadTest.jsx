@@ -1,10 +1,6 @@
 import { useState } from 'react'
 import { useImagenesProducto } from '../hooks/useImagenes'
 
-/**
- * Componente de prueba para validar el sistema de imágenes
- * Uso: <ImagenUploadTest idProducto={1} />
- */
 export function ImagenUploadTest({ idProducto = 1 }) {
   const [file, setFile] = useState(null)
   const { imagenes, loading, error, subirImagen, eliminarImagen, hacerPrincipal } =
@@ -15,7 +11,7 @@ export function ImagenUploadTest({ idProducto = 1 }) {
     const resultado = await subirImagen(file)
     if (resultado) {
       setFile(null)
-      alert('✅ Imagen subida correctamente')
+      alert(' Imagen subida correctamente')
     }
   }
 

@@ -1,18 +1,11 @@
 import { useState, useCallback, useEffect } from 'react'
 import * as clientesApi from '../api/clientesApi'
 
-/**
- * Hook para gestionar clientes (crear, actualizar)
- * Maneja la lógica de API y estado para formularios
- */
 export function useClientesManager(idClienteEdit = null) {
   const [cliente, setCliente] = useState(null)
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState(null)
 
-  /**
-   * Cargar cliente si se proporciona ID (modo edición)
-   */
   useEffect(() => {
     if (!idClienteEdit) return
     const controller = new AbortController()
@@ -35,9 +28,6 @@ export function useClientesManager(idClienteEdit = null) {
     return () => controller.abort()
   }, [idClienteEdit])
 
-  /**
-   * Crear nuevo cliente
-   */
   const createCliente = useCallback(async (payload) => {
     try {
       setLoading(true)
@@ -54,19 +44,16 @@ export function useClientesManager(idClienteEdit = null) {
     }
   }, [])
 
-  /**
-   * Actualizar cliente existente
-   */
   const updateCliente = useCallback(
     async (idOrPayload, payloadIfId) => {
       let idCliente, payload
 
-      // Si el primer arg es un objeto y estamos en modo edición, usar idClienteEdit
+  
       if (typeof idOrPayload === 'object' && idClienteEdit) {
         idCliente = idClienteEdit
         payload = idOrPayload
       } else {
-        // Si no, esperar: updateCliente(id, payload)
+
         idCliente = idOrPayload
         payload = payloadIfId
       }

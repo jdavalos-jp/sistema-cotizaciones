@@ -3,23 +3,7 @@ import { Card, InputNumber, Row, Col, Typography, Space } from 'antd'
 import { CalendarOutlined, CarOutlined } from '@ant-design/icons'
 import dayjs from 'dayjs'
 
-/**
- * Sección de fechas y días de entrega para una cotización.
- *
- * Correcciones respecto a la versión original:
- * - Date nativo eliminado: todo el manejo de fechas usa dayjs (evita bugs de timezone)
- * - Bug de timezone corregido: ya no se concatena 'T00:00:00' a strings de fecha
- * - diasValidez/diasEntrega null controlado: InputNumber nunca propaga null al estado padre
- * - Fechas calculadas no se muestran si los días son null (en lugar de mostrar fecha inválida)
- * - Emojis reemplazados por iconos de antd (renderizado consistente en todos los OS)
- * - CampoDisplay extraído para eliminar estilos inline duplicados
- * - Alias fechaEmision: fechaEmisionProp eliminado — nombre directo en la firma
- */
 
-/**
- * Campo de solo lectura con fondo de color para valores calculados o fijos.
- * @param {'neutral'|'info'} variant - neutral = gris, info = azul claro
- */
 function CampoDisplay({ label, value, variant = 'neutral' }) {
   const bgColor = variant === 'info' ? '#f0f7ff' : '#fafafa'
 
@@ -48,8 +32,7 @@ function FechaValidacionSection({
   setDiasEntrega,
   fechaEmision,
 }) {
-  // Fecha de inicio: usar fechaEmision si es válida (modo edición) o hoy (modo nuevo)
-  // Todo en dayjs para evitar bugs de timezone con Date nativo
+
   const fechaInicio = useMemo(() => {
     if (fechaEmision) {
       const parsed = dayjs(fechaEmision)

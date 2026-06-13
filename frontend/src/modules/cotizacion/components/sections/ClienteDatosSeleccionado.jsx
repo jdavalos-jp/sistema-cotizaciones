@@ -17,19 +17,6 @@ import {
 } from '@ant-design/icons'
 import { safeRender } from '../../../../shared/utils/safeRender'
 
-/**
- * Muestra los datos del cliente actualmente seleccionado.
- *
- * Correcciones respecto a la versión original:
- * - Statistic reemplazado por Typography: Statistic es para métricas numéricas, no datos textuales
- * - clienteData.correo corregido a clienteData.email (consistente con la API y ClienteDatosSection)
- * - Guard mejorado: muestra Skeleton mientras clienteLabel existe pero clienteData aún no llegó
- * - Un solo Row en lugar de dos — antd hace el wrap automáticamente con xs={24} md={12}
- * - Space orientation="vertical" eliminado — redundante con el layout de Row/Col
- * - safeRender usado en lugar de || '-' — consistente con el resto del proyecto
- */
-
-/** Campo de dato individual con icono y label */
 function CampoCliente({ icon, label, value }) {
   return (
     <div>

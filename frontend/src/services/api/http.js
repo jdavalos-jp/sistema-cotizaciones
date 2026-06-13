@@ -1,6 +1,4 @@
-/**
- * Obtiene la URL base de la API desde el entorno o usa '/api' (proxy Vite)
- */
+
 export function getApiBaseUrl() {
   return import.meta.env.VITE_API_BASE_URL || '/api'
 }
@@ -19,21 +17,12 @@ function getAuthHeaders(headers = {}, { skipAuth = false } = {}) {
   }
 }
 
-/**
- * Espera exponencial para reintentos, con un máximo de 10s
- */
+
 function getBackoffDelay(attempt) {
   return Math.min(1000 * Math.pow(2, attempt), 10000)
 }
 
-/**
- * Combina el signal de timeout interno con el signal externo del usuario.
- * Si cualquiera de los dos aborta, el fetch se cancela.
- *
- * IMPORTANTE: Esto corrige el bug donde fetchWithRetry pisaba el signal
- * externo con su propio AbortController interno, haciendo que la cancelación
- * desde componentes (ej. AbortController en useEffect) no tuviera efecto real.
- */
+
 function mergeSignals(...signals) {
   const validSignals = signals.filter(Boolean)
   if (validSignals.length === 0) return undefined
@@ -52,10 +41,7 @@ function mergeSignals(...signals) {
   return controller.signal
 }
 
-/**
- * Realiza un request con reintentos automáticos y backoff exponencial.
- * Respeta el signal externo del usuario Y aplica un timeout interno.
- */
+
 async function fetchWithRetry(url, options = {}, { maxRetries = 3, timeout = 30000 } = {}) {
   const { signal: externalSignal, ...restOptions } = options
   let lastError
@@ -132,10 +118,6 @@ async function parseResponse(res, responseType) {
 
   return res.json()
 }
-
-// ─────────────────────────────────────────────
-// Métodos públicos de la API
-// ─────────────────────────────────────────────
 
 export async function apiGet(path, { signal, responseType = 'json', headers, skipAuth = false } = {}) {
   const url = `${getApiBaseUrl()}${path}`

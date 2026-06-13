@@ -80,10 +80,7 @@ export default function CotizacionEditar({ idCotizacion, onSuccess, onCancel }) 
     })
   }, [lineas, cart.cart])
 
-  // Fallback: mostrar items del carrito directamente si el preview aún no está disponible
-  // Esto asegura que los productos existentes se muestren inmediatamente al cargar editar cotización
   const lineasFallback = useMemo(() => {
-    // Si el preview tiene los mismos items que el carrito, usar el preview enriquecido
     if (
       lineasConEdiciones.length > 0 &&
       lineasConEdiciones.length === cart.cart.length &&
@@ -94,8 +91,6 @@ export default function CotizacionEditar({ idCotizacion, onSuccess, onCancel }) 
       return lineasConEdiciones
     }
 
-    // Si no, construir una vista simple del carrito que aún no ha sido procesada por el preview
-    // Esto evita perder items cuando se agregan productos nuevos mientras el preview se calcula
     console.log(
       '[CotizacionEditar] Fallback activado. Preview:',
       lineasConEdiciones.length,
@@ -120,7 +115,6 @@ export default function CotizacionEditar({ idCotizacion, onSuccess, onCancel }) 
   )
   const totalFinal = subtotal - Number(descuento) + Number(impuestos)
 
-  // --- Handlers ---
   const onRemove = (tipo, id) => cart.removeItem(tipo, String(id))
   const onSetCantidad = (tipo, id, cantidad) => cart.setCantidad(tipo, String(id), cantidad)
   const onSetPrecio = (tipo, id, precio) => cart.setPrecioUnitario(tipo, String(id), precio)

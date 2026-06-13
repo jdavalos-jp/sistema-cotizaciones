@@ -1,21 +1,5 @@
 import { useState, useCallback, useRef, useEffect } from 'react'
 
-/**
- * Hook para búsqueda con debounce optimizado
- * Ideal para grandes volúmenes de datos
- *
- * Características:
- * - Debounce configurable (default 300ms)
- * - Auto-reset de página
- * - Cancelación de requests previos
- * - Callback customizable
- *
- * @param {function} onSearch - Callback cuando termina el debounce
- * @param {number} delayMs - Retraso en milisegundos (default 300)
- * @param {object} options - Opciones adicionales { autoResetPage: true }
- *
- * @returns {object} { value, setValue, debouncedValue, isDebouncing }
- */
 export function useDebouncedSearch(onSearch = null, delayMs = 300, options = {}) {
   const [value, setValue] = useState('')
   const [debouncedValue, setDebouncedValue] = useState('')
@@ -23,25 +7,18 @@ export function useDebouncedSearch(onSearch = null, delayMs = 300, options = {})
   const debounceTimeoutRef = useRef(null)
   const { autoResetPage = true } = options
 
-  /**
-   * Manejar cambio de búsqueda
-   */
   const handleSearch = useCallback(
     (newValue) => {
       setValue(newValue)
       setIsDebouncing(true)
-
-      // Limpiar debounce anterior
       if (debounceTimeoutRef.current) {
         clearTimeout(debounceTimeoutRef.current)
       }
 
-      // Configurar nuevo debounce
       debounceTimeoutRef.current = setTimeout(() => {
         setDebouncedValue(newValue)
         setIsDebouncing(false)
 
-        // Ejecutar callback si está definido
         if (onSearch) {
           onSearch(newValue)
         }
@@ -50,9 +27,7 @@ export function useDebouncedSearch(onSearch = null, delayMs = 300, options = {})
     [delayMs, onSearch]
   )
 
-  /**
-   * Limpiar búsqueda
-   */
+
   const clearSearch = useCallback(() => {
     setValue('')
     setDebouncedValue('')
@@ -67,9 +42,7 @@ export function useDebouncedSearch(onSearch = null, delayMs = 300, options = {})
     }
   }, [onSearch])
 
-  /**
-   * Limpieza al desmontarse
-   */
+
   useEffect(() => {
     return () => {
       if (debounceTimeoutRef.current) {
@@ -87,24 +60,12 @@ export function useDebouncedSearch(onSearch = null, delayMs = 300, options = {})
   }
 }
 
-/**
- * Hook para búsqueda integrada con manejo de paginación
- * (Versión avanzada)
- *
- * @param {function} onSearch - Callback (search, pageNumber)
- * @param {number} delayMs - Retraso en milisegundos
- *
- * @returns {object} { value, setValue, debouncedValue, isDebouncing, clearSearch, resetPage }
- */
 export function useDebouncedSearchWithPagination(onSearch = null, delayMs = 300) {
   const [value, setValue] = useState('')
   const [debouncedValue, setDebouncedValue] = useState('')
   const [isDebouncing, setIsDebouncing] = useState(false)
   const debounceTimeoutRef = useRef(null)
 
-  /**
-   * Manejar cambio de búsqueda (resetea a página 1)
-   */
   const handleSearch = useCallback(
     (newValue) => {
       setValue(newValue)
@@ -119,16 +80,14 @@ export function useDebouncedSearchWithPagination(onSearch = null, delayMs = 300)
         setIsDebouncing(false)
 
         if (onSearch) {
-          onSearch(newValue, 1) // Siempre ir a página 1 en búsqueda
+          onSearch(newValue, 1) 
         }
       }, delayMs)
     },
     [delayMs, onSearch]
   )
 
-  /**
-   * Limpiar búsqueda
-   */
+
   const clearSearch = useCallback(() => {
     setValue('')
     setDebouncedValue('')
@@ -143,9 +102,7 @@ export function useDebouncedSearchWithPagination(onSearch = null, delayMs = 300)
     }
   }, [onSearch])
 
-  /**
-   * Reset de página (sin afectar búsqueda)
-   */
+
   const resetPage = useCallback(() => {
     if (onSearch) {
       onSearch(debouncedValue, 1)

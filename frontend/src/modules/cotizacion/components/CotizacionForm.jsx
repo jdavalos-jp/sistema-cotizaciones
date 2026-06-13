@@ -20,10 +20,10 @@ export default function CotizacionForm({
   onSubmit,
   submitLabel = 'Generar Cotización',
   submitting = false,
-  onCancel, // Callback optional para botón cancelar
-  clientes = null, // Datos de búsqueda de clientes (opcional)
-  productos = null, // Datos de búsqueda de productos (opcional)
-  componentes = null, // Datos de búsqueda de componentes (opcional)
+  onCancel, 
+  clientes = null, 
+  productos = null, 
+  componentes = null, 
 }) {
   const [idCliente, setIdCliente] = useState(initialCliente?.id || null);
   const [clienteLabel, setClienteLabel] = useState(initialCliente?.nombre || '');
@@ -32,7 +32,7 @@ export default function CotizacionForm({
   const [modalNuevoClienteVisible, setModalNuevoClienteVisible] = useState(false);
   const cart = initialCart;
 
-  // Hook para calcular líneas con estructura completa (precios, subtotales, etc)
+ 
   const preview = useCotizacionPreview({
     idCliente,
     moneda,

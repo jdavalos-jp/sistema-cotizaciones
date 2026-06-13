@@ -6,26 +6,16 @@ import { useCotizacionCart } from './useCotizacionCart'
 import { useClientesSearch } from './useClientesSearch'
 import { fetchProductos, fetchComponentes } from '../services/api/catalogoApi'
 
-/**
- * Hook para manejar la edición de cotizaciones existentes.
- * - Carrito sin localStorage (persistent: false) para no interferir con CotizacionNueva.
- * - Restauración atómica vía setItems (una sola mutación de estado).
- */
 export function useCotizacionEdit(idCotizacion) {
   const [cotizacion, setCotizacion] = useState(null)
   const [loading, setLoading] = useState(true)
   const [saving, setSaving] = useState(false)
   const [error, setError] = useState(null)
-
-  // Hooks de catálogo
   const productos = useCatalogSearch(fetchProductos)
   const componentes = useCatalogSearch(fetchComponentes)
   const clientes = useClientesSearch()
-
-  // Carrito SIN localStorage — datos vienen del backend, no de sesión previa
   const cart = useCotizacionCart({ persistent: false })
 
-  // Efecto: cargar cotización + restaurar carrito de forma atómica
   useEffect(() => {
     if (!idCotizacion) return
 

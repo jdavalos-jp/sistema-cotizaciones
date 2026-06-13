@@ -1,10 +1,6 @@
 import { useState, useCallback, useEffect } from 'react'
 import * as componentesApi from '../Services/api/componentesApi'
 
-/**
- * Hook unificado para gestionar componentes
- * Maneja lista, paginación, filtros y operaciones CRUD
- */
 export function useComponentesManager(idComponenteEdit = null) {
   // Estado de lista
   const [componentes, setComponentes] = useState([])
@@ -64,9 +60,6 @@ export function useComponentesManager(idComponenteEdit = null) {
     [filters, pagination.skip, pagination.take]
   )
 
-  /**
-   * Cargar componente individual por ID
-   */
   const fetchComponente = useCallback(async (id, options = {}) => {
     if (!id) return
     try {
@@ -82,17 +75,11 @@ export function useComponentesManager(idComponenteEdit = null) {
     }
   }, [])
 
-  /**
-   * Cambiar filtros y resetear paginación
-   */
   const handleFilterChange = useCallback((newFilters) => {
     setFilters((prev) => ({ ...prev, ...newFilters }))
     setPagination((prev) => ({ ...prev, skip: 0, current: 1 }))
   }, [])
 
-  /**
-   * Cambiar paginación
-   */
   const handlePagination = useCallback((skipOrPage, take = null) => {
     const isPage = typeof skipOrPage === 'number' && skipOrPage > 0 && take
     const newSkip = isPage ? (skipOrPage - 1) * take : skipOrPage
@@ -106,24 +93,15 @@ export function useComponentesManager(idComponenteEdit = null) {
     }))
   }, [pagination.take])
 
-  /**
-   * Refrescar lista
-   */
   const refresh = useCallback(() => {
     fetchComponentes()
   }, [fetchComponentes])
 
-  /**
-   * Eliminar componente de la lista
-   */
   const deleteComponenteLocal = useCallback((idComponente) => {
     setComponentes((prev) => prev.filter((c) => String(c.idComponente) !== String(idComponente)))
     setPagination((prev) => ({ ...prev, total: Math.max(0, prev.total - 1) }))
   }, [])
 
-  /**
-   * Crear nuevo componente
-   */
   const createComponente = useCallback(
     async (payload) => {
       try {
@@ -147,9 +125,6 @@ export function useComponentesManager(idComponenteEdit = null) {
     []
   )
 
-  /**
-   * Actualizar componente existente
-   */
   const updateComponente = useCallback(
     async (idOrPayload, payloadIfId) => {
       let idComponente, payload
@@ -186,9 +161,6 @@ export function useComponentesManager(idComponenteEdit = null) {
     [idComponenteEdit]
   )
 
-  /**
-   * Eliminar componente (llamar a API)
-   */
   const deleteComponente = useCallback(async (idComponente) => {
     try {
       setLoading(true)
@@ -228,7 +200,6 @@ export function useComponentesManager(idComponenteEdit = null) {
   }, [idComponenteEdit, fetchComponente])
 
   return {
-    // Lista
     componentes,
     loading,
     error,
@@ -239,40 +210,27 @@ export function useComponentesManager(idComponenteEdit = null) {
     handlePagination,
     refresh,
     deleteComponenteLocal,
-
-    // Individual
     componente,
     loadingComponente,
     fetchComponente,
     setComponente,
-
-    // CRUD
     createComponente,
     updateComponente,
     deleteComponente,
-
-    // Setters directos
     setComponentes,
     setPagination,
     setFilters,
   }
 }
 
-/**
- * Hook compat para gestionar un componente individual
- * Ahora también carga productos asociados cuando se edita
- */
 export function useComponente(idComponente = null) {
   const hook = useComponentesManager(idComponente)
   const [productosComponente, setProductosComponente] = useState([])
   const [loadingProductos, setLoadingProductos] = useState(false)
 
-  /**
-   * Cargar productos del componente (para edición)
-   */
   useEffect(() => {
     if (!idComponente) {
-      // eslint-disable-next-line react-hooks/set-state-in-effect
+   
       setProductosComponente([])
       return
     }
@@ -298,7 +256,7 @@ export function useComponente(idComponente = null) {
   return {
     componente: {
       ...hook.componente,
-      productos: productosComponente, // Agregar productos al objeto componente
+      productos: productosComponente, 
     },
     loading: hook.loadingComponente || loadingProductos,
     error: hook.error,

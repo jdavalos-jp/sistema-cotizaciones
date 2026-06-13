@@ -1,10 +1,6 @@
 import { useState, useCallback } from 'react'
 import * as componentesApi from '../Services/api/componentesApi'
 
-/**
- * Hook para gestionar componentes
- * Maneja lista, paginación y búsqueda
- */
 export function useComponentes() {
   const [componentes, setComponentes] = useState([])
   const [loading, setLoading] = useState(false)

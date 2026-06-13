@@ -4,13 +4,6 @@ import Sidebar from './components/Sidebar.jsx'
 import Header from './components/Header.jsx'
 
 const { Content } = Layout
-
-/**
- * Layout principal de la aplicación
- * - Contiene el Sidebar y Header
- * - Las páginas se renderizan en el Outlet
- * - Responsive: sidebar colapsable en móvil
- */
 export default function MainLayout() {
   return (
     <Layout style={{ minHeight: '100vh' }}>

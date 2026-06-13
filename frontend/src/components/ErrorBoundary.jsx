@@ -2,10 +2,7 @@ import React from 'react'
 import { Button, Result } from 'antd'
 import { ReloadOutlined } from '@ant-design/icons'
 
-/**
- * Error Boundary - Componente para capturar errores en React
- * Previene que la app entera se crashee si hay un error en un componente hijo
- */
+
 export class ErrorBoundary extends React.Component {
   constructor(props) {
     super(props)
@@ -22,17 +19,14 @@ export class ErrorBoundary extends React.Component {
   }
 
   componentDidCatch(error, errorInfo) {
-    // Log error for debugging in development
 
-    // Actualizar estado con detalles del error
     this.setState((prev) => ({
       error,
       errorInfo,
       errorCount: prev.errorCount + 1,
     }))
 
-    // Opcionalmente, enviar a servicio de logging
-    // logErrorToService(error, errorInfo)
+
   }
 
   handleReset = () => {

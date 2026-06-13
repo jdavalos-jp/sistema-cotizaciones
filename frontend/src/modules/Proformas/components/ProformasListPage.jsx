@@ -3,9 +3,6 @@ import { PlusOutlined, SearchOutlined, EyeOutlined, DeleteOutlined, DownloadOutl
 import { useEffect, useState } from 'react'
 import { useProformas } from '../hooks/useProformas'
 
-/**
- * Componente ProformasListPage
- */
 export default function ProformasListPage() {
   const [searchTerm, setSearchTerm] = useState('')
   const [filterEstado, setFilterEstado] = useState('todos')

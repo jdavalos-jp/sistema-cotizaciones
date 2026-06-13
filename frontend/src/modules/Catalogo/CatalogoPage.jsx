@@ -2,17 +2,10 @@ import { Card, Row, Col, Button, Empty, Space, Input, Select, Typography } from 
 import { SearchOutlined, PlusOutlined } from '@ant-design/icons'
 import { useState } from 'react'
 
-/**
- * Página Catálogo
- * - Vista general del catálogo completo
- * - Productos y componentes disponibles
- * - Búsqueda y filtros
- */
 export default function CatalogoPage() {
   const [searchTerm, setSearchTerm] = useState('')
   const [filterType, setFilterType] = useState('todos')
 
-  // Datos simulados
   const productos = [
     { id: 1, nombre: 'Cesta Drenaje', sku: 'PROD-001', precio: 2500, stock: 15 },
     { id: 2, nombre: 'Filtro Agua', sku: 'PROD-002', precio: 1200, stock: 8 },
