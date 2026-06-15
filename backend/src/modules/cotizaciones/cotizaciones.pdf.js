@@ -6,7 +6,7 @@ const sharp = require('sharp');
 const { toDateOnlyString, formatDateDMY, toUtcMidnightDate } = require('../../utils/dateOnly');
 const { getSettings, settingsToBrand } = require('../settings/settings.service');
 const { addDaysToDate, countBusinessDays, formatCurrency } = require('./converters');
-
+// manejo de decimales
 function formatMoney(value, moneda) {
   const curr = String(moneda || '').trim() || 'Bs';
 
