@@ -10,7 +10,11 @@ const { addDaysToDate, countBusinessDays, formatCurrency } = require('./converte
 function formatMoney(value, moneda) {
   const n = Number(value ?? 0);
   const curr = String(moneda || '').trim() || 'Bs';
-  return `${curr} ${Math.floor(n).toLocaleString('es-BO')}`;
+
+  return `${curr} ${n.toLocaleString('es-BO', {
+    minimumFractionDigits: 2,
+    maximumFractionDigits: 2,
+  })}`;
 }
 
 function formatAmount(value) {
