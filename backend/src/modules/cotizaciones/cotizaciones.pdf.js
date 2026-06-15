@@ -8,18 +8,14 @@ const { getSettings, settingsToBrand } = require('../settings/settings.service')
 const { addDaysToDate, countBusinessDays, formatCurrency } = require('./converters');
 
 function formatMoney(value, moneda) {
-  const n = Number(value ?? 0);
   const curr = String(moneda || '').trim() || 'Bs';
 
-  return `${curr} ${n.toLocaleString('es-BO', {
-    minimumFractionDigits: 2,
-    maximumFractionDigits: 2,
-  })}`;
+  return `${curr} ${formatAmount(value)}`;
 }
 
 function formatAmount(value) {
   const n = Number(value ?? 0);
-  return Math.floor(n).toLocaleString('es-BO');
+  return String(Math.floor(Number.isFinite(n) ? n : 0));
 }
 
 function safeText(value) {
