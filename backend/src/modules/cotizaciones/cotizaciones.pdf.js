@@ -716,7 +716,7 @@ function buildCotizacionPdf(cotizacion) {
         },
         {
           key: 'dias',
-          title: 'Dias Entrega',
+          title: 'Días Entrega',
           x: tableLeft + Math.floor(tableWidth * 0.59),
           w: Math.floor(tableWidth * 0.14),
           align: 'center',
