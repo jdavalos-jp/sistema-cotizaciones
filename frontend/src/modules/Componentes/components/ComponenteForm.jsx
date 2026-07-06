@@ -42,7 +42,7 @@ function ComponenteForm({ onSuccess, onCancel, idComponenteEdit = null }) {
     form.setFieldsValue({
       nombre: componente.nombre || '',
       descripcion: componente.descripcion || '',
-      precioBase: componente.precioBase ? Number(componente.precioBase) : undefined,
+      precioBase: componente.precioBase !== null && componente.precioBase !== undefined ? Number(componente.precioBase) : undefined,
       sku: componente.sku || '',
     })
 

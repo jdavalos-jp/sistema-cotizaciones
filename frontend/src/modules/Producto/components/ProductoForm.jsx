@@ -87,7 +87,7 @@ function ProductoForm({ onSuccess, onCancel, idProductoEdit = null }) {
         : catId ? [Number(catId)] : [],
       descripcion: producto.descripcion || '',
       sku: producto.sku || '',
-      precioBase: producto.precioBase ? Number(producto.precioBase) : undefined,
+      precioBase: producto.precioBase !== null && producto.precioBase !== undefined ? Number(producto.precioBase) : undefined,
       cantidad: producto.cantidad ? Number(producto.cantidad) : 1,
     })
 
@@ -140,7 +140,7 @@ function ProductoForm({ onSuccess, onCancel, idProductoEdit = null }) {
     const cascaderBusy = loadingCategorias || loadingHierarchy
     const nombreOk = String(watchedNombre || '').trim().length >= 2
     const categoriaOk = Array.isArray(watchedCategoriaPath) && watchedCategoriaPath.length >= 1
-    const precioOk = watchedPrecioBase !== null && watchedPrecioBase !== undefined && watchedPrecioBase > 0
+    const precioOk = watchedPrecioBase !== null && watchedPrecioBase !== undefined && watchedPrecioBase >= 0
     const cantidadOk = watchedCantidad !== null && watchedCantidad !== undefined && watchedCantidad > 0
     return nombreOk && categoriaOk && precioOk && cantidadOk && !cascaderBusy && !loadingProducto
   }, [watchedNombre, watchedCategoriaPath, watchedPrecioBase, watchedCantidad, loadingCategorias, loadingHierarchy, loadingProducto])

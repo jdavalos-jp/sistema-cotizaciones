@@ -15,6 +15,14 @@ function parseId(value, fieldName) {
   }
 }
 
+function parseNonNegativeInt(value, fieldName) {
+  const number = Number(value);
+  if (!Number.isInteger(number) || number < 0) {
+    throw new HttpError(400, `${fieldName} debe ser un entero no negativo`);
+  }
+  return number;
+}
+
 function parsePositiveInt(value, fieldName) {
   const number = Number(value);
   if (!Number.isInteger(number) || number <= 0) {
@@ -230,7 +238,7 @@ async function createProducto({ nombre, descripcion, precioBase, cantidad, sku, 
     data: {
       nombre: nombre.trim(),
       descripcion: descripcion?.trim() || null,
-      precioBase: parsePositiveInt(precioBase, 'Precio'),
+      precioBase: parseNonNegativeInt(precioBase, 'Precio'),
       cantidad: parsePositiveInt(cantidad ?? 1, 'Cantidad'),
       sku: normalizedSku,
       idCategoria: catId,
@@ -266,7 +274,7 @@ async function updateProducto(idProducto, updateData) {
 
   if (updateData.nombre !== undefined) data.nombre = updateData.nombre.trim();
   if (updateData.descripcion !== undefined) data.descripcion = updateData.descripcion?.trim() || null;
-  if (updateData.precioBase !== undefined) data.precioBase = parsePositiveInt(updateData.precioBase, 'Precio');
+  if (updateData.precioBase !== undefined) data.precioBase = parseNonNegativeInt(updateData.precioBase, 'Precio');
   if (updateData.cantidad !== undefined) data.cantidad = parsePositiveInt(updateData.cantidad, 'Cantidad');
   if (updateData.sku !== undefined) {
     const normalizedSku = updateData.sku?.trim() || null;

@@ -44,10 +44,10 @@ export default function ProductoInventarioPreciosMultimedia({
           name="precioBase"
           rules={[
             { required: true, message: 'Campo requerido' },
-            { type: 'number', min: 1, message: 'Debe ser mayor que 0' },
+            { type: 'number', min: 0, message: 'No puede ser negativo' },
           ]}
         >
-          <InputNumber style={{ width: '100%' }} min={1} step={1} placeholder="0" prefix="$" />
+          <InputNumber style={{ width: '100%' }} min={0} step={1} placeholder="0" prefix="$" />
         </Form.Item>
 
         <Form.Item

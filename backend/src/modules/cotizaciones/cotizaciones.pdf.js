@@ -749,45 +749,7 @@ function buildCotizacionPdf(cotizacion) {
 
       const calcularDiasPorItem = (observaciones) => {
         if (!observaciones) return diasHabilesGlobal;
-
-        const textoOriginal = safeText(observaciones).trim();
-        const texto = textoOriginal.toLowerCase();
-
-        const textoNormalizado = textoOriginal
-          .normalize('NFD')
-          .replace(/[\u0300-\u036f]/g, '')
-          .toLowerCase()
-          .trim();
-
-        if (texto.includes('inmediata') || texto.includes('inmedita')) {
-          return 'Inmediata';
-        }
-
-        const normalizedMatch = textoNormalizado.match(/(?:entrega|dias)\s*:\s*([^,;\n]+)/i);
-
-        if (normalizedMatch && normalizedMatch[1]) {
-          return normalizedMatch[1].trim();
-        }
-
-        const match = textoOriginal.match(/(?:entrega|dias|días)\s*:\s*([^,;\n]+)/i);
-
-        if (match && match[1]) {
-          return match[1].trim();
-        }
-
-        const daysMatch = textoOriginal.match(/^(\d+)(?:\s*(?:dias|días|d\.?))?$/i);
-
-        if (daysMatch && daysMatch[1]) {
-          return daysMatch[1];
-        }
-
-        const daysPhraseMatch = textoNormalizado.match(/^(\d+)\s*(?:dias?|d\.?)\s*(habiles?|calendario)?$/i);
-
-        if (daysPhraseMatch && daysPhraseMatch[1]) {
-          return [daysPhraseMatch[1], 'dias', daysPhraseMatch[2]].filter(Boolean).join(' ');
-        }
-
-        return diasHabilesGlobal;
+        return safeText(observaciones).trim();
       };
 
       const items = await Promise.all([

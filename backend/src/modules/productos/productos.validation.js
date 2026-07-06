@@ -27,6 +27,11 @@ const optionalPositiveBigInt = (label) =>
     z.bigint(`${label} invalido`).positive(`${label} invalido`).nullable().optional(),
   );
 
+const nonNegativeInt = (label) =>
+  z.union([z.number(), z.string()]).pipe(
+    z.coerce.number().int(`${label} debe ser entero`).min(0, `${label} no puede ser negativo`),
+  );
+
 const positiveInt = (label) =>
   z.union([z.number(), z.string()]).pipe(
     z.coerce.number().int(`${label} debe ser entero`).positive(`${label} debe ser mayor que 0`),
@@ -56,7 +61,7 @@ const productoFields = {
     .min(2, 'Nombre debe tener al menos 2 caracteres')
     .max(200, 'Nombre no puede exceder 200 caracteres'),
   descripcion: optionalText(1000, 'Descripcion'),
-  precioBase: positiveInt('Precio'),
+  precioBase: nonNegativeInt('Precio'),
   cantidad: positiveInt('Cantidad'),
   sku: z.preprocess(
     emptyStringToNull,
