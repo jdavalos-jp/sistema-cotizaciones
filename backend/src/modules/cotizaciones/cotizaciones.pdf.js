@@ -6,9 +6,13 @@ const sharp = require('sharp');
 const { toDateOnlyString, formatDateDMY, toUtcMidnightDate } = require('../../utils/dateOnly');
 const { getSettings, settingsToBrand } = require('../settings/settings.service');
 const { addDaysToDate, countBusinessDays, formatCurrency } = require('./converters');
-// manejo de decimales
+
 function formatMoney(value, moneda) {
-  const curr = String(moneda || '').trim() || 'Bs';
+  
+  let curr = String(moneda || '').trim();
+  if (!curr || curr === 'Bs') {
+    curr = 'Bs.';
+  }
 
   return `${curr} ${formatAmount(value)}`;
 }
@@ -730,14 +734,14 @@ function buildCotizacionPdf(cotizacion) {
         },
         {
           key: 'unit',
-          title: 'P. Unit',
+          title: 'P.Unit Bs',
           x: tableLeft + Math.floor(tableWidth * 0.82),
           w: Math.floor(tableWidth * 0.08),
           align: 'right',
         },
         {
           key: 'total',
-          title: 'Total',
+          title: 'Total Bs',
           x: tableLeft + Math.floor(tableWidth * 0.91),
           w: Math.floor(tableWidth * 0.09),
           align: 'right',
