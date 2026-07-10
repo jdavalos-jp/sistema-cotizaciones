@@ -195,7 +195,7 @@ async function drawLocalImage(doc, imagePath, x, y, { width, height } = {}) {
 
     doc.image(imageBuffer, x, y, {
       fit: [targetWidth, targetHeight],
-      align: 'center',
+      align: 'left',
       valign: 'top',
     });
 
