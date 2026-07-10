@@ -55,7 +55,6 @@ function ModalNuevoCliente({ visible, onClose, onSuccess }) {
 				<Form.Item
 					label="Nombre del cliente"
 					name="nombre"
-					rules={[{ required: true, message: 'Por favor ingresa el nombre' }]}
 				>
 					<Input prefix={<UserOutlined />} placeholder="Nombre completo" />
 				</Form.Item>
@@ -66,7 +65,6 @@ function ModalNuevoCliente({ visible, onClose, onSuccess }) {
 							label="Correo electrónico"
 							name="correo"
 							rules={[
-								{ required: true, message: 'Por favor ingresa el correo' },
 								{ type: 'email', message: 'Formato de correo inválido' },
 							]}
 						>
@@ -78,7 +76,6 @@ function ModalNuevoCliente({ visible, onClose, onSuccess }) {
 						<Form.Item
 							label="Teléfono"
 							name="telefono"
-							rules={[{ required: true, message: 'Por favor ingresa el teléfono' }]}
 						>
 							<Input prefix={<PhoneOutlined />} placeholder="Número de teléfono" />
 						</Form.Item>
@@ -88,7 +85,6 @@ function ModalNuevoCliente({ visible, onClose, onSuccess }) {
 				<Form.Item
 					label="Dirección"
 					name="direccion"
-					rules={[{ required: true, message: 'Por favor ingresa la dirección' }]}
 				>
 					<Input prefix={<EnvironmentOutlined />} placeholder="Dirección completa" />
 				</Form.Item>
@@ -98,7 +94,6 @@ function ModalNuevoCliente({ visible, onClose, onSuccess }) {
 						<Form.Item
 							label="Ciudad"
 							name="ciudad"
-							rules={[{ required: true, message: 'Por favor ingresa la ciudad' }]}
 						>
 							<Input placeholder="Ciudad" />
 						</Form.Item>
@@ -122,10 +117,10 @@ function ModalNuevoCliente({ visible, onClose, onSuccess }) {
 				</Form.Item>
 
 				<Form.Item
-					label="Observaciones"
+					label="Contacto en la institución"
 					name="observaciones"
 				>
-					<Input.TextArea placeholder="Notas adicionales (opcional)" rows={3} />
+					<Input.TextArea placeholder="Contacto en la institución" rows={3} />
 				</Form.Item>
 
 				<Space style={{ width: '100%', justifyContent: 'flex-end' }}>

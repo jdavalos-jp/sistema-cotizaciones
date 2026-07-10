@@ -177,6 +177,60 @@ function resolveCompanyLogoPath() {
   return null;
 }
 
+function resolveFirmasSellosPath() {
+  const workspaceRoot = path.resolve(__dirname, '../../../../');
+  const imagePath = path.join(workspaceRoot, 'frontend', 'images', 'firmas_sellos.webp');
+
+  return fs.existsSync(imagePath) ? imagePath : null;
+}
+
+async function drawLocalImage(doc, imagePath, x, y, { width, height } = {}) {
+  if (!imagePath) return false;
+
+  try {
+    const imageBuffer = await sharp(imagePath).png().toBuffer();
+    const image = doc.openImage(imageBuffer);
+    const targetWidth = width ?? image.width;
+    const targetHeight = height ?? image.height;
+
+    doc.image(imageBuffer, x, y, {
+      fit: [targetWidth, targetHeight],
+      align: 'center',
+      valign: 'top',
+    });
+
+    return true;
+  } catch {
+    return false;
+  }
+}
+
+async function removeWhiteBackground(imagePath) {
+  if (!imagePath) return null;
+
+  try {
+    const { data, info } = await sharp(imagePath).raw().toBuffer({ resolveWithObject: true });
+    const rgba = Buffer.alloc(info.width * info.height * 4);
+
+    for (let i = 0; i < info.width * info.height; i++) {
+      const r = data[i * 3];
+      const g = data[i * 3 + 1];
+      const b = data[i * 3 + 2];
+      const isWhite = r > 248 && g > 248 && b > 248;
+      rgba[i * 4] = r;
+      rgba[i * 4 + 1] = g;
+      rgba[i * 4 + 2] = b;
+      rgba[i * 4 + 3] = isWhite ? 0 : 255;
+    }
+
+    return sharp(rgba, {
+      raw: { width: info.width, height: info.height, channels: 4 },
+    }).png().toBuffer();
+  } catch {
+    return null;
+  }
+}
+
 function drawHeader(doc, cotizacion, brand, { moneda, compact = false } = {}) {
   const left = doc.page.margins.left;
   const right = doc.page.width - doc.page.margins.right;
@@ -877,28 +931,48 @@ function buildCotizacionPdf(cotizacion) {
         }
       );
 
-      const avisoY = totalsY + 108;
+      const firmasSellosPath = resolveFirmasSellosPath();
+      let firmasImageBuffer = null;
+
+      if (firmasSellosPath) {
+        firmasImageBuffer = await removeWhiteBackground(firmasSellosPath);
+      }
+
+      const paymentTextEndY = totalsY + 56;
+      const firmasY = paymentTextEndY;
+      const firmasHeight = 56;
+
+      if (firmasImageBuffer) {
+        doc.image(firmasImageBuffer, left, firmasY, {
+          fit: [paymentBoxW, firmasHeight],
+          align: 'left',
+          valign: 'top',
+        });
+      }
+
+      const avisoY = firmasY + firmasHeight;
 
       doc.font('Helvetica-Bold').fontSize(9).fillColor('#111827');
 
-      doc.text('Todos los Equipos o Accesorios cuentan con 1 año de garantía', left, avisoY - 16, {
+      doc.text('Todos los Equipos o Accesorios cuentan con 1 año de garantía', left, avisoY, {
         width: right - left,
         align: 'center',
       });
 
       doc.font('Helvetica').fontSize(7).fillColor('#6B7280');
+      const avisoEndY = avisoY + 14;
 
       doc.text(
         'En caso de que la presente cotización no sea considerada o haya sido postergada, agradeceremos nos lo hagan conocer. Su respuesta nos ayuda a optimizar nuestros tiempos de atención y seguimiento.',
         left,
-        avisoY,
+        avisoEndY,
         {
           width: right - left,
           align: 'center',
         }
       );
 
-      doc.y = totalsY + 140;
+      doc.y = avisoEndY + 18;
 
       const obs = safeText(cotizacion.observaciones).trim();
 
