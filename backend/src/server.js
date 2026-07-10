@@ -1,6 +1,16 @@
 const { env } = require('./config/env');
 const { createApp } = require('./app');
 const { prisma, shutdown } = require('./db/prisma');
+const { shutdown: redisShutdown } = require('./services/cache/redisClient');
+
+process.on('unhandledRejection', (reason) => {
+  console.error('UNHANDLED REJECTION:', reason);
+});
+
+process.on('uncaughtException', (err) => {
+  console.error('UNCAUGHT EXCEPTION:', err);
+  shutdown().finally(() => process.exit(1));
+});
 
 const app = createApp();
 
@@ -25,7 +35,7 @@ start();
 
 async function gracefulExit(signal) {
   try {
-    await shutdown();
+    await Promise.all([shutdown(), redisShutdown()]);
   } finally {
     if (!server) return process.exit(0);
     server.close(() => process.exit(0));

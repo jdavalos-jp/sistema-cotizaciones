@@ -85,9 +85,23 @@ async function getCotizacionByIdHandler(req, res) {
   res.json({ ok: true, data: cotizacion });
 }
 
+const { z } = require('zod');
+const { validate } = require('../../utils/validationSchemas');
+
+const UpdateCotizacionSchema = z.object({
+  productos: z.array(z.any()).optional().default([]),
+  componentes: z.array(z.any()).optional().default([]),
+  moneda: z.enum(['Bs', 'USD', 'EUR']).optional(),
+  observaciones: z.string().max(1000).trim().optional().nullable(),
+  descuento: z.union([z.number(), z.string()]).pipe(z.coerce.number().min(0)).optional(),
+  impuestos: z.union([z.number(), z.string()]).pipe(z.coerce.number().min(0)).optional(),
+  diasValidez: z.union([z.number(), z.string()]).pipe(z.coerce.number().int().min(1).max(365)).optional(),
+  diasEntrega: z.union([z.number(), z.string()]).pipe(z.coerce.number().int().min(1).max(365)).optional(),
+});
+
 async function updateCotizacionHandler(req, res) {
   const { idCotizacion } = req.params;
-  const body = req.body ?? {};
+  const body = validate(UpdateCotizacionSchema, req.body ?? {});
 
   const cotizacion = await updateCotizacion(idCotizacion, {
     productos: Array.isArray(body.productos) ? body.productos : [],

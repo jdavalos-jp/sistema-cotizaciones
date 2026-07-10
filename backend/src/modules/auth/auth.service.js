@@ -165,6 +165,10 @@ async function getCurrentUser(userId) {
   return usuario;
 }
 
+function getJwtConfig() {
+  return { secret: JWT_SECRET, expiry: JWT_EXPIRY };
+}
+
 module.exports = {
   hashPassword,
   comparePassword,
@@ -175,6 +179,5 @@ module.exports = {
   loginUser,
   getCurrentUser,
   normalizeRole,
-  JWT_SECRET,
-  JWT_EXPIRY,
+  getJwtConfig,
 };

@@ -136,8 +136,23 @@ async function deactivateUsuario(idUsuario) {
   return toUserDto(usuario);
 }
 
+async function getUsuarioById(idUsuario) {
+  const id = parseUserId(idUsuario);
+  const usuario = await prisma.usuario.findUnique({
+    where: { idUsuario: id },
+    select: userSelect,
+  });
+
+  if (!usuario) {
+    throw new HttpError(404, 'Usuario no encontrado');
+  }
+
+  return toUserDto(usuario);
+}
+
 module.exports = {
   listUsuarios,
+  getUsuarioById,
   createUsuario,
   updateUsuario,
   deactivateUsuario,

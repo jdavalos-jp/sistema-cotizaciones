@@ -1,4 +1,5 @@
 const { HttpError } = require('../../utils/httpError');
+const { prisma } = require('../../db/prisma');
 
 /**
  * Settings por defecto (si la tabla no existe)
@@ -19,13 +20,6 @@ const DEFAULT_SETTINGS = {
  */
 async function getSettings() {
   try {
-    let { prisma } = require('../../db/prisma');
-    
-    if (!prisma) {
-      // Fallback si prisma no está disponible
-      return DEFAULT_SETTINGS;
-    }
-
     let settings = await prisma.settings.findUnique({
       where: { idSetting: 1 },
     });
@@ -49,10 +43,6 @@ async function getSettings() {
  */
 async function updateSettings(data) {
   try {
-    let { prisma } = require('../../db/prisma');
-    
-    if (!prisma) return data; // Fallback
-
     const settings = await prisma.settings.update({
       where: { idSetting: 1 },
       data,

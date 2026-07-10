@@ -30,6 +30,8 @@ model Institucion {
   email           String?   @db.VarChar(150)
   estado          String?   @default("activo") @db.VarChar(20)
 
+  @@index([nombre], map: "idx_instituciones_nombre")
+  @@index([estado], map: "idx_instituciones_estado")
   @@map("instituciones")
 }
 
@@ -37,7 +39,7 @@ model Cliente {
   idCliente      BigInt       @id @default(autoincrement()) @map("id_cliente")
   nombreCompleto String       @map("nombre_completo") @db.VarChar(200)
   telefono       String?      @db.VarChar(30)
-  email          String?      @db.VarChar(150)
+  email          String?      @unique @db.VarChar(150)
   ciudad         String?      @db.VarChar(100)
   cargo          String?      @db.VarChar(150)
   institucion    String?      @db.VarChar(150)
@@ -46,6 +48,9 @@ model Cliente {
   fechaCreacion  DateTime?    @default(now()) @map("fecha_creacion") @db.Timestamp(6)
   cotizaciones   Cotizacion[]
 
+  @@index([nombreCompleto], map: "idx_clientes_nombre")
+  @@index([email], map: "idx_clientes_email")
+  @@index([ciudad], map: "idx_clientes_ciudad")
   @@map("clientes")
 }
 
@@ -146,12 +151,14 @@ model Componente {
   nombre       String                 @db.VarChar(200)
   descripcion  String?
   precioBase   Int                    @default(0) @map("precio_base")
-  sku          String?                @db.VarChar(100)
+  sku          String?                @unique @db.VarChar(100)
   estado       String?                @default("activo") @db.VarChar(20)
   cotizaciones CotizacionComponente[]
   productos    ProductoComponente[]
   imagenes     ComponenteImagen[]
 
+  @@index([sku], map: "idx_componentes_sku")
+  @@index([estado], map: "idx_componentes_estado")
   @@map("componentes")
 }
 
@@ -186,6 +193,7 @@ model Servicio {
   @@index([idCategoria], map: "idx_servicios_categoria")
   @@index([idSubcategoria], map: "idx_servicios_subcategoria")
   @@index([nombre], map: "idx_servicios_nombre")
+  @@index([estado], map: "idx_servicios_estado")
   @@map("servicios")
 }
 
@@ -229,6 +237,7 @@ model Cotizacion {
   @@index([idCliente], map: "idx_cotizaciones_cliente")
   @@index([idUsuarioCreador], map: "idx_cotizaciones_usuario")
   @@index([fechaEmision], map: "idx_cotizaciones_fecha")
+  @@index([estado], map: "idx_cotizaciones_estado")
   @@map("cotizaciones")
 }
 

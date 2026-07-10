@@ -29,6 +29,11 @@ async function list(req, res) {
   res.json({ ok: true, data });
 }
 
+async function getById(req, res) {
+  const data = await service.getUsuarioById(req.params.id);
+  res.json({ ok: true, data });
+}
+
 async function create(req, res) {
   const payload = validate(CreateUsuarioSchema, req.body);
   const data = await service.createUsuario(payload);
@@ -48,6 +53,7 @@ async function remove(req, res) {
 
 module.exports = {
   list,
+  getById,
   create,
   update,
   remove,

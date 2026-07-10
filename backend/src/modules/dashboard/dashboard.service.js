@@ -1,4 +1,5 @@
 const { prisma } = require('../../db/prisma');
+const { cacheGet, cacheSet } = require('../../services/cache/redisClient');
 
 const DAY_MS = 24 * 60 * 60 * 1000;
 
@@ -56,7 +57,15 @@ function formatCurrency(value, moneda = 'Bs') {
   return `${moneda || 'Bs'} ${amount.toLocaleString('es-BO')}`;
 }
 
-async function getDashboardSummary() {
+async function getDashboardSummary(forceRefresh = false) {
+  const CACHE_KEY = 'dashboard:summary';
+  const CACHE_TTL = 300;
+
+  if (!forceRefresh) {
+    const cached = await cacheGet(CACHE_KEY);
+    if (cached) return cached;
+  }
+
   const today = startOfDay(new Date());
   const tomorrow = addDays(today, 1);
   const currentStart = addDays(tomorrow, -30);
@@ -72,9 +81,9 @@ async function getDashboardSummary() {
     clientesPrevious,
     cotizacionesCurrent,
     cotizacionesPrevious,
-    cotizacionesPeriodo,
     estados,
     ultimasCotizaciones,
+    cotizacionesPorDiaRaw,
   ] = await Promise.all([
     prisma.producto.count({ where: { estado: 'activo' } }),
     prisma.componente.count({ where: { estado: 'activo' } }),
@@ -84,11 +93,6 @@ async function getDashboardSummary() {
     prisma.cliente.count({ where: { fechaCreacion: { gte: previousStart, lt: currentStart } } }),
     prisma.cotizacion.count({ where: { fechaCreacion: { gte: currentStart, lt: tomorrow } } }),
     prisma.cotizacion.count({ where: { fechaCreacion: { gte: previousStart, lt: currentStart } } }),
-    prisma.cotizacion.findMany({
-      where: { fechaCreacion: { gte: currentStart, lt: tomorrow } },
-      select: { fechaCreacion: true },
-      orderBy: { fechaCreacion: 'asc' },
-    }),
     prisma.cotizacion.groupBy({
       by: ['estado'],
       _count: { _all: true },
@@ -113,22 +117,29 @@ async function getDashboardSummary() {
         },
       },
     }),
+    prisma.$queryRaw`
+      SELECT DATE(fecha_creacion) as date, COUNT(*)::int as total
+      FROM cotizaciones
+      WHERE fecha_creacion >= ${currentStart} AND fecha_creacion < ${tomorrow}
+      GROUP BY DATE(fecha_creacion)
+      ORDER BY date
+    `,
   ]);
 
-  const cotizacionesPorDia = new Map();
+  const cotizacionesPorDiaMap = new Map();
   for (let i = 0; i < 30; i += 1) {
     const date = addDays(currentStart, i);
-    cotizacionesPorDia.set(formatDateKey(date), {
+    cotizacionesPorDiaMap.set(formatDateKey(date), {
       key: formatDateKey(date),
       label: formatDateLabel(date),
       total: 0,
     });
   }
 
-  for (const cotizacion of cotizacionesPeriodo) {
-    const key = formatDateKey(startOfDay(cotizacion.fechaCreacion || today));
-    const bucket = cotizacionesPorDia.get(key);
-    if (bucket) bucket.total += 1;
+  for (const item of cotizacionesPorDiaRaw) {
+    const key = formatDateKey(new Date(item.date));
+    const bucket = cotizacionesPorDiaMap.get(key);
+    if (bucket) bucket.total = Number(item.total);
   }
 
   const estadoOrder = ['borrador', 'pendiente', 'enviada', 'aceptada', 'rechazada', 'cancelada'];
@@ -143,7 +154,7 @@ async function getDashboardSummary() {
     }))
     .filter((item) => item.total > 0 || ['borrador', 'enviada', 'aceptada', 'rechazada'].includes(item.key));
 
-  return {
+  const result = {
     period: {
       from: formatDateKey(currentStart),
       to: formatDateKey(addDays(tomorrow, -1)),
@@ -160,7 +171,7 @@ async function getDashboardSummary() {
         change: percentChange(cotizacionesCurrent, cotizacionesPrevious),
       },
     },
-    cotizacionesTiempo: Array.from(cotizacionesPorDia.values()),
+    cotizacionesTiempo: Array.from(cotizacionesPorDiaMap.values()),
     estadosCotizacion,
     ultimasCotizaciones: ultimasCotizaciones.map((cotizacion) => ({
       idCotizacion: cotizacion.idCotizacion,
@@ -173,6 +184,9 @@ async function getDashboardSummary() {
       total: formatCurrency(cotizacion.total, cotizacion.moneda),
     })),
   };
+
+  await cacheSet(CACHE_KEY, result, CACHE_TTL);
+  return result;
 }
 
 module.exports = { getDashboardSummary };

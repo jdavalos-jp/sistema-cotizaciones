@@ -3,6 +3,68 @@ const { HttpError } = require('../../utils/httpError');
 const { toUtcMidnightDate } = require('../../utils/dateOnly');
 const { toBigInt, toInt, toPriceInt, validateCurrency, addDaysToDate } = require('./converters');
 
+const COTIZACION_STATES = ['borrador', 'enviada', 'aceptada', 'rechazada', 'cancelada'];
+
+const cotizacionDetalleInclude = {
+  cliente: { select: { idCliente: true, nombreCompleto: true, email: true, telefono: true, institucion: true, ciudad: true } },
+  usuarioCreador: { select: { idUsuario: true, nombre: true, apellido: true } },
+  productos: {
+    include: {
+      producto: {
+        select: {
+          sku: true,
+          imagenes: {
+            where: { estado: 'activo' },
+            select: { urlImagen: true, principal: true, orden: true },
+            orderBy: [{ principal: 'desc' }, { orden: 'asc' }],
+          },
+          componentes: {
+            select: {
+              cantidad: true,
+              componente: { select: { nombre: true } },
+            },
+            orderBy: { idProductoComponente: 'asc' },
+          },
+        },
+      },
+    },
+    orderBy: { ordenVisual: 'asc' },
+  },
+  componentes: {
+    include: {
+      componente: {
+        select: {
+          sku: true,
+          imagenes: {
+            where: { estado: 'activo' },
+            select: { urlImagen: true, principal: true, orden: true },
+            orderBy: [{ principal: 'desc' }, { orden: 'asc' }],
+          },
+        },
+      },
+    },
+    orderBy: { ordenVisual: 'asc' },
+  },
+};
+
+const cotizacionListSelect = {
+  idCotizacion: true,
+  numeroCotizacion: true,
+  fechaEmision: true,
+  fechaValidez: true,
+  estado: true,
+  subtotal: true,
+  descuento: true,
+  impuestos: true,
+  total: true,
+  moneda: true,
+  diasEntrega: true,
+  observaciones: true,
+  fechaCreacion: true,
+  cliente: { select: { idCliente: true, nombreCompleto: true, email: true } },
+  usuarioCreador: { select: { idUsuario: true, nombre: true, apellido: true } },
+};
+
 function enriquecerCotizacion(cotizacion) {
   if (!cotizacion) return cotizacion;
 
@@ -17,11 +79,6 @@ function enriquecerCotizacion(cotizacion) {
   return cotizacion;
 }
 
-function createNumeroCotizacion() {
-  // <= 50 chars, único “suficientemente” para MVP
-  return `${getNumeroCotizacionPrefix()}001`;
-}
-
 function getNumeroCotizacionPrefix(date = new Date()) {
   const ymd = date.toISOString().slice(0, 10).replaceAll('-', '');
   return `COT-${ymd}-`;
@@ -30,27 +87,19 @@ function getNumeroCotizacionPrefix(date = new Date()) {
 async function createNumeroCotizacionCorrelativo(tx, date = new Date()) {
   const prefix = getNumeroCotizacionPrefix(date);
 
-  const cotizacionesDelDia = await tx.cotizacion.findMany({
-    where: {
-      numeroCotizacion: {
-        startsWith: prefix,
-      },
-    },
-    select: {
-      numeroCotizacion: true,
-    },
+  const last = await tx.cotizacion.findFirst({
+    where: { numeroCotizacion: { startsWith: prefix } },
+    select: { numeroCotizacion: true },
+    orderBy: { numeroCotizacion: 'desc' },
   });
 
-  const usados = new Set();
-  for (const cotizacion of cotizacionesDelDia) {
-    const suffix = String(cotizacion.numeroCotizacion || '').slice(prefix.length);
+  let correlativo = 1;
+  if (last) {
+    const suffix = String(last.numeroCotizacion).slice(prefix.length);
     if (/^\d{3,6}$/.test(suffix)) {
-      usados.add(Number(suffix));
+      correlativo = Number(suffix) + 1;
     }
   }
-
-  let correlativo = 1;
-  while (usados.has(correlativo)) correlativo += 1;
 
   if (correlativo > 999) {
     throw new HttpError(500, 'No hay correlativos disponibles para la fecha actual');
@@ -215,48 +264,7 @@ async function createCotizacionWithItems({
               ? { create: cotizacionComponentesData }
               : undefined,
           },
-          include: {
-            cliente: true,
-            productos: {
-              include: {
-                producto: {
-                  select: {
-                    sku: true,
-                    imagenes: {
-                      where: { estado: 'activo' },
-                      select: { urlImagen: true, principal: true, orden: true },
-                      orderBy: [{ principal: 'desc' }, { orden: 'asc' }],
-                    },
-                    componentes: {
-                      select: {
-                        cantidad: true,
-                        componente: {
-                          select: {
-                            nombre: true,
-                          },
-                        },
-                      },
-                      orderBy: { idProductoComponente: 'asc' },
-                    },
-                  },
-                },
-              },
-            },
-            componentes: {
-              include: {
-                componente: {
-                  select: {
-                    sku: true,
-                    imagenes: {
-                      where: { estado: 'activo' },
-                      select: { urlImagen: true, principal: true, orden: true },
-                      orderBy: [{ principal: 'desc' }, { orden: 'asc' }],
-                    },
-                  },
-                },
-              },
-            },
-          },
+          include: cotizacionDetalleInclude,
         });
 
         return cotizacion;
@@ -284,16 +292,7 @@ async function getAllCotizaciones({ skip = 0, take = 50, estado = null } = {}) {
       skip,
       take,
       orderBy: { fechaCreacion: 'desc' },
-      include: {
-        cliente: true,
-        usuarioCreador: {
-          select: {
-            idUsuario: true,
-            nombre: true,
-            apellido: true,
-          },
-        },
-      },
+      select: cotizacionListSelect,
     }),
     prisma.cotizacion.count({ where }),
   ]);
@@ -306,51 +305,7 @@ async function getCotizacionById(idCotizacion) {
 
   const cotizacion = await prisma.cotizacion.findUnique({
     where: { idCotizacion: id },
-    include: {
-      cliente: true,
-      usuarioCreador: true,
-      productos: {
-        include: {
-          producto: {
-            select: {
-              sku: true,
-              imagenes: {
-                where: { estado: 'activo' },
-                select: { urlImagen: true, principal: true, orden: true },
-                orderBy: [{ principal: 'desc' }, { orden: 'asc' }],
-              },
-              componentes: {
-                select: {
-                  cantidad: true,
-                  componente: {
-                    select: {
-                      nombre: true,
-                    },
-                  },
-                },
-                orderBy: { idProductoComponente: 'asc' },
-              },
-            },
-          },
-        },
-        orderBy: { ordenVisual: 'asc' },
-      },
-      componentes: {
-        include: {
-          componente: {
-            select: {
-              sku: true,
-              imagenes: {
-                where: { estado: 'activo' },
-                select: { urlImagen: true, principal: true, orden: true },
-                orderBy: [{ principal: 'desc' }, { orden: 'asc' }],
-              },
-            },
-          },
-        },
-        orderBy: { ordenVisual: 'asc' },
-      },
-    },
+    include: cotizacionDetalleInclude,
   });
 
   if (!cotizacion) {
@@ -358,15 +313,6 @@ async function getCotizacionById(idCotizacion) {
   }
 
   return enriquecerCotizacion(cotizacion);
-}
-
-async function recalculateTotals(subtotal, descuento = 0, impuestos = 0) {
-  const s = moneyDecimal(subtotal);
-  const d = moneyDecimal(descuento);
-  const i = moneyDecimal(impuestos);
-  const total = s.minus(d).plus(i);
-
-  return { subtotal: s, descuento: d, impuestos: i, total };
 }
 
 async function updateCotizacion(idCotizacion, { productos, componentes, moneda, observaciones, descuento, impuestos, diasValidez, diasEntrega } = {}) {
@@ -519,48 +465,7 @@ async function updateCotizacion(idCotizacion, { productos, componentes, moneda, 
           ? { create: cotizacionComponentesData }
           : undefined,
       },
-      include: {
-        cliente: true,
-        productos: {
-          include: {
-            producto: {
-              select: {
-                sku: true,
-                imagenes: {
-                  where: { estado: 'activo' },
-                  select: { urlImagen: true, principal: true, orden: true },
-                  orderBy: [{ principal: 'desc' }, { orden: 'asc' }],
-                },
-                componentes: {
-                  select: {
-                    cantidad: true,
-                    componente: {
-                      select: {
-                        nombre: true,
-                      },
-                    },
-                  },
-                  orderBy: { idProductoComponente: 'asc' },
-                },
-              },
-            },
-          },
-        },
-        componentes: {
-          include: {
-            componente: {
-              select: {
-                sku: true,
-                imagenes: {
-                  where: { estado: 'activo' },
-                  select: { urlImagen: true, principal: true, orden: true },
-                  orderBy: [{ principal: 'desc' }, { orden: 'asc' }],
-                },
-              },
-            },
-          },
-        },
-      },
+      include: cotizacionDetalleInclude,
     });
 
     return updatedCotizacion;
@@ -572,41 +477,40 @@ async function updateCotizacion(idCotizacion, { productos, componentes, moneda, 
 async function deleteCotizacion(idCotizacion) {
   const cotizacionId = toBigInt(idCotizacion, 'idCotizacion');
 
-  const cotizacion = await prisma.cotizacion.findUnique({
-    where: { idCotizacion: cotizacionId },
+  return prisma.$transaction(async (tx) => {
+    const cotizacion = await tx.cotizacion.findUnique({
+      where: { idCotizacion: cotizacionId },
+      select: { idCotizacion: true, estado: true },
+    });
+
+    if (!cotizacion) {
+      throw new HttpError(404, 'Cotización no encontrada');
+    }
+
+    if (cotizacion.estado && cotizacion.estado !== 'borrador') {
+      throw new HttpError(400, `No se puede eliminar una cotización en estado ${cotizacion.estado}`);
+    }
+
+    return tx.cotizacion.delete({
+      where: { idCotizacion: cotizacionId },
+    });
   });
-
-  if (!cotizacion) {
-    throw new HttpError(404, 'Cotización no encontrada');
-  }
-
-  // Solo permite eliminar borradores (MVP)
-  if (cotizacion.estado && cotizacion.estado !== 'borrador') {
-    throw new HttpError(400, `No se puede eliminar una cotización en estado ${cotizacion.estado}`);
-  }
-
-  const deleted = await prisma.cotizacion.delete({
-    where: { idCotizacion: cotizacionId },
-  });
-
-  return deleted;
 }
 
 async function changeStatus(idCotizacion, newStatus) {
   const cotizacionId = toBigInt(idCotizacion, 'idCotizacion');
 
-  const validStates = ['borrador', 'enviada', 'aceptada', 'rechazada', 'cancelada'];
-  if (!validStates.includes(newStatus)) {
+  if (!COTIZACION_STATES.includes(newStatus)) {
     throw new HttpError(400, `Estado inválido: ${newStatus}`);
   }
 
   const cotizacion = await prisma.cotizacion.update({
     where: { idCotizacion: cotizacionId },
     data: { estado: newStatus },
-    include: {
-      cliente: true,
-      productos: true,
-      componentes: true,
+    select: {
+      idCotizacion: true,
+      numeroCotizacion: true,
+      estado: true,
     },
   });
 
@@ -620,5 +524,4 @@ module.exports = {
   updateCotizacion,
   deleteCotizacion,
   changeStatus,
-  recalculateTotals,
 };

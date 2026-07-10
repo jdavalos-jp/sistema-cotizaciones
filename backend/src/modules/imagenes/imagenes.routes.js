@@ -60,12 +60,14 @@ router.post(
 
     const dataImagen = await uploadProductoImage(file, idProducto.toString());
 
-    const imagen = await prisma.productoImagen.create({
-      data: {
-        idProducto,
-        urlImagen: dataImagen.urlImagen,
-        rutaBucket: dataImagen.rutaBucket,
-      },
+    const imagen = await prisma.$transaction(async (tx) => {
+      return tx.productoImagen.create({
+        data: {
+          idProducto,
+          urlImagen: dataImagen.urlImagen,
+          rutaBucket: dataImagen.rutaBucket,
+        },
+      });
     });
 
     res.json({ data: imagen });
@@ -93,17 +95,17 @@ router.put(
     const imagen = await prisma.productoImagen.findUnique({ where: { idImagen } });
     if (!imagen) throw new HttpError(404, 'Imagen no encontrada');
 
-    await prisma.productoImagen.updateMany({
-      where: { idProducto: imagen.idProducto, principal: true },
-      data: { principal: false },
+    await prisma.$transaction(async (tx) => {
+      await tx.productoImagen.updateMany({
+        where: { idProducto: imagen.idProducto, principal: true },
+        data: { principal: false },
+      });
+      const updated = await tx.productoImagen.update({
+        where: { idImagen },
+        data: { principal: true },
+      });
+      res.json({ data: updated });
     });
-
-    const updated = await prisma.productoImagen.update({
-      where: { idImagen },
-      data: { principal: true },
-    });
-
-    res.json({ data: updated });
   }),
 );
 
@@ -115,8 +117,10 @@ router.delete(
     const imagen = await prisma.productoImagen.findUnique({ where: { idImagen } });
     if (!imagen) throw new HttpError(404, 'Imagen no encontrada');
 
-    await deleteProductoImage(imagen);
-    await prisma.productoImagen.delete({ where: { idImagen } });
+    await prisma.$transaction(async (tx) => {
+      await deleteProductoImage(imagen);
+      await tx.productoImagen.delete({ where: { idImagen } });
+    });
 
     res.json({ success: true });
   }),
@@ -124,6 +128,7 @@ router.delete(
 
 router.post(
   '/cotizaciones/:idCotizacion/imagenes',
+  requireAdmin,
   upload.single('file'),
   asyncHandler(async (req, res) => {
     const idCotizacion = parseBigIntId(req.params.idCotizacion, 'idCotizacion');
@@ -135,15 +140,17 @@ router.post(
 
     const dataImagen = await uploadCotizacionImage(file, idCotizacion.toString(), tipo);
 
-    const imagen = await prisma.cotizacionImagen.create({
-      data: {
-        idCotizacion,
-        nombreArchivo: dataImagen.nombreArchivo,
-        rutaBucket: dataImagen.rutaBucket,
-        urlImagen: dataImagen.urlImagen,
-        tipo: dataImagen.tipo,
-        tamanio: dataImagen.tamanio,
-      },
+    const imagen = await prisma.$transaction(async (tx) => {
+      return tx.cotizacionImagen.create({
+        data: {
+          idCotizacion,
+          nombreArchivo: dataImagen.nombreArchivo,
+          rutaBucket: dataImagen.rutaBucket,
+          urlImagen: dataImagen.urlImagen,
+          tipo: dataImagen.tipo,
+          tamanio: dataImagen.tamanio,
+        },
+      });
     });
 
     res.json({ data: imagen });
@@ -165,13 +172,16 @@ router.get(
 
 router.delete(
   '/cotizaciones/imagenes/:idImagen',
+  requireAdmin,
   asyncHandler(async (req, res) => {
     const idImagen = parseBigIntId(req.params.idImagen, 'idImagen');
     const imagen = await prisma.cotizacionImagen.findUnique({ where: { idImagen } });
     if (!imagen) throw new HttpError(404, 'Imagen no encontrada');
 
-    await deleteImage(imagen.rutaBucket);
-    await prisma.cotizacionImagen.delete({ where: { idImagen } });
+    await prisma.$transaction(async (tx) => {
+      await deleteImage(imagen.rutaBucket);
+      await tx.cotizacionImagen.delete({ where: { idImagen } });
+    });
 
     res.json({ success: true });
   }),
@@ -190,11 +200,13 @@ router.post(
 
     const dataImagen = await uploadComponenteImage(file, idComponente.toString());
 
-    const imagen = await prisma.componenteImagen.create({
-      data: {
-        idComponente,
-        urlImagen: dataImagen.urlImagen,
-      },
+    const imagen = await prisma.$transaction(async (tx) => {
+      return tx.componenteImagen.create({
+        data: {
+          idComponente,
+          urlImagen: dataImagen.urlImagen,
+        },
+      });
     });
 
     res.json({ data: imagen });
@@ -222,17 +234,17 @@ router.put(
     const imagen = await prisma.componenteImagen.findUnique({ where: { idImagen } });
     if (!imagen) throw new HttpError(404, 'Imagen no encontrada');
 
-    await prisma.componenteImagen.updateMany({
-      where: { idComponente: imagen.idComponente, principal: true },
-      data: { principal: false },
+    await prisma.$transaction(async (tx) => {
+      await tx.componenteImagen.updateMany({
+        where: { idComponente: imagen.idComponente, principal: true },
+        data: { principal: false },
+      });
+      const updated = await tx.componenteImagen.update({
+        where: { idImagen },
+        data: { principal: true },
+      });
+      res.json({ data: updated });
     });
-
-    const updated = await prisma.componenteImagen.update({
-      where: { idImagen },
-      data: { principal: true },
-    });
-
-    res.json({ data: updated });
   }),
 );
 
@@ -244,8 +256,10 @@ router.delete(
     const imagen = await prisma.componenteImagen.findUnique({ where: { idImagen } });
     if (!imagen) throw new HttpError(404, 'Imagen no encontrada');
 
-    await deleteImageByPublicUrl(imagen.urlImagen);
-    await prisma.componenteImagen.delete({ where: { idImagen } });
+    await prisma.$transaction(async (tx) => {
+      await deleteImageByPublicUrl(imagen.urlImagen);
+      await tx.componenteImagen.delete({ where: { idImagen } });
+    });
 
     res.json({ success: true });
   }),

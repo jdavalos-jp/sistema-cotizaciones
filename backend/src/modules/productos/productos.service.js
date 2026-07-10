@@ -230,9 +230,11 @@ async function createProducto({ nombre, descripcion, precioBase, cantidad, sku, 
   const comps = await validateComponentes(componentes);
   const normalizedSku = sku?.trim() || null;
 
-  await validateCategoria(catId);
-  await validateSubcategoria(subCatId, catId);
-  await assertSkuDisponible(normalizedSku);
+  await Promise.all([
+    validateCategoria(catId),
+    validateSubcategoria(subCatId, catId),
+    assertSkuDisponible(normalizedSku),
+  ]);
 
   const producto = await prisma.producto.create({
     data: {
