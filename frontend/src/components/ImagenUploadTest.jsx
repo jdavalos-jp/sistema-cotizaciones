@@ -1,4 +1,5 @@
 import { useState } from 'react'
+import { message } from 'antd'
 import { useImagenesProducto } from '../hooks/useImagenes'
 
 export function ImagenUploadTest({ idProducto = 1 }) {
@@ -7,11 +8,14 @@ export function ImagenUploadTest({ idProducto = 1 }) {
     useImagenesProducto(idProducto)
 
   const handleUpload = async () => {
-    if (!file) return alert('Selecciona una imagen')
+    if (!file) {
+      message.warning('Selecciona una imagen')
+      return
+    }
     const resultado = await subirImagen(file)
     if (resultado) {
       setFile(null)
-      alert(' Imagen subida correctamente')
+      message.success('Imagen subida correctamente')
     }
   }
 

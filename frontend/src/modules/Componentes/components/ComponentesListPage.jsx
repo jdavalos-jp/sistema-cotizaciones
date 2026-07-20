@@ -1,17 +1,22 @@
-import { Card, Button, Table, Input, Popconfirm, message, Typography, Spin, Image, Dropdown } from 'antd'
+import { Card, Button, Table, Input, Popconfirm, message, Typography, Image, Dropdown, Alert, Tag } from 'antd'
 import { SearchOutlined, EditOutlined, DeleteOutlined, MoreOutlined, PlusOutlined } from '@ant-design/icons'
 import { useCallback, useMemo } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useComponentesManager } from '../hooks/useComponentesManager'
+import { useIsMobile } from '../../../hooks/useIsMobile'
+import PageWrapper from '../../../shared/components/PageWrapper'
+import MobileCardList from '../../../shared/components/MobileCardList'
 
 const { Title, Text } = Typography
 
 export default function ComponentesListPage() {
   const navigate = useNavigate()
+  const isMobile = useIsMobile()
 
   const {
     componentes = [],
     loading,
+    error,
     pagination,
     filters,
     handleFilterChange,
@@ -23,12 +28,12 @@ export default function ComponentesListPage() {
     handleFilterChange({ search: value })
   }
 
-  const handlePaginationChange = (page) => {
-    handlePagination(page, pagination.take)
-  }
-
-  const handleShowSizeChange = (current, pageSize) => {
-    handlePagination(current, pageSize)
+  const handlePaginationChange = (page, pageSize) => {
+    if (pageSize !== pagination.take) {
+      handlePagination(1, pageSize)
+    } else {
+      handlePagination(page, pageSize)
+    }
   }
 
   const handleDelete = useCallback(async (idComponente) => {
@@ -148,13 +153,69 @@ export default function ComponentesListPage() {
     },
   ], [handleDelete, handleEditClick])
 
+  const renderMobileCard = (record) => (
+    <div style={{ display: 'flex', gap: 12 }}>
+      <div
+        style={{
+          width: 64,
+          height: 64,
+          flexShrink: 0,
+          background: '#f5f5f5',
+          borderRadius: 6,
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          overflow: 'hidden',
+        }}
+      >
+        {Array.isArray(record.imagenes) && record.imagenes.length > 0 ? (
+          <Image
+            src={record.imagenes[0]?.urlImagen}
+            alt={record.nombre || 'Imagen del componente'}
+            style={{ width: '100%', height: '100%', objectFit: 'cover' }}
+            preview={{ mask: '' }}
+          />
+        ) : (
+          <span style={{ fontSize: 11, color: '#999' }}>Sin imagen</span>
+        )}
+      </div>
+
+      <div style={{ flex: 1, minWidth: 0 }}>
+        <div style={{ fontWeight: 600, fontSize: 15, marginBottom: 2 }}>
+          {record.nombre || 'Sin nombre'}
+        </div>
+        <div style={{ display: 'flex', gap: 8, alignItems: 'center', flexWrap: 'wrap', marginTop: 4 }}>
+          <Tag>{record.sku || 'S/N'}</Tag>
+          <Text strong style={{ color: '#000' }}>
+            Bs {Number(record.precioBase || 0).toLocaleString('es-BO')}
+          </Text>
+        </div>
+        <div style={{ marginTop: 8, display: 'flex', gap: 8, justifyContent: 'flex-end' }}>
+          <Button size="small" icon={<EditOutlined />} onClick={() => handleEditClick(record.idComponente)}>
+            Editar
+          </Button>
+          <Popconfirm
+            title="Eliminar Componente"
+            description="Esta accion no se puede deshacer."
+            onConfirm={() => handleDelete(record.idComponente)}
+            okText="Eliminar"
+            cancelText="Cancelar"
+            okButtonProps={{ danger: true }}
+          >
+            <Button size="small" danger icon={<DeleteOutlined />} />
+          </Popconfirm>
+        </div>
+      </div>
+    </div>
+  )
+
   return (
-    <div style={{ backgroundColor: '#f5f5f5', padding: 24, minHeight: '100vh', margin: '-24px' }}>
-      <div style={{ marginBottom: 24 }}>
-        <Title level={3} style={{ margin: 0 }}>
+    <PageWrapper>
+      <div style={{ marginBottom: isMobile ? 12 : 24 }}>
+        <Title level={3} style={{ margin: 0, fontSize: isMobile ? 20 : undefined }}>
           Componentes
         </Title>
-        <Text type="secondary" style={{ fontSize: 14 }}>
+        <Text type="secondary" style={{ fontSize: isMobile ? 12 : 14 }}>
           Inicio / Componentes
         </Text>
       </div>
@@ -162,43 +223,58 @@ export default function ComponentesListPage() {
       <Card
         variant="borderless"
         style={{ borderRadius: 8, boxShadow: '0 1px 2px rgba(0,0,0,0.05)' }}
-        styles={{ body: { padding: 24 } }}
+        styles={{ body: { padding: isMobile ? 12 : 24 } }}
       >
-        <Spin spinning={loading}>
-          <div style={{ display: 'flex', gap: 16, marginBottom: 24 }}>
-            <Input
-              placeholder="Buscar componente por nombre o SKU..."
-              value={filters.search}
-              onChange={(event) => handleSearch(event.target.value)}
-              style={{ flex: 1 }}
-              suffix={<SearchOutlined style={{ color: 'rgba(0,0,0,.45)' }} />}
-              allowClear
-            />
+        <div style={{ display: 'flex', flexDirection: isMobile ? 'column' : 'row', gap: 12, marginBottom: isMobile ? 12 : 24 }}>
+          <Input
+            placeholder="Buscar componente por nombre o SKU..."
+            value={filters.search}
+            onChange={(event) => handleSearch(event.target.value)}
+            style={{ flex: 1 }}
+            suffix={<SearchOutlined style={{ color: 'rgba(0,0,0,.45)' }} />}
+            allowClear
+          />
 
-            <Button type="primary" icon={<PlusOutlined />} onClick={() => navigate('/componentes/crear')}>
-              Crear Componente
-            </Button>
-          </div>
+          <Button type="primary" icon={<PlusOutlined />} onClick={() => navigate('/componentes/crear')} block={isMobile}>
+            Crear Componente
+          </Button>
+        </div>
 
+        {error && <Alert type="error" message={error} showIcon style={{ marginBottom: 12 }} />}
+
+        {isMobile ? (
+          <MobileCardList
+            data={componentes}
+            loading={loading}
+            renderCard={renderMobileCard}
+            pagination={{
+              current: pagination.current,
+              pageSize: pagination.take,
+              total: pagination.total,
+            }}
+            onPaginationChange={handlePaginationChange}
+            emptyText="No hay componentes"
+            totalText="componentes"
+          />
+        ) : (
           <Table
             columns={columns}
             dataSource={componentes}
             rowKey={(record) => String(record.idComponente)}
-            loading={loading}
             pagination={{
               current: pagination.current,
               pageSize: pagination.take,
               total: pagination.total,
               onChange: handlePaginationChange,
-              onShowSizeChange: handleShowSizeChange,
               showSizeChanger: true,
               showTotal: (total) => `Total: ${total} componentes`,
               pageSizeOptions: ['10', '20', '50'],
             }}
             scroll={{ x: true }}
+            loading={loading}
           />
-        </Spin>
+        )}
       </Card>
-    </div>
+    </PageWrapper>
   )
 }

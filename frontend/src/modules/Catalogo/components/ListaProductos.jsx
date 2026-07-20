@@ -72,8 +72,11 @@ export default function ListaProductos() {
 
 
   useEffect(() => {
-    const params = getTableParams(tableParams, searchText)
-    loadProductos(params)
+    const timer = setTimeout(() => {
+      const params = getTableParams(tableParams, searchText)
+      loadProductos(params)
+    }, 300)
+    return () => clearTimeout(timer)
   }, [tableParams, searchText])
 
   const handleSearch = (value) => {
@@ -88,21 +91,12 @@ export default function ListaProductos() {
   }
 
   const handleTableChange = (pagination, filters, sorter) => {
+    const current = pagination.pageSize !== tableParams.pagination.pageSize ? 1 : pagination.current
     setTableParams({
-      pagination,
+      pagination: { ...pagination, current },
       filters,
       sortOrder: Array.isArray(sorter) ? null : sorter.order || null,
       sortField: Array.isArray(sorter) ? null : sorter.field || null,
-    })
-  }
-
-  const handleShowSizeChange = (current, pageSize) => {
-    console.log(current, pageSize)
-    setTableParams({
-      pagination: { current, pageSize },
-      filters: tableParams.filters,
-      sortOrder: tableParams.sortOrder,
-      sortField: tableParams.sortField,
     })
   }
 
@@ -242,7 +236,6 @@ export default function ListaProductos() {
             showQuickJumper: true,
             pageSizeOptions: ['5', '10', '20', '50'],
             showTotal: (total) => `Total: ${total} productos`,
-            onShowSizeChange: handleShowSizeChange,
           }}
           onChange={handleTableChange}
           scroll={{ x: 1400 }}

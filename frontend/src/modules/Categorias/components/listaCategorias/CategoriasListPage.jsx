@@ -1,4 +1,4 @@
-import { message, Spin } from 'antd'
+import { message } from 'antd'
 import { useCallback, useEffect, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useCategorias } from '../../hooks/useCategorias'
@@ -52,18 +52,16 @@ export default function CategoriasListPage() {
   }, [deleteCategoria, searchTerm])
 
   return (
-    <Spin spinning={loading}>
-      <CategoriesList
-        categorias={categorias}
-        loading={loading}
-        pagination={pagination}
-        searchValue={searchTerm}
-        onSearch={handleSearch}
-        onPaginationChange={handlePaginationChange}
-        onAddCategory={() => navigate('/categorias/crear')}
-        onEdit={handleEdit}
-        onDelete={handleDelete}
-      />
-    </Spin>
+    <CategoriesList
+      categorias={categorias}
+      loading={loading}
+      pagination={pagination}
+      searchValue={searchTerm}
+      onSearch={handleSearch}
+      onPaginationChange={handlePaginationChange}
+      onAddCategory={() => navigate('/categorias/crear')}
+      onEdit={handleEdit}
+      onDelete={handleDelete}
+    />
   )
 }

@@ -1,11 +1,4 @@
-import { apiGet } from '../../../../services/api/http'
-
-function unwrapData(response) {
-  if (response && typeof response === 'object' && 'data' in response) {
-    return response.data
-  }
-  return response
-}
+import { apiGet, unwrapData } from '../../../../services/api/http'
 
 export async function getSubcategorias(idCategoria, fetchOptions = {}) {
   const params = new URLSearchParams()

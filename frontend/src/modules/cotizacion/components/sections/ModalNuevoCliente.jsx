@@ -3,7 +3,7 @@ import { Modal, Form, Input, Button, Space, message, Row, Col } from 'antd'
 import { UserOutlined, MailOutlined, PhoneOutlined, EnvironmentOutlined } from '@ant-design/icons'
 import { apiPost } from '../../../../services/api/http'
 
-function ModalNuevoCliente({ visible, onClose, onSuccess }) {
+function ModalNuevoCliente({ open, onClose, onSuccess }) {
 	const [form] = Form.useForm()
 	const [loading, setLoading] = useState(false)
 
@@ -42,7 +42,7 @@ function ModalNuevoCliente({ visible, onClose, onSuccess }) {
 	return (
 		<Modal
 			title="Registrar Nuevo Cliente"
-			open={visible}
+      open={open}
 			onCancel={onClose}
 			footer={null}
 			width={600}

@@ -18,13 +18,14 @@ import './Productos.css'
 function Productos() {
   const [modalNuevo, setModalNuevo] = useState(false)
   const [drawerEditar, setDrawerEditar] = useState(false)
+  const [drawerReadOnly, setDrawerReadOnly] = useState(false)
   const [productoEditando, setProductoEditando] = useState(null)
   const [filtroCategoria, setFiltroCategoria] = useState(null)
   const [busqueda, setBusqueda] = useState('')
 
   const { productos, loading, error, pagination, handleFilterChange, handlePagination, refresh } =
     useProductosList()
-  const { categorias, subcategorias, fetchSubcategorias } =
+  const { categorias } =
     useCategoriesAndSubcategories()
 
   // Handlers
@@ -33,8 +34,15 @@ function Productos() {
     setModalNuevo(true)
   }
 
+  const handleViewDetails = (producto) => {
+    setProductoEditando(producto)
+    setDrawerReadOnly(true)
+    setDrawerEditar(true)
+  }
+
   const handleEditarProducto = (producto) => {
     setProductoEditando(producto)
+    setDrawerReadOnly(false)
     setDrawerEditar(true)
   }
 
@@ -64,7 +72,6 @@ function Productos() {
 
   const handleFiltroCategoria = (valor) => {
     setFiltroCategoria(valor)
-    fetchSubcategorias(valor)
     handleFilterChange({ idCategoria: valor, idSubcategoria: null })
   }
 
@@ -130,7 +137,7 @@ function Productos() {
               type="text"
               size="small"
               icon={<EyeOutlined style={{ color: '#13c2c2' }} />}
-              onClick={() => handleEditarProducto(record)}
+              onClick={() => handleViewDetails(record)}
             />
           </Tooltip>
           <Tooltip title="Editar">
@@ -260,17 +267,14 @@ function Productos() {
               current: Math.floor(pagination.skip / pagination.take) + 1,
               pageSize: pagination.take,
               total: pagination.total,
-              onChange: (page, pageSize) => {
-                handlePagination((page - 1) * pageSize, pageSize)
-              },
-              onShowSizeChange: (current, pageSize) => {
-                console.log(current, pageSize)
-                handlePagination((current - 1) * pageSize, pageSize)
-              },
               showSizeChanger: true,
               showQuickJumper: true,
               pageSizeOptions: ['5', '10', '20', '50'],
               showTotal: (total, range) => `${range[0]} a ${range[1]} de ${total} productos`,
+            }}
+            onChange={(pag) => {
+              const isSizeChange = pag.pageSize !== pagination.take
+              handlePagination(isSizeChange ? 1 : pag.current, pag.pageSize)
             }}
             scroll={{ x: 1200 }}
             className="productos-table"
@@ -285,7 +289,7 @@ function Productos() {
         onCancel={() => setModalNuevo(false)}
         footer={null}
         width={900}
-        bodyStyle={{ padding: 0 }}
+        styles={{ body: { padding: 0 } }}
         style={{ top: 20 }}
       >
         <ProductoForm
@@ -297,18 +301,19 @@ function Productos() {
         />
       </Modal>
 
-      {/* DRAWER: EDITAR PRODUCTO */}
+      {/* DRAWER: VER DETALLES / EDITAR PRODUCTO */}
       <Drawer
-        title={productoEditando ? '✏️ Editar Producto' : '👁️ Detalles del Producto'}
+        title={drawerReadOnly ? '👁️ Detalles del Producto' : '✏️ Editar Producto'}
         placement="right"
-        onClose={() => setDrawerEditar(false)}
+        onClose={() => { setDrawerEditar(false); setDrawerReadOnly(false) }}
         open={drawerEditar && !!productoEditando}
         width={700}
-        bodyStyle={{ paddingBottom: 80 }}
+        styles={{ body: { paddingBottom: 80 } }}
       >
         <ProductoForm
-          key={productoEditando?.idProducto}
+          key={productoEditando?.idProducto + (drawerReadOnly ? '-view' : '-edit')}
           idProductoEdit={productoEditando?.idProducto}
+          readOnly={drawerReadOnly}
           onSuccess={() => {
             setDrawerEditar(false)
             refresh()

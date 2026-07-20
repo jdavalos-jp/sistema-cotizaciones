@@ -1,8 +1,10 @@
-import { Card, Row, Col, Button, Empty, Space, Input, Select, Typography } from 'antd'
+import { Card, Row, Col, Button, Empty, Space, Input, Select, Typography, Modal, message } from 'antd'
 import { SearchOutlined, PlusOutlined } from '@ant-design/icons'
 import { useState } from 'react'
+import { useNavigate } from 'react-router-dom'
 
 export default function CatalogoPage() {
+  const navigate = useNavigate()
   const [searchTerm, setSearchTerm] = useState('')
   const [filterType, setFilterType] = useState('todos')
 
@@ -29,6 +31,24 @@ export default function CatalogoPage() {
       item.nombre.toLowerCase().includes(searchTerm.toLowerCase()) ||
       item.sku.toLowerCase().includes(searchTerm.toLowerCase())
   )
+
+  const handleNavigateAgregar = () => {
+    navigate('/productos/nuevo')
+  }
+
+  const handleEditar = (item) => {
+    navigate(`/productos/editar/${item.id}`)
+  }
+
+  const handleEliminar = (item) => {
+    Modal.confirm({
+      title: 'Eliminar',
+      content: `¿Eliminar ${item.nombre}?`,
+      okText: 'Sí',
+      cancelText: 'Cancelar',
+      onOk: () => message.success('Elemento eliminado (simulado)'),
+    })
+  }
 
   return (
     <div>
@@ -63,7 +83,7 @@ export default function CatalogoPage() {
               />
             </div>
             <div style={{ display: 'flex', alignItems: 'flex-end' }}>
-              <Button type="primary" icon={<PlusOutlined />} block>
+              <Button type="primary" icon={<PlusOutlined />} block onClick={handleNavigateAgregar}>
                 Agregar Producto
               </Button>
             </div>
@@ -110,8 +130,8 @@ export default function CatalogoPage() {
                   </div>
                 </div>
                 <Space style={{ width: '100%', justifyContent: 'space-between' }}>
-                  <Button size="small">Editar</Button>
-                  <Button size="small" danger>
+                  <Button size="small" onClick={() => handleEditar(item)}>Editar</Button>
+                  <Button size="small" danger onClick={() => handleEliminar(item)}>
                     Eliminar
                   </Button>
                 </Space>

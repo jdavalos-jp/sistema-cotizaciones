@@ -5,15 +5,18 @@ import { useProducto } from '../hooks/useProductosManager'
 import { useImagenesProducto } from '../../../hooks/useImagenes'
 import * as productosApi from '../Services/api/productosApi'
 import { uploadImagenProducto } from '../../../services/api/imagenes'
+import { useIsMobile } from '../../../hooks/useIsMobile'
 
 import ProductoImagenYCategoria from './ProductoImagenYCategoria'
 import ProductoInfoGeneral from './ProductoInfoGeneral'
 import ProductoInventarioPreciosMultimedia from './ProductoInventarioPreciosMultimedia'
 import FormActionBar from '../../../shared/components/FormActionBar'
+import PageWrapper from '../../../shared/components/PageWrapper'
 
 const { Title, Text } = Typography
 
-function ProductoForm({ onSuccess, onCancel, idProductoEdit = null }) {
+function ProductoForm({ onSuccess, onCancel, idProductoEdit = null, readOnly = false }) {
+  const isMobile = useIsMobile()
   const [form] = Form.useForm()
   const { token } = theme.useToken()
 
@@ -31,10 +34,12 @@ function ProductoForm({ onSuccess, onCancel, idProductoEdit = null }) {
   const { producto, loading: loadingProducto, createProducto, updateProducto } = useProducto(idProductoEdit)
   const { subirImagen: subirImagenProductoHook, eliminarImagen: eliminarImagenProductoHook } = useImagenesProducto(idProductoEdit)
 
-  const title = idProductoEdit ? 'Editar Producto' : 'Crear Producto'
-  const breadcrumb = idProductoEdit
-    ? 'Inicio / Productos / Editar producto'
-    : 'Inicio / Productos / Añadir producto'
+  const title = readOnly ? 'Detalles del Producto' : idProductoEdit ? 'Editar Producto' : 'Crear Producto'
+  const breadcrumb = readOnly
+    ? 'Inicio / Productos / Detalle'
+    : idProductoEdit
+      ? 'Inicio / Productos / Editar producto'
+      : 'Inicio / Productos / Añadir producto'
 
   // Rebuild hierarchy - optimizado (una sola query)
   const rebuildHierarchy = useCallback(async () => {
@@ -236,12 +241,12 @@ function ProductoForm({ onSuccess, onCancel, idProductoEdit = null }) {
   }
 
   return (
-    <div style={{ backgroundColor: '#f5f5f5', padding: '24px', minHeight: '100vh', margin: '-24px' }}>
-      <div style={{ flex: 1, maxWidth: 1200, margin: '0 auto', width: '100%', paddingBottom: '80px' }}>
+    <PageWrapper>
+      <div style={{ flex: 1, maxWidth: 1200, margin: '0 auto', width: '100%', paddingBottom: isMobile ? 60 : 80 }}>
         {/* Header Breadcrumb & Title */}
-        <div style={{ marginBottom: 24 }}>
-          <Title level={3} style={{ margin: 0, fontWeight: 600 }}>{title}</Title>
-          <Text type="secondary" style={{ fontSize: '14px' }}>{breadcrumb}</Text>
+        <div style={{ marginBottom: isMobile ? 12 : 24 }}>
+          <Title level={3} style={{ margin: 0, fontWeight: 600, fontSize: isMobile ? 20 : undefined }}>{title}</Title>
+          <Text type="secondary" style={{ fontSize: isMobile ? '12px' : '14px' }}>{breadcrumb}</Text>
         </div>
 
       {loadingProducto ? (
@@ -254,6 +259,7 @@ function ProductoForm({ onSuccess, onCancel, idProductoEdit = null }) {
           layout="vertical"
           onFinish={handleSubmit}
           autoComplete="off"
+          disabled={readOnly}
           initialValues={{
             cantidad: 1,
             precioBase: null,
@@ -312,27 +318,37 @@ function ProductoForm({ onSuccess, onCancel, idProductoEdit = null }) {
 
           <Divider style={{ margin: `${token.marginLG}px 0`, display: 'none' }} />
           <FormActionBar
-            left={idProductoEdit ? 'Editando producto' : 'Nuevo producto'}
-            actions={[
-              {
-                key: 'cancel',
-                label: 'Cancelar',
-                onClick: onCancel,
-                disabled: submitting,
-              },
-              {
-                key: 'save',
-                label: 'Guardar',
-                type: 'primary',
-                htmlType: 'submit',
-                loading: submitting,
-                disabled: submitting || !canSubmit,
-              },
-            ]}
+            left={readOnly ? 'Modo solo lectura' : idProductoEdit ? 'Editando producto' : 'Nuevo producto'}
+            actions={
+              readOnly
+                ? [
+                    {
+                      key: 'close',
+                      label: 'Cerrar',
+                      onClick: onCancel,
+                    },
+                  ]
+                : [
+                    {
+                      key: 'cancel',
+                      label: 'Cancelar',
+                      onClick: onCancel,
+                      disabled: submitting,
+                    },
+                    {
+                      key: 'save',
+                      label: 'Guardar',
+                      type: 'primary',
+                      htmlType: 'submit',
+                      loading: submitting,
+                      disabled: submitting || !canSubmit,
+                    },
+                  ]
+            }
           /></Form>
       )}
       </div>
-    </div>
+    </PageWrapper>
   )
 }
 

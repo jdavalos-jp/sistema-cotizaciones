@@ -16,6 +16,8 @@ import {
 } from '@ant-design/icons'
 import { useNavigate } from 'react-router-dom'
 import { apiGet } from '../../services/api/http'
+import { useIsMobile } from '../../hooks/useIsMobile'
+import MobileCardList from '../../shared/components/MobileCardList'
 import './DashboardPage.css'
 
 const { Title, Text } = Typography
@@ -171,6 +173,7 @@ function DonutChart({ data = [] }) {
 }
 
 export default function DashboardPage() {
+  const isMobile = useIsMobile()
   const navigate = useNavigate()
   const [summary, setSummary] = useState(null)
   const [loading, setLoading] = useState(true)
@@ -316,15 +319,35 @@ export default function DashboardPage() {
               Ver todas <ArrowRightOutlined />
             </Button>
           </div>
-          <Table
-            columns={columns}
-            dataSource={recent}
-            rowKey="idCotizacion"
-            pagination={false}
-            size="middle"
-            locale={{ emptyText: <Empty image={Empty.PRESENTED_IMAGE_SIMPLE} description="Sin cotizaciones" /> }}
-            scroll={{ x: 760 }}
-          />
+          {isMobile ? (
+            <MobileCardList
+              data={recent}
+              renderCard={(record) => (
+                <div>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 6 }}>
+                    <Text strong>{record.numeroCotizacion}</Text>
+                    <span className="dashboard-status-pill" style={{ backgroundColor: estadoConfig[record.estado]?.bg || '#f5f5f5', color: estadoConfig[record.estado]?.color || '#999', fontSize: 11, padding: '2px 8px' }}>
+                      <span style={{ backgroundColor: estadoConfig[record.estado]?.color || '#999' }} />
+                      {record.estadoLabel}
+                    </span>
+                  </div>
+                  <div style={{ fontSize: 13, marginBottom: 2 }}>{record.cliente}</div>
+                  <div style={{ fontSize: 12, color: '#888' }}>{record.fecha} &middot; {record.total}</div>
+                </div>
+              )}
+              emptyText="Sin cotizaciones"
+            />
+          ) : (
+            <Table
+              columns={columns}
+              dataSource={recent}
+              rowKey="idCotizacion"
+              pagination={false}
+              size="middle"
+              locale={{ emptyText: <Empty image={Empty.PRESENTED_IMAGE_SIMPLE} description="Sin cotizaciones" /> }}
+              scroll={{ x: 760 }}
+            />
+          )}
         </section>
       </Spin>
     </div>

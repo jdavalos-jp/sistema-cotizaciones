@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
 import { Card, Form, Select, Button, Table, Empty, Space, Typography, theme, Spin, message } from 'antd'
 import { DeleteOutlined, AppstoreOutlined } from '@ant-design/icons'
 import * as productosApi from '../../Producto/Services/api/productosApi'
@@ -12,6 +12,9 @@ export default function ComponenteProductoSelector({
   const { token } = theme.useToken()
   const [productos, setProductos] = useState([])
   const [loadingProductos, setLoadingProductos] = useState(false)
+  const [searchTerm, setSearchTerm] = useState('')
+  const [productPage, setProductPage] = useState(1)
+  const debounceRef = useRef(null)
 
   const selectedIds = useMemo(
     () => productosSeleccionados.map((producto) => producto.idProducto),
@@ -21,11 +24,12 @@ export default function ComponenteProductoSelector({
   useEffect(() => {
     const controller = new AbortController()
 
-    const cargarProductos = async () => {
+    const cargar = async () => {
       setLoadingProductos(true)
       try {
-        const response = await productosApi.getProductos({ take: 1000, signal: controller.signal })
-        const productosData = response?.data || response || []
+        const skip = (productPage - 1) * 20
+        const response = await productosApi.getProductos({ skip, take: 20, search: searchTerm, signal: controller.signal })
+        const productosData = Array.isArray(response) ? response : (response?.data || response || [])
 
         setProductos(
           productosData.map((producto) => ({
@@ -39,15 +43,24 @@ export default function ComponenteProductoSelector({
         )
       } catch (err) {
         if (err.name === 'AbortError') return
+        setLoadingProductos(false)
         message.error('Error al cargar productos')
       } finally {
         if (!controller.signal.aborted) setLoadingProductos(false)
       }
     }
 
-    cargarProductos()
+    cargar()
     return () => controller.abort()
-  }, [])
+  }, [searchTerm, productPage])
+
+  const handleSearchChange = (value) => {
+    if (debounceRef.current) clearTimeout(debounceRef.current)
+    debounceRef.current = setTimeout(() => {
+      setSearchTerm(value)
+      setProductPage(1)
+    }, 300)
+  }
 
   const handleProductosChange = (values) => {
     const nextProductos = values
@@ -122,9 +135,9 @@ export default function ComponenteProductoSelector({
           <Select
             mode="multiple"
             placeholder="Busca y selecciona productos..."
-            filterOption={(input, option) =>
-              option?.label?.toLowerCase().includes(input.toLowerCase())
-            }
+            showSearch
+            filterOption={false}
+            onSearch={handleSearchChange}
             options={productos}
             value={selectedIds}
             onChange={handleProductosChange}

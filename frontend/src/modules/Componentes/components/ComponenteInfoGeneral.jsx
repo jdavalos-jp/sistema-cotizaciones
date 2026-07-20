@@ -26,8 +26,8 @@ export default function ComponenteInfoGeneral() {
         name="nombre"
         rules={[
           { required: true, message: 'Campo requerido' },
-          { min: 3, message: 'Minimo 3 caracteres' },
-          { max: 200, message: 'Maximo 200 caracteres' },
+          { min: 3, message: 'Mínimo 3 caracteres' },
+          { max: 200, message: 'Máximo 200 caracteres' },
         ]}
       >
         <Input placeholder="Ej. Resistencia 10K Ohm" maxLength={200} allowClear />
@@ -37,7 +37,7 @@ export default function ComponenteInfoGeneral() {
         label="SKU"
         name="sku"
         rules={[
-          { max: 100, message: 'Maximo 100 caracteres' },
+          { max: 100, message: 'Máximo 100 caracteres' },
           { pattern: /^[A-Za-z0-9._-]*$/, message: 'Solo letras, numeros, puntos, guiones y guion bajo' },
         ]}
       >
@@ -58,7 +58,7 @@ export default function ComponenteInfoGeneral() {
       <Form.Item
         label="Descripcion"
         name="descripcion"
-        rules={[{ max: 1000, message: 'Maximo 1000 caracteres' }]}
+        rules={[{ max: 1000, message: 'Máximo 1000 caracteres' }]}
       >
         <RichTextEditor placeholder="Detalles adicionales del componente..." maxLength={1000} />
       </Form.Item>

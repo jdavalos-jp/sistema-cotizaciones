@@ -13,9 +13,12 @@ import {
   message,
 } from 'antd'
 import { EditOutlined, PlusOutlined, StopOutlined } from '@ant-design/icons'
-import { apiDelete, apiGet, apiPost, apiPut } from '../../services/api/http.js'
+import { apiGet, apiPost, apiPut, apiPatch } from '../../services/api/http.js'
+import { useIsMobile } from '../../hooks/useIsMobile.js'
+import MobileCardList from '../../shared/components/MobileCardList.jsx'
+import PageWrapper from '../../shared/components/PageWrapper.jsx'
 
-const { Title } = Typography
+const { Title, Text } = Typography
 
 const emptyUser = {
   nombre: '',
@@ -28,6 +31,7 @@ const emptyUser = {
 }
 
 export default function UsuariosPage() {
+  const isMobile = useIsMobile()
   const [usuarios, setUsuarios] = useState([])
   const [loading, setLoading] = useState(false)
   const [modalOpen, setModalOpen] = useState(false)
@@ -88,7 +92,7 @@ export default function UsuariosPage() {
 
   const handleDeactivate = async (record) => {
     try {
-      await apiDelete(`/usuarios/${record.idUsuario}`)
+      await apiPatch(`/usuarios/${record.idUsuario}`, { estado: 'inactivo' })
       message.success('Usuario desactivado')
       await loadUsuarios()
     } catch (err) {
@@ -131,7 +135,7 @@ export default function UsuariosPage() {
             </Button>
             <Popconfirm
               title="Desactivar usuario"
-              description="El usuario ya no podra iniciar sesion."
+              description="El usuario ya no podrá iniciar sesión."
               okText="Desactivar"
               cancelText="Cancelar"
               onConfirm={() => handleDeactivate(record)}
@@ -145,24 +149,73 @@ export default function UsuariosPage() {
       },
     ]
 
+  const renderCard = (user) => (
+    <div style={{ display: 'flex', flexDirection: 'column', gap: 8, width: '100%' }}>
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
+        <Text strong>
+          {[user.nombre, user.apellido].filter(Boolean).join(' ')}
+        </Text>
+      </div>
+      <Text type="secondary" style={{ fontSize: 13 }}>{user.email}</Text>
+      <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
+        <Tag color={user.rol === 'administrador' ? 'blue' : 'green'}>{user.rol}</Tag>
+        <Tag color={user.estado === 'activo' ? 'success' : 'default'}>{user.estado}</Tag>
+      </div>
+      <div style={{ display: 'flex', gap: 8, marginTop: 4 }}>
+        <Button size="small" icon={<EditOutlined />} onClick={() => openEdit(user)}>
+          Editar
+        </Button>
+        <Popconfirm
+          title="Desactivar usuario"
+          description="El usuario ya no podrá iniciar sesión."
+          okText="Desactivar"
+          cancelText="Cancelar"
+          onConfirm={() => handleDeactivate(user)}
+        >
+          <Button size="small" danger icon={<StopOutlined />} disabled={user.estado === 'inactivo'}>
+            Desactivar
+          </Button>
+        </Popconfirm>
+      </div>
+    </div>
+  )
+
   return (
-    <>
-      <Space style={{ width: '100%', justifyContent: 'space-between', marginBottom: 18 }}>
-        <Title level={2} style={{ margin: 0 }}>
+    <PageWrapper>
+      <Space
+        style={{
+          width: '100%',
+          justifyContent: 'space-between',
+          marginBottom: 18,
+          flexDirection: isMobile ? 'column' : 'row',
+          alignItems: isMobile ? 'stretch' : 'center',
+          gap: 12,
+        }}
+      >
+        <Title level={isMobile ? 3 : 2} style={{ margin: 0 }}>
           Usuarios
         </Title>
-        <Button type="primary" icon={<PlusOutlined />} onClick={openCreate}>
+        <Button type="primary" icon={<PlusOutlined />} onClick={openCreate} block={isMobile}>
           Nuevo usuario
         </Button>
       </Space>
 
-      <Table
-        rowKey="idUsuario"
-        columns={columns}
-        dataSource={usuarios}
-        loading={loading}
-        pagination={{ pageSize: 10 }}
-      />
+      {isMobile ? (
+        <MobileCardList
+          data={usuarios}
+          loading={loading}
+          renderCard={renderCard}
+          totalText="usuarios"
+        />
+      ) : (
+        <Table
+          rowKey="idUsuario"
+          columns={columns}
+          dataSource={usuarios}
+          loading={loading}
+          pagination={{ pageSize: 10 }}
+        />
+      )}
 
       <Modal
         title={editingUser ? 'Editar usuario' : 'Nuevo usuario'}
@@ -170,6 +223,7 @@ export default function UsuariosPage() {
         onCancel={() => setModalOpen(false)}
         footer={null}
         destroyOnHidden
+        width={isMobile ? '95%' : 520}
       >
         <Form form={form} layout="vertical" onFinish={handleSubmit} requiredMark={false}>
           <Form.Item
@@ -189,7 +243,7 @@ export default function UsuariosPage() {
             name="email"
             rules={[
               { required: true, message: 'Ingresa el correo' },
-              { type: 'email', message: 'Ingresa un correo valido' },
+              { type: 'email', message: 'Ingresa un correo válido' },
             ]}
           >
             <Input />
@@ -200,9 +254,9 @@ export default function UsuariosPage() {
           </Form.Item>
 
           <Form.Item
-            label={editingUser ? 'Nueva contrasena' : 'Contrasena'}
+            label={editingUser ? 'Nueva contraseña' : 'Contraseña'}
             name="password"
-            rules={editingUser ? [] : [{ required: true, message: 'Ingresa una contrasena' }]}
+            rules={editingUser ? [] : [{ required: true, message: 'Ingresa una contraseña' }]}
           >
             <Input.Password placeholder={editingUser ? 'Dejar vacio para no cambiar' : undefined} />
           </Form.Item>
@@ -236,6 +290,6 @@ export default function UsuariosPage() {
           </Button>
         </Form>
       </Modal>
-    </>
+    </PageWrapper>
   )
 }

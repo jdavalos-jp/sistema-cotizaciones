@@ -30,7 +30,7 @@ export default function ProductoImagenYCategoria({
         maxCount={1}
         maxSizeMB={5}
         uploadLabel="Seleccionar"
-        hint="Puedes agregar una maximo de 1 imagen,cada una no puede ser mayor a 5 MB. "
+        hint="Puedes agregar una máximo de 1 imagen,cada una no puede ser mayor a 5 MB. "
       />
 
       <Card

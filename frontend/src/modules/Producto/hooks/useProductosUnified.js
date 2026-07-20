@@ -12,10 +12,10 @@ export function useProductos(idProductoSolo = null) {
   const [error, setError] = useState(null)
   const [pagination, setPagination] = useState({ 
     skip: 0, 
-    take: 50, 
+    take: 10, 
     total: 0,
     current: 1,
-    pageSize: 50 
+    pageSize: 10 
   })
   const [filters, setFilters] = useState({
     search: '',
@@ -100,16 +100,16 @@ export function useProductos(idProductoSolo = null) {
    * Cambiar paginación
    */
   const handlePagination = useCallback((skipOrPage, take = null) => {
-    // Soporta tanto skip absoluto como page number
-    const isPage = typeof skipOrPage === 'number' && skipOrPage > 0 && take
-    const newSkip = isPage ? (skipOrPage - 1) * take : skipOrPage
-    const newTake = take || pagination.take
+    const isPage = typeof skipOrPage === 'number' && skipOrPage < 1000
+    const effectiveTake = take || pagination.take
+    const newSkip = isPage ? (skipOrPage - 1) * effectiveTake : skipOrPage
 
     setPagination(prev => ({ 
       ...prev, 
       skip: newSkip, 
-      take: newTake,
-      current: isPage ? skipOrPage : Math.floor(newSkip / newTake) + 1
+      take: effectiveTake,
+      pageSize: effectiveTake,
+      current: isPage ? skipOrPage : Math.floor(newSkip / effectiveTake) + 1
     }))
   }, [pagination.take])
 
@@ -123,7 +123,7 @@ export function useProductos(idProductoSolo = null) {
   /**
    * Eliminar producto de la lista
    */
-  const deletProductoLocal = useCallback((idProducto) => {
+  const deleteProductoLocal = useCallback((idProducto) => {
     setProductos((prev) => prev.filter((p) => String(p.idProducto) !== String(idProducto)))
     setPagination((prev) => ({ ...prev, total: Math.max(0, prev.total - 1) }))
   }, [])
@@ -133,7 +133,7 @@ export function useProductos(idProductoSolo = null) {
       setLoading(true)
       setError(null)
       await productosApi.deleteProducto(idProducto)
-      deletProductoLocal(idProducto)
+      deleteProductoLocal(idProducto)
       return true
     } catch (err) {
       const errorMsg = err.message || 'Error al eliminar producto'
@@ -142,7 +142,7 @@ export function useProductos(idProductoSolo = null) {
     } finally {
       setLoading(false)
     }
-  }, [deletProductoLocal])
+  }, [deleteProductoLocal])
 
   /**
    * Crear nuevo producto
@@ -240,7 +240,7 @@ export function useProductos(idProductoSolo = null) {
     handleFilterChange,
     handlePagination,
     refresh,
-    deletProductoLocal,
+    deleteProductoLocal,
     
     // Individual
     producto,
@@ -291,7 +291,7 @@ export function useProductosList() {
     handleFilterChange: hook.handleFilterChange,
     handlePagination: hook.handlePagination,
     refresh: hook.refresh,
-    deletProductoLocal: hook.deletProductoLocal,
+    deleteProductoLocal: hook.deleteProductoLocal,
     deleteProducto: hook.deleteProducto,
   }
 }

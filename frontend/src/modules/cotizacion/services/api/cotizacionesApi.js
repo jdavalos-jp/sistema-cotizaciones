@@ -7,11 +7,14 @@ const BASE_URL = '/cotizaciones'
  * @param {Object} options - { skip, take, estado, signal }
  */
 export async function getCotizaciones(options = {}, fetchOptions = {}) {
-  const { skip = 0, take = 50, estado = null, signal } = options
+  const { skip = 0, take = 50, estado = null, search, dateFrom, dateTo, signal } = options
   const params = new URLSearchParams()
   params.append('skip', String(skip))
   params.append('take', String(take))
   if (estado) params.append('estado', estado)
+  if (search) params.append('search', search)
+  if (dateFrom) params.append('dateFrom', dateFrom)
+  if (dateTo) params.append('dateTo', dateTo)
 
   return apiGet(`${BASE_URL}?${params.toString()}`, { signal, ...fetchOptions })
 }

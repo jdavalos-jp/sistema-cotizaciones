@@ -73,6 +73,7 @@ export default function GridProductos() {
         try {
           await deleteProducto(idProducto)
           message.success('Producto eliminado')
+          loadProductos(params)
         } catch (err) {
           message.error(err.message)
         }
@@ -173,11 +174,13 @@ export default function GridProductos() {
                       )}
                     </div>
                   }
-                  bodyStyle={{
-                    padding: '12px',
-                    flex: 1,
-                    display: 'flex',
-                    flexDirection: 'column',
+                  styles={{
+                    body: {
+                      padding: '12px',
+                      flex: 1,
+                      display: 'flex',
+                      flexDirection: 'column',
+                    },
                   }}
                 >
                   {/* Product Name */}
@@ -298,11 +301,11 @@ export default function GridProductos() {
         onCancel={handleCloseModal}
         footer={null}
         width={700}
-        bodyStyle={{ maxHeight: '80vh', overflowY: 'auto' }}
+        styles={{ body: { maxHeight: '80vh', overflowY: 'auto' } }}
       >
         {editingProducto && (
           <FormEditarProducto
-            idProductoEdit={editingProducto.idProducto}
+            producto={editingProducto}
             onSuccess={handleSaveProducto}
             onCancel={handleCloseModal}
           />

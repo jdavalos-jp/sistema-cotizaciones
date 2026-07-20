@@ -505,6 +505,51 @@
   }
 }
 
+@media (max-width: 480px) {
+  .dashboard-header h1.ant-typography {
+    font-size: 22px;
+  }
+
+  .dashboard-metric-value {
+    font-size: 22px;
+  }
+
+  .dashboard-metric-card {
+    min-height: 140px;
+    padding: 14px;
+  }
+
+  .dashboard-panel {
+    padding: 12px;
+  }
+
+  .dashboard-quick-actions {
+    padding: 12px;
+  }
+
+  .dashboard-quick-actions > div {
+    grid-template-columns: 1fr;
+  }
+
+  .dashboard-status-layout {
+    grid-template-columns: 1fr;
+    justify-items: center;
+  }
+
+  .dashboard-bars {
+    gap: 4px;
+  }
+
+  .dashboard-bar-item {
+    min-width: 24px;
+    height: 150px;
+  }
+
+  .dashboard-bar {
+    width: 14px;
+  }
+}
+
 @media (prefers-reduced-motion: reduce) {
   .dashboard-metric-card,
   .dashboard-metric-card::after,

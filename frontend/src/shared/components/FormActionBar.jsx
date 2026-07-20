@@ -1,9 +1,12 @@
 import React from 'react'
 import { Button, Space, Typography } from 'antd'
+import { useIsMobile } from '../../hooks/useIsMobile'
 
 const { Text } = Typography
 
 function FormActionBar({ left, actions = [], maxWidth = 1180 }) {
+  const isMobile = useIsMobile()
+
   return (
     <div
       style={{
@@ -11,9 +14,9 @@ function FormActionBar({ left, actions = [], maxWidth = 1180 }) {
         bottom: 0,
         zIndex: 20,
         marginTop: 24,
-        marginLeft: -24,
-        marginRight: -24,
-        padding: '12px 24px',
+        marginLeft: isMobile ? -12 : -24,
+        marginRight: isMobile ? -12 : -24,
+        padding: isMobile ? '8px 12px' : '12px 24px',
         background: 'rgba(255,255,255,0.96)',
         borderTop: '1px solid #e8e8e8',
         boxShadow: '0 -8px 24px rgba(15, 23, 42, 0.08)',
@@ -27,13 +30,13 @@ function FormActionBar({ left, actions = [], maxWidth = 1180 }) {
           display: 'flex',
           justifyContent: 'space-between',
           alignItems: 'center',
-          gap: 16,
+          gap: 12,
           flexWrap: 'wrap',
         }}
       >
-        <Text type="secondary">{left}</Text>
+        {!isMobile && <Text type="secondary">{left}</Text>}
 
-        <Space size={10} wrap>
+        <Space size={isMobile ? 8 : 10} wrap style={{ width: isMobile ? '100%' : undefined, justifyContent: isMobile ? 'flex-end' : undefined }}>
           {actions.map((action) => (
             <Button
               key={action.key || action.label}
@@ -44,10 +47,11 @@ function FormActionBar({ left, actions = [], maxWidth = 1180 }) {
               loading={action.loading}
               disabled={action.disabled}
               onClick={action.onClick}
-              size="large"
+              size={isMobile ? 'middle' : 'large'}
+              block={isMobile}
               style={{
                 borderRadius: 8,
-                minWidth: action.minWidth || 112,
+                minWidth: action.minWidth || (isMobile ? undefined : 112),
                 fontWeight: action.type === 'primary' ? 600 : 500,
                 ...action.style,
               }}

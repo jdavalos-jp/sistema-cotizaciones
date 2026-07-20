@@ -26,8 +26,8 @@ export default function ProductoInfoGeneral() {
         name="nombre"
         rules={[
           { required: true, message: 'Campo requerido' },
-          { min: 2, message: 'Minimo 2 caracteres' },
-          { max: 200, message: 'Maximo 200 caracteres' },
+          { min: 2, message: 'Mínimo 2 caracteres' },
+          { max: 200, message: 'Máximo 200 caracteres' },
         ]}
       >
         <Input placeholder="Ej. Reloj Inteligente Serie 5" maxLength={200} allowClear />
@@ -36,7 +36,7 @@ export default function ProductoInfoGeneral() {
       <Form.Item
         label="Descripcion"
         name="descripcion"
-        rules={[{ max: 1000, message: 'Maximo 1000 caracteres' }]}
+        rules={[{ max: 1000, message: 'Máximo 1000 caracteres' }]}
       >
         <RichTextEditor
           placeholder="Describe las caracteristicas principales, beneficios y materiales..."

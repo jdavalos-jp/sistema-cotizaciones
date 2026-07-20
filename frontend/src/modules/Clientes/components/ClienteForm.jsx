@@ -151,7 +151,7 @@ function ClienteForm({ onSuccess, onCancel, idClienteEdit = null }) {
                       label="Email"
                       name="email"
                       rules={[
-                        { type: 'email', message: 'Email invalido' },
+                        { type: 'email', message: 'Email inválido' },
                         { max: 150, message: 'El email no puede exceder 150 caracteres' },
                       ]}
                     >
@@ -166,7 +166,7 @@ function ClienteForm({ onSuccess, onCancel, idClienteEdit = null }) {
                       rules={[
                         {
                           pattern: /^[\d\s+()-]*$/,
-                          message: 'Telefono invalido',
+                          message: 'Teléfono inválido',
                         },
                         { max: 30, message: 'El telefono no puede exceder 30 caracteres' },
                       ]}

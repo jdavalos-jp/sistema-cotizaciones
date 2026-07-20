@@ -156,7 +156,7 @@ export default function CotizacionForm({
           },
         ]}
       /><ModalNuevoCliente
-        visible={modalNuevoClienteVisible}
+        open={modalNuevoClienteVisible}
         onClose={() => setModalNuevoClienteVisible(false)}
         onSuccess={(nuevoCliente) => {
           setIdCliente(nuevoCliente.id || Date.now());

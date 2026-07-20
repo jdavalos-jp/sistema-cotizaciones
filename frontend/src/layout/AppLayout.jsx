@@ -1,3 +1,4 @@
+// @deprecated - Usar MainLayout en su lugar
 import React, { useMemo, useState } from 'react'
 import {
   Layout,

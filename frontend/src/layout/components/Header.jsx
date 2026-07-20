@@ -1,12 +1,12 @@
 import { Layout, Avatar, Button, Space, Tag, Typography } from 'antd'
-import { LogoutOutlined, UserOutlined } from '@ant-design/icons'
+import { LogoutOutlined, UserOutlined, MenuOutlined } from '@ant-design/icons'
 import { useNavigate } from 'react-router-dom'
 import { logout } from '../../auth/auth.js'
 import { useAuthUser } from '../../auth/useAuthUser.js'
 
 const { Header: AntHeader } = Layout
 
-export default function Header() {
+export default function Header({ isMobile = false, onToggleSidebar = () => {} }) {
   const user = useAuthUser()
   const navigate = useNavigate()
 
@@ -18,10 +18,9 @@ export default function Header() {
   return (
     <AntHeader
       style={{
-        padding: '0 24px',
+        padding: isMobile ? '0 12px' : '0 24px',
         background: '#fff',
         display: 'flex',
-        justifyContent: 'flex-end',
         alignItems: 'center',
         gap: 18,
         height: 64,
@@ -32,6 +31,17 @@ export default function Header() {
         zIndex: 10,
       }}
     >
+      {isMobile && (
+        <Button
+          type="text"
+          icon={<MenuOutlined style={{ fontSize: 20 }} />}
+          onClick={onToggleSidebar}
+          style={{ marginRight: 12 }}
+        />
+      )}
+
+      <div style={{ flex: 1 }} />
+
       <Space size={10} align="center">
         <Avatar icon={<UserOutlined />} style={{ background: '#1677ff' }} />
         <Space size={8} align="center">
@@ -44,9 +54,13 @@ export default function Header() {
         </Space>
       </Space>
 
-      <Button icon={<LogoutOutlined />} onClick={handleLogout}>
-        Cerrar sesión
-      </Button>
+      {isMobile ? (
+        <Button type="text" icon={<LogoutOutlined />} onClick={handleLogout} />
+      ) : (
+        <Button icon={<LogoutOutlined />} onClick={handleLogout}>
+          Cerrar sesión
+        </Button>
+      )}
     </AntHeader>
   )
 }

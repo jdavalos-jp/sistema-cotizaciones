@@ -1,13 +1,6 @@
-import { apiGet, apiPost, apiPut, apiDelete } from '../../../../services/api/http'
+import { apiGet, apiPost, apiPut, apiDelete, unwrapData } from '../../../../services/api/http'
 
 const BASE_URL = '/productos'
-
-function unwrapData(response) {
-  if (response && typeof response === 'object' && 'data' in response) {
-    return response.data
-  }
-  return response
-}
 
 
  //Obtener todas las categorías para filtros

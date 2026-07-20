@@ -1,6 +1,7 @@
 import React, { useMemo } from 'react';
 import { Card, Table, Button, Space, Typography, Empty, Row, Col, Statistic, Input, InputNumber } from 'antd';
 import { DeleteOutlined } from '@ant-design/icons';
+import { useIsMobile } from '../../../../hooks/useIsMobile';
 
 function ProductosSeleccionadosTable({
   lineas = [],
@@ -12,6 +13,7 @@ function ProductosSeleccionadosTable({
   onSetDescripcion = () => { },
   onSetObservaciones = () => { },
 }) {
+  const isMobile = useIsMobile();
   const total = useMemo(() => lineas.reduce((acc, l) => acc + (Number(l.totalLinea) || 0), 0), [lineas]);
 
   const daysTotal = useMemo(() => {
@@ -141,12 +143,12 @@ function ProductosSeleccionadosTable({
         boxShadow: '0 1px 2px rgba(0,0,0,0.05)',
       }}
       styles={{
-        header: { padding: '16px 24px', borderBottom: '1px solid #f0f0f0' },
-        body: { padding: 24 },
+        header: { padding: isMobile ? '12px 14px' : '16px 24px', borderBottom: '1px solid #f0f0f0' },
+        body: { padding: isMobile ? 12 : 24 },
       }}
       title={
         <Space>
-          <Typography.Title level={5} style={{ margin: 0 }}>
+          <Typography.Title level={5} style={{ margin: 0, fontSize: isMobile ? 14 : undefined }}>
             Productos Seleccionados
           </Typography.Title>
           <span style={{ opacity: 0.65 }}>
@@ -159,21 +161,110 @@ function ProductosSeleccionadosTable({
         <Empty description="Sin productos seleccionados" style={{ marginTop: 20 }} />
       ) : (
         <>
-          <Table
-            columns={columns}
-            rowKey={(record) => `${record.tipo}-${record.id}`}
-            dataSource={lineas}
-            pagination={false}
-            size="small"
-            scroll={{ x: 900 }}
-          />
-          <Row justify="end" style={{ marginTop: 16 }} gutter={[16, 16]}>
+          {isMobile ? (
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
+              {lineas.map((record) => (
+                <Card
+                  key={`${record.tipo}-${record.id}`}
+                  size="small"
+                  variant="borderless"
+                  style={{
+                    borderRadius: 8,
+                    background: '#fafafa',
+                    border: '1px solid #f0f0f0',
+                  }}
+                  styles={{ body: { padding: 12 } }}
+                >
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+                    <Input
+                      value={record.nombre || ''}
+                      onChange={(e) => onSetNombre(record.tipo, String(record.id), e.target.value)}
+                      placeholder="Nombre del producto"
+                      size="small"
+                    />
+                    <Input
+                      value={record.descripcion || ''}
+                      onChange={(e) => onSetDescripcion(record.tipo, String(record.id), e.target.value)}
+                      placeholder="Sin descripción"
+                      size="small"
+                    />
+                    <Input
+                      value={record.observaciones || ''}
+                      onChange={(e) => onSetObservaciones(record.tipo, String(record.id), e.target.value)}
+                      placeholder="Ej: Inmediata, 5 dias habiles"
+                      size="small"
+                    />
+                    <Row gutter={8} align="middle">
+                      <Col span={8}>
+                        <Typography.Text type="secondary" style={{ fontSize: 11 }}>Precio</Typography.Text>
+                        <InputNumber
+                          min={0}
+                          step={1}
+                          precision={0}
+                          value={Number(record.precioUnitario || 0)}
+                          onChange={(val) => {
+                            if (Number.isInteger(val)) {
+                              onSetPrecio(record.tipo, String(record.id), Math.max(0, val || 0));
+                            }
+                          }}
+                          style={{ width: '100%' }}
+                          size="small"
+                        />
+                      </Col>
+                      <Col span={8}>
+                        <Typography.Text type="secondary" style={{ fontSize: 11 }}>Cantidad</Typography.Text>
+                        <InputNumber
+                          min={1}
+                          step={1}
+                          precision={0}
+                          value={record.cantidad}
+                          onChange={(val) => {
+                            if (Number.isInteger(val)) {
+                              onSetCantidad(record.tipo, String(record.id), Math.max(1, val || 1));
+                            }
+                          }}
+                          style={{ width: '100%' }}
+                          size="small"
+                        />
+                      </Col>
+                      <Col span={8} style={{ textAlign: 'right' }}>
+                        <Typography.Text type="secondary" style={{ fontSize: 11 }}>Total</Typography.Text>
+                        <div style={{ fontWeight: 600, fontSize: 15 }}>
+                          {Number(record.totalLinea || 0).toLocaleString('es-BO')}
+                        </div>
+                      </Col>
+                    </Row>
+                    <Button
+                      type="text"
+                      danger
+                      size="small"
+                      icon={<DeleteOutlined />}
+                      onClick={() => onRemove(record.tipo, String(record.id))}
+                      block
+                    >
+                      Eliminar
+                    </Button>
+                  </div>
+                </Card>
+              ))}
+            </div>
+          ) : (
+            <Table
+              columns={columns}
+              rowKey={(record) => `${record.tipo}-${record.id}`}
+              dataSource={lineas}
+              pagination={false}
+              size="small"
+              scroll={{ x: 900 }}
+            />
+          )}
+          <Row justify={isMobile ? 'center' : 'end'} style={{ marginTop: 16 }} gutter={[16, 16]}>
             <Col xs={24} md={6}>
               <Statistic
                 title={`Total 1 día de ${daysTotal} (${moneda})`}
                 value={total.toFixed(2)}
                 styles={{
-                  content: { color: '#389e0d', fontSize: 20, fontWeight: 'bold' }
+                  content: { color: '#389e0d', fontSize: isMobile ? 18 : 20, fontWeight: 'bold' }
                 }}
               />
             </Col>

@@ -29,12 +29,18 @@ import { useClientesSearch } from '../hooks/useClientesSearch'
 import { useCotizacionCart } from '../hooks/useCotizacionCart'
 import { useCotizacionPreview } from '../hooks/useCotizacionPreview'
 import FormActionBar from '../../../shared/components/FormActionBar'
+import { useIsMobile } from '../../../hooks/useIsMobile'
 
 import { fetchProductos, fetchComponentes } from '../services/api/catalogoApi'
 import { createAndDownloadPdf } from '../services/api/cotizacionesApi'
 import './CotizacionNueva.css'
 
 const { Title, Text } = Typography
+
+const cardStyle = {
+  borderRadius: 8,
+  boxShadow: '0 1px 2px rgba(0,0,0,0.05)',
+}
 
 const pageStyle = {
   backgroundColor: '#f5f5f5',
@@ -45,16 +51,12 @@ const pageStyle = {
   width: 'calc(100% + 48px)',
 }
 
-const cardStyle = {
-  borderRadius: 8,
-  boxShadow: '0 1px 2px rgba(0,0,0,0.05)',
-}
-
-const cardBodyStyle = {
-  padding: 24,
-}
-
 function CotizacionNueva() {
+  const isMobile = useIsMobile()
+
+  const cardBodyStyle = {
+    padding: isMobile ? 14 : 24,
+  }
   const [idCliente, setIdCliente] = useState(null)
   const [clienteLabel, setClienteLabel] = useState('')
   const [diasValidez, setDiasValidez] = useState(15)
@@ -258,20 +260,20 @@ function CotizacionNueva() {
       <Space
         className="cotizacion-nueva-stack"
         orientation="vertical"
-        size={20}
+        size={isMobile ? 14 : 20}
         style={{
           width: '100%',
-          paddingBottom: 80,
+          paddingBottom: isMobile ? 60 : 80,
           maxWidth: 'none',
           margin: 0,
         }}
       >
-        <div style={{ marginBottom: 24 }}>
-          <Title level={3} style={{ margin: 0, fontWeight: 600 }}>
+        <div style={{ marginBottom: isMobile ? 12 : 24 }}>
+          <Title level={3} style={{ margin: 0, fontWeight: 600, fontSize: isMobile ? 20 : undefined }}>
             Nueva Cotización
           </Title>
 
-          <Text type="secondary" style={{ fontSize: 14 }}>
+          <Text type="secondary" style={{ fontSize: isMobile ? 12 : 14 }}>
             Inicio / Cotizaciones / Crear cotización
           </Text>
         </div>
@@ -411,7 +413,7 @@ function CotizacionNueva() {
       </Space>
 
       <ModalNuevoCliente
-        visible={modalNuevoClienteVisible}
+        open={modalNuevoClienteVisible}
         onClose={() => setModalNuevoClienteVisible(false)}
         onSuccess={(nuevoCliente) => {
           const clienteId = nuevoCliente.idCliente ?? nuevoCliente.id

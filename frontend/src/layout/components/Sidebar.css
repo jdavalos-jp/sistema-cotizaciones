@@ -74,3 +74,17 @@
   background: #062f4d;
   color: #ffffff;
 }
+
+.app-sidebar__drawer .ant-drawer-header {
+  display: none;
+}
+
+.app-sidebar__drawer .ant-drawer-body {
+  padding: 0 !important;
+}
+
+@media (max-width: 767px) {
+  .app-sidebar {
+    display: none !important;
+  }
+}

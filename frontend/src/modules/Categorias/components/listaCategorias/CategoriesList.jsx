@@ -7,6 +7,9 @@ import {
   BgColorsOutlined,
   MoreOutlined,
 } from '@ant-design/icons'
+import PageWrapper from '../../../../shared/components/PageWrapper'
+import MobileCardList from '../../../../shared/components/MobileCardList'
+import { useIsMobile } from '../../../../hooks/useIsMobile'
 
 const { Text } = Typography
 
@@ -29,26 +32,6 @@ function getInitials(nombre = '') {
     .join('')
     .toUpperCase()
     .slice(0, 2) || 'CA'
-}
-
-function CategoryCell({ categoria }) {
-  const nombre = String(categoria.nombre || 'Categoría')
-  const index = nombre.charCodeAt(0) % avatarColors.length
-
-  return (
-    <Space>
-      <Avatar size={40} style={{ backgroundColor: avatarColors[index] }}>
-        {getInitials(nombre)}
-      </Avatar>
-      <div>
-        <Text strong>{nombre}</Text>
-        <br />
-        <Text type="secondary" style={{ fontSize: 12 }}>
-          {categoria.descripcion || 'Sin descripción'}
-        </Text>
-      </div>
-    </Space>
-  )
 }
 
 function SubcategoriesCell({ subcategorias }) {
@@ -135,13 +118,32 @@ export default function CategoriesList({
   onEdit,
   onDelete,
 }) {
+  const isMobile = useIsMobile()
+
   const columns = [
     {
       title: 'Categoría',
       dataIndex: 'nombre',
       key: 'categoria',
       width: '30%',
-      render: (_, record) => <CategoryCell categoria={record} />,
+      render: (_, record) => {
+        const nombre = String(record.nombre || 'Categoría')
+        const index = nombre.charCodeAt(0) % avatarColors.length
+        return (
+          <Space>
+            <Avatar size={40} style={{ backgroundColor: avatarColors[index] }}>
+              {getInitials(nombre)}
+            </Avatar>
+            <div>
+              <Text strong>{nombre}</Text>
+              <br />
+              <Text type="secondary" style={{ fontSize: 12 }}>
+                {record.descripcion || 'Sin descripción'}
+              </Text>
+            </div>
+          </Space>
+        )
+      },
     },
     {
       title: 'Subcategorías',
@@ -168,23 +170,75 @@ export default function CategoriesList({
     },
   ]
 
+  const renderMobileCard = (record) => {
+    const nombre = String(record.nombre || 'Categoría')
+    const index = nombre.charCodeAt(0) % avatarColors.length
+    const subcats = Array.isArray(record.subcategorias) ? record.subcategorias : []
+    const isInactive = String(record.estado || '').toLowerCase() === 'inactivo'
+
+    return (
+      <div>
+        <div style={{ display: 'flex', gap: 12, alignItems: 'flex-start', marginBottom: 8 }}>
+          <Avatar size={44} style={{ backgroundColor: avatarColors[index] }}>
+            {getInitials(nombre)}
+          </Avatar>
+          <div style={{ flex: 1, minWidth: 0 }}>
+            <Text strong style={{ fontSize: 15 }}>{nombre}</Text>
+            <div style={{ fontSize: 12, color: '#666', marginTop: 2 }}>
+              {record.descripcion || 'Sin descripción'}
+            </div>
+          </div>
+          <StatusBadge estado={record.estado} />
+        </div>
+
+        {subcats.length > 0 && (
+          <div style={{ marginBottom: 8 }}>
+            <Space wrap size={[4, 6]}>
+              {subcats.map((sub) => (
+                <Tag key={sub.idSubcategoria} color="geekblue">{sub.nombre}</Tag>
+              ))}
+            </Space>
+          </div>
+        )}
+
+        <div style={{ display: 'flex', gap: 8, justifyContent: 'flex-end' }}>
+          <Button size="small" icon={<EditOutlined />} onClick={() => onEdit(record)}>
+            Editar
+          </Button>
+          {!isInactive && (
+            <Popconfirm
+              title="Desactivar categoría"
+              description="La categoría quedará inactiva si no tiene productos o servicios asociados."
+              onConfirm={() => onDelete(record.idCategoria)}
+              okText="Desactivar"
+              cancelText="Cancelar"
+              okButtonProps={{ danger: true }}
+            >
+              <Button size="small" danger icon={<DeleteOutlined />} />
+            </Popconfirm>
+          )}
+        </div>
+      </div>
+    )
+  }
+
   return (
-    <div style={{ backgroundColor: '#f5f5f5', padding: 24, minHeight: '100vh', margin: '-24px' }}>
-      <div style={{ marginBottom: 24 }}>
-        <Typography.Title level={3} style={{ margin: 0 }}>
+    <PageWrapper>
+      <div style={{ marginBottom: isMobile ? 12 : 24 }}>
+        <Typography.Title level={3} style={{ margin: 0, fontSize: isMobile ? 20 : undefined }}>
           Categorías
         </Typography.Title>
-        <Typography.Text type="secondary" style={{ fontSize: 14 }}>
+        <Typography.Text type="secondary" style={{ fontSize: isMobile ? 12 : 14 }}>
           Inicio / Categorías
         </Typography.Text>
       </div>
 
       <Card
         variant="borderless"
-        styles={{ body: { padding: 24 } }}
+        styles={{ body: { padding: isMobile ? 12 : 24 } }}
         style={{ borderRadius: 8, boxShadow: '0 1px 2px rgba(0,0,0,0.05)' }}
       >
-        <div style={{ display: 'flex', gap: 16, marginBottom: 24 }}>
+        <div style={{ display: 'flex', flexDirection: isMobile ? 'column' : 'row', gap: 12, marginBottom: isMobile ? 12 : 24 }}>
           <Input
             allowClear
             placeholder="Buscar categoría..."
@@ -194,36 +248,52 @@ export default function CategoriesList({
             suffix={<SearchOutlined style={{ color: 'rgba(0,0,0,.45)' }} />}
           />
 
-          <Button type="primary" icon={<PlusOutlined />} onClick={onAddCategory}>
+          <Button type="primary" icon={<PlusOutlined />} onClick={onAddCategory} block={isMobile}>
             Agregar Categoría
           </Button>
         </div>
 
-        <Table
-          columns={columns}
-          dataSource={categorias}
-          rowKey={(record) => String(record.idCategoria)}
-          loading={loading}
-          pagination={{
-            pageSize: pagination.pageSize,
-            current: pagination.current,
-            total: pagination.total,
-            onChange: onPaginationChange,
-            showSizeChanger: false,
-            showQuickJumper: true,
-            showTotal: (total) => `Total: ${total} categoría${total !== 1 ? 's' : ''}`,
-          }}
-          locale={{
-            emptyText: (
-              <Empty
-                image={<BgColorsOutlined style={{ fontSize: 32, color: '#8c8c8c' }} />}
-                description="No hay categorías"
-              />
-            ),
-          }}
-          scroll={{ x: 760 }}
-        />
+        {isMobile ? (
+          <MobileCardList
+            data={categorias}
+            loading={loading}
+            renderCard={renderMobileCard}
+            pagination={{
+              current: pagination.current,
+              pageSize: pagination.pageSize,
+              total: pagination.total,
+            }}
+            onPaginationChange={onPaginationChange}
+            emptyText="No hay categorías"
+            totalText="categorías"
+          />
+        ) : (
+          <Table
+            columns={columns}
+            dataSource={categorias}
+            rowKey={(record) => String(record.idCategoria)}
+            loading={loading}
+            pagination={{
+              pageSize: pagination.pageSize,
+              current: pagination.current,
+              total: pagination.total,
+              onChange: onPaginationChange,
+              showSizeChanger: false,
+              showQuickJumper: true,
+              showTotal: (total) => `Total: ${total} categoría${total !== 1 ? 's' : ''}`,
+            }}
+            locale={{
+              emptyText: (
+                <Empty
+                  image={<BgColorsOutlined style={{ fontSize: 32, color: '#8c8c8c' }} />}
+                  description="No hay categorías"
+                />
+              ),
+            }}
+            scroll={{ x: 760 }}
+          />
+        )}
       </Card>
-    </div>
+    </PageWrapper>
   )
 }

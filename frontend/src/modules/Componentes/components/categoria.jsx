@@ -16,7 +16,6 @@ export default function Categoria ({
   }) {
 const { token } = theme.useToken()
 const handleUpload = ({ file, fileList: newList }) => {
-  console.log('🔍 handleUpload - file:', file.name, file.status)
       if (file.status === 'removed') {
       if (setFileList) setFileList([])
       if (setPreviewUrl) setPreviewUrl('')
@@ -28,14 +27,12 @@ const handleUpload = ({ file, fileList: newList }) => {
     if (file.originFileObj && !file.url) {
       const reader = new FileReader()
         reader.onload = (e) => {
-        console.log('📸 Preview cargado exitosamente')
         const result = e.target?.result
         if (result && setPreviewUrl) {
           setPreviewUrl(result)
         }
         }
         reader.onerror = () => {
-        console.error('❌ Error leyendo archivo')
         } 
         reader.readAsDataURL(file.originFileObj)
     }   

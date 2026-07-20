@@ -91,12 +91,6 @@ export default function CotizacionEditar({ idCotizacion, onSuccess, onCancel }) 
       return lineasConEdiciones
     }
 
-    console.log(
-      '[CotizacionEditar] Fallback activado. Preview:',
-      lineasConEdiciones.length,
-      'Carrito:',
-      cart.cart.length
-    )
     return cart.cart.map((item) => ({
       tipo: item.tipo,
       id: item.id,
@@ -124,6 +118,11 @@ export default function CotizacionEditar({ idCotizacion, onSuccess, onCancel }) 
   async function handleGuardarCambios() {
     if (!cart.cart.length) {
       message.warning('Debe haber al menos un producto o componente')
+      return
+    }
+
+    if (Number(descuento) > subtotal) {
+      message.error('El descuento no puede ser mayor al subtotal')
       return
     }
 
@@ -156,17 +155,6 @@ export default function CotizacionEditar({ idCotizacion, onSuccess, onCancel }) 
         diasValidez,
         diasEntrega,
       }
-
-      console.log(
-        '[CotizacionEditar] Guardando cambios. Carrito:',
-        cart.cart.length,
-        'Productos:',
-        payload.productos.length,
-        'Componentes:',
-        payload.componentes.length,
-        'Payload:',
-        JSON.stringify(payload, null, 2)
-      )
 
       await handleSave(payload)
       if (onSuccess) onSuccess()

@@ -13,6 +13,7 @@ import {
 import { UserOutlined, PlusOutlined } from '@ant-design/icons'
 import { fetchClienteById } from '../../services/api/clientesApi'
 import { safeRender } from '../../../../shared/utils/safeRender'
+import { useIsMobile } from '../../../../hooks/useIsMobile'
 
 function ClienteDatosSection({
   clientes,
@@ -22,6 +23,7 @@ function ClienteDatosSection({
   setClienteLabel,
   onNewCliente,
 }) {
+  const isMobile = useIsMobile()
   const [clienteData, setClienteData] = useState(null)
   const [loadingCliente, setLoadingCliente] = useState(false)
 
@@ -100,8 +102,8 @@ function ClienteDatosSection({
         boxShadow: '0 1px 2px rgba(0,0,0,0.05)',
       }}
       styles={{
-        header: { padding: '16px 24px', borderBottom: '1px solid #f0f0f0' },
-        body: { padding: 24 },
+        header: { padding: isMobile ? '12px 14px' : '16px 24px', borderBottom: '1px solid #f0f0f0' },
+        body: { padding: isMobile ? 14 : 24 },
       }}
       title={
         <Space>
@@ -110,13 +112,15 @@ function ClienteDatosSection({
         </Space>
       }
       extra={
-        <Button
-          type="primary"
-          icon={<PlusOutlined style={{ color: 'white' }} />}
-          onClick={onNewCliente}
-        >
-          Nuevo Cliente
-        </Button>
+        !isMobile && (
+          <Button
+            type="primary"
+            icon={<PlusOutlined style={{ color: 'white' }} />}
+            onClick={onNewCliente}
+          >
+            Nuevo Cliente
+          </Button>
+        )
       }
     >
       {/* orientation="vertical" es la prop correcta en antd v6 — direction está deprecado */}
@@ -136,6 +140,17 @@ function ClienteDatosSection({
           <Typography.Text type="secondary" style={{ fontSize: '12px' }}>
             Escribe al menos 2 caracteres o crea uno nuevo
           </Typography.Text>
+          {isMobile && (
+            <Button
+              type="primary"
+              icon={<PlusOutlined />}
+              onClick={onNewCliente}
+              block
+              style={{ marginTop: 8 }}
+            >
+              Nuevo Cliente
+            </Button>
+          )}
         </div>
 
         {idCliente && clienteData && (

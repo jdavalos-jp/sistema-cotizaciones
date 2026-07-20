@@ -10,8 +10,8 @@ export default function FormEditarProducto({ producto, onSuccess, onCancel }) {
     form.setFieldsValue({
       nombre: producto.nombre,
       descripcion: producto.descripcion,
-      precio: producto.precio,
-      stock: producto.stock,
+      precioBase: producto.precioBase,
+      cantidad: producto.cantidad,
     })
   }, [producto, form])
 
@@ -50,7 +50,7 @@ export default function FormEditarProducto({ producto, onSuccess, onCancel }) {
 
       <Form.Item
         label="Precio (Bs)"
-        name="precio"
+        name="precioBase"
         rules={[{ required: true, message: 'Ingresa el precio' }]}
       >
         <InputNumber
@@ -64,7 +64,7 @@ export default function FormEditarProducto({ producto, onSuccess, onCancel }) {
 
       <Form.Item
         label="Stock"
-        name="stock"
+        name="cantidad"
         rules={[{ required: true, message: 'Ingresa el stock' }]}
       >
         <InputNumber

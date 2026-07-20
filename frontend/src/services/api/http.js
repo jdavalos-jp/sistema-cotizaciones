@@ -119,6 +119,13 @@ async function parseResponse(res, responseType) {
   return res.json()
 }
 
+export function unwrapData(response) {
+  if (response && typeof response === 'object' && 'data' in response) {
+    return response.data
+  }
+  return response
+}
+
 export async function apiGet(path, { signal, responseType = 'json', headers, skipAuth = false } = {}) {
   const url = `${getApiBaseUrl()}${path}`
 

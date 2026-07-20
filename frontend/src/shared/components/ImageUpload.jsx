@@ -8,6 +8,7 @@ import {
   StarFilled,
 } from '@ant-design/icons'
 import ImgCrop from 'antd-img-crop'
+import { useIsMobile } from '../../hooks/useIsMobile'
 
 const getBase64 = (file) =>
   new Promise((resolve, reject) => {
@@ -36,6 +37,7 @@ export default function ImageUpload({
   showPrincipalToggle = false,
   onPrincipalChange,
 }) {
+  const isMobile = useIsMobile()
   const { token } = theme.useToken()
 
   const [previewOpen, setPreviewOpen] = useState(false)
@@ -198,7 +200,7 @@ export default function ImageUpload({
       }}
       styles={{
         body: {
-          padding: 24,
+          padding: isMobile ? 14 : 24,
           textAlign: 'center',
         },
       }}
@@ -208,11 +210,13 @@ export default function ImageUpload({
           border: `1.5px dashed ${token.colorPrimary}`,
           backgroundColor: token.colorPrimaryBg,
           borderRadius: 8,
-          padding: '24px 16px',
+          padding: isMobile ? '16px 12px' : '24px 16px',
           display: 'flex',
           flexDirection: 'column',
           alignItems: 'center',
-          gap: 16,
+          gap: 12,
+          maxWidth: '100%',
+          overflow: 'hidden',
         }}
       >
         {enableCrop ? (

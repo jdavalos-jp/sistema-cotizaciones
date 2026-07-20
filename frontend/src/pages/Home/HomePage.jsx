@@ -41,7 +41,7 @@ export default function HomePage() {
       form.resetFields()
       navigate('/dashboard', { replace: true })
     } catch (err) {
-      message.error(err.message || 'No se pudo iniciar sesion')
+      message.error(err.message || 'No se pudo iniciar sesión')
     } finally {
       setLoading(false)
     }
@@ -118,7 +118,7 @@ export default function HomePage() {
               name="email"
               rules={[
                 { required: true, message: 'Ingresa tu correo' },
-                { type: 'email', message: 'Ingresa un correo valido' },
+                { type: 'email', message: 'Ingresa un correo válido' },
               ]}
             >
               <Input prefix={<UserOutlined />} placeholder="correo@empresa.com" autoComplete="username" />

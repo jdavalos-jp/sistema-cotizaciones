@@ -12,10 +12,10 @@ export function useProformas(idProformaEdit = null) {
   const [error, setError] = useState(null)
   const [pagination, setPagination] = useState({
     skip: 0,
-    take: 50,
+    take: 10,
     total: 0,
     current: 1,
-    pageSize: 50,
+    pageSize: 10,
   })
   const [filters, setFilters] = useState({ search: '' })
 
@@ -87,6 +87,7 @@ export function useProformas(idProformaEdit = null) {
       ...prev,
       skip: newSkip,
       take: newTake,
+      pageSize: newTake,
       current: isPage ? skipOrPage : Math.floor(newSkip / newTake) + 1,
     }))
   }, [pagination.take])

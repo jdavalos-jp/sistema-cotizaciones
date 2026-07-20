@@ -1,17 +1,6 @@
-import { apiGet, apiPost, apiPut, apiDelete } from '../../../../services/api/http'
+import { apiGet, apiPost, apiPut, apiDelete, unwrapData } from '../../../../services/api/http'
 
 const BASE_URL = '/componentes'
-
-/**
- * Desenvuelve la respuesta de la API
- * Si tiene estructura { data, ... } retorna solo data
- */
-function unwrapData(response) {
-  if (response && typeof response === 'object' && 'data' in response) {
-    return response.data
-  }
-  return response
-}
 
 /**
  * Listar componentes con filtros y paginación

@@ -1,4 +1,4 @@
-import { Card, Button, Table, Tag, Space, Input, Select, Popconfirm, message, Typography, Spin } from 'antd'
+import { Card, Button, Table, Tag, Space, Input, Select, Popconfirm, message, Typography, Spin, Empty } from 'antd'
 import { PlusOutlined, SearchOutlined, EyeOutlined, DeleteOutlined, DownloadOutlined } from '@ant-design/icons'
 import { useEffect, useState } from 'react'
 import { useProformas } from '../hooks/useProformas'
@@ -6,7 +6,7 @@ import { useProformas } from '../hooks/useProformas'
 export default function ProformasListPage() {
   const [searchTerm, setSearchTerm] = useState('')
   const [filterEstado, setFilterEstado] = useState('todos')
-  const { proformas, loading, pagination, loadProformas, deleteProforma, setPagination } = useProformas()
+  const { proformas, loading, moduloEnConstruccion, pagination, loadProformas, deleteProforma, setPagination } = useProformas()
 
   useEffect(() => {
     loadProformas(0, searchTerm).catch((error) => {
@@ -31,7 +31,6 @@ export default function ProformasListPage() {
   }
 
   const handleShowSizeChange = async (current, pageSize) => {
-    console.log(current, pageSize)
     const skip = (current - 1) * pageSize
     setPagination((prev) => ({ ...prev, current, pageSize }))
     try {
@@ -72,10 +71,10 @@ export default function ProformasListPage() {
       key: 'acciones',
       render: (_, record) => (
         <Space>
-          <Button type="text" size="small" icon={<EyeOutlined />}>
+          <Button type="text" size="small" icon={<EyeOutlined />} onClick={() => message.info('Módulo en construcción')}>
             Ver
           </Button>
-          <Button type="text" size="small" icon={<DownloadOutlined />}>
+          <Button type="text" size="small" icon={<DownloadOutlined />} onClick={() => message.info('Módulo en construcción')}>
             Descargar
           </Button>
           <Popconfirm
@@ -103,34 +102,39 @@ export default function ProformasListPage() {
           </Typography.Title>
           <Typography.Text type="secondary">Gestión de cotizaciones y proformas</Typography.Text>
         </div>
-        <Button type="primary" icon={<PlusOutlined />} size="large">
+        <Button type="primary" icon={<PlusOutlined />} size="large" onClick={() => message.info('Módulo en construcción')}>
           Nueva Proforma
         </Button>
       </div>
 
       <Card>
-        <Spin spinning={loading}>
-          <div style={{ marginBottom: 16, display: 'grid', gridTemplateColumns: '2fr 1fr', gap: 16 }}>
-            <Input
-              placeholder="Buscar por número o cliente..."
-              prefix={<SearchOutlined />}
-              value={searchTerm}
-              onChange={(e) => handleSearch(e.target.value)}
-            />
-            <Select
-              placeholder="Filtrar por estado"
-              value={filterEstado}
-              onChange={setFilterEstado}
-              options={[
-                { label: 'Todos', value: 'todos' },
-                { label: 'Borrador', value: 'Borrador' },
-                { label: 'Enviada', value: 'Enviada' },
-                { label: 'Aceptada', value: 'Aceptada' },
-                { label: 'Rechazada', value: 'Rechazada' },
-              ]}
-            />
-          </div>
+        <div style={{ marginBottom: 16, display: 'grid', gridTemplateColumns: '2fr 1fr', gap: 16 }}>
+          <Input
+            placeholder="Buscar por número o cliente..."
+            prefix={<SearchOutlined />}
+            value={searchTerm}
+            onChange={(e) => handleSearch(e.target.value)}
+          />
+          <Select
+            placeholder="Filtrar por estado"
+            value={filterEstado}
+            onChange={setFilterEstado}
+            options={[
+              { label: 'Todos', value: 'todos' },
+              { label: 'Borrador', value: 'Borrador' },
+              { label: 'Enviada', value: 'Enviada' },
+              { label: 'Aceptada', value: 'Aceptada' },
+              { label: 'Rechazada', value: 'Rechazada' },
+            ]}
+          />
+        </div>
 
+        {moduloEnConstruccion ? (
+          <Empty
+            description="Módulo en construcción"
+            style={{ margin: '60px 0' }}
+          />
+        ) : (
           <Table
             columns={columns}
             dataSource={proformas}
@@ -148,7 +152,7 @@ export default function ProformasListPage() {
             }}
             loading={loading}
           />
-        </Spin>
+        )}
       </Card>
     </div>
   )

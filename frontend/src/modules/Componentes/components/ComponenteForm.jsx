@@ -4,15 +4,18 @@ import { useComponentesManager } from '../hooks/useComponentesManager'
 import { useImagenesComponente } from '../../../hooks/useImagenes'
 import { uploadImagenComponente, deleteImagenComponente } from '../../../services/api/imagenes'
 import * as componentesApi from '../Services/api/componentesApi'
+import { useIsMobile } from '../../../hooks/useIsMobile'
 
 import ImageUpload from '../../../shared/components/ImageUpload'
 import ComponenteInfoGeneral from './ComponenteInfoGeneral'
 import ComponenteProductoSelector from './ComponenteProductoSelector'
 import FormActionBar from '../../../shared/components/FormActionBar'
+import PageWrapper from '../../../shared/components/PageWrapper'
 
 const { Title, Text } = Typography
 
 function ComponenteForm({ onSuccess, onCancel, idComponenteEdit = null }) {
+  const isMobile = useIsMobile()
   const [form] = Form.useForm()
   const { token } = theme.useToken()
 
@@ -118,10 +121,10 @@ function ComponenteForm({ onSuccess, onCancel, idComponenteEdit = null }) {
   }, [idComponenteEdit, imagenActualId])
 
   const handleFileChange = (newFileList) => {
-    setFileList(newFileList)
-
     if (newFileList.length === 0) {
       handleDeleteImage()
+    } else {
+      setFileList(newFileList)
     }
   }
 
@@ -227,13 +230,13 @@ function ComponenteForm({ onSuccess, onCancel, idComponenteEdit = null }) {
   }
 
   return (
-    <div style={{ backgroundColor: '#f5f5f5', padding: '24px', minHeight: '100vh', margin: '-24px' }}>
-      <div style={{ flex: 1, maxWidth: 1200, margin: '0 auto', width: '100%', paddingBottom: '80px' }}>
-        <div style={{ marginBottom: 24 }}>
-          <Title level={3} style={{ margin: 0, fontWeight: 600 }}>
+    <PageWrapper>
+      <div style={{ flex: 1, maxWidth: 1200, margin: '0 auto', width: '100%', paddingBottom: isMobile ? 60 : 80 }}>
+        <div style={{ marginBottom: isMobile ? 12 : 24 }}>
+          <Title level={3} style={{ margin: 0, fontWeight: 600, fontSize: isMobile ? 20 : undefined }}>
             {title}
           </Title>
-          <Text type="secondary" style={{ fontSize: '14px' }}>
+          <Text type="secondary" style={{ fontSize: isMobile ? '12px' : '14px' }}>
             {breadcrumb}
           </Text>
         </div>
@@ -318,7 +321,7 @@ function ComponenteForm({ onSuccess, onCancel, idComponenteEdit = null }) {
           /></Form>
       )}
       </div>
-    </div>
+    </PageWrapper>
   )
 }
 
