@@ -881,7 +881,7 @@ function buildCotizacionPdf(cotizacion) {
 
       doc.moveDown(0.6);
 
-      const totalsBoxW = 210;
+      const totalsBoxW = 240;
       const totalsX = right - totalsBoxW;
       const totalsY = doc.y;
 
