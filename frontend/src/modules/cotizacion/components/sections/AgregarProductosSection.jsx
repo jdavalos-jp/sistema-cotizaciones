@@ -29,14 +29,14 @@ function AgregarProductosSection({ productos, componentes, cart }) {
     return map
   }, [items, keyField])
 
-  // Búsqueda por nombre o SKU — solo filterOption, sin optionFilterProp (conflicto en antd)
-  const filterOption = useCallback((input, option) => {
-    const search = input.toLowerCase()
-    return (
-      option?.nombreCompleto?.toLowerCase().includes(search) ||
-      option?.sku?.toLowerCase().includes(search)
-    )
-  }, [])
+  const handleSearch = useCallback((value) => {
+    if (selectedType === 'producto') {
+      productos.setSearch(value)
+      return
+    }
+
+    componentes.setSearch(value)
+  }, [selectedType, productos, componentes])
 
   // Limpiar selectedId al cambiar tipo para evitar IDs huérfanos en itemsMap
   const handleTypeChange = useCallback((type) => {
@@ -115,7 +115,9 @@ function AgregarProductosSection({ productos, componentes, cart }) {
             options={options}
             loading={isLoading}
             showSearch
-            filterOption={filterOption}
+            onSearch={handleSearch}
+            filterOption={false}
+            notFoundContent={isLoading ? 'Buscando...' : 'No se encontraron resultados'}
           />
         </Col>
 
