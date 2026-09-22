@@ -177,11 +177,12 @@ function resolveCompanyLogoPath() {
   return null;
 }
 
-function resolveFirmasSellosPath() {
+function resolveSellosPaths() {
   const workspaceRoot = path.resolve(__dirname, '../../../../');
-  const imagePath = path.join(workspaceRoot, 'frontend', 'images', 'firmas_sellos.webp');
 
-  return fs.existsSync(imagePath) ? imagePath : null;
+  return ['sellotecnoequip.webp', 'selloJDBlab.webp']
+    .map((fileName) => path.join(workspaceRoot, 'frontend', 'images', fileName))
+    .filter((imagePath) => fs.existsSync(imagePath));
 }
 
 async function drawLocalImage(doc, imagePath, x, y, { width, height } = {}) {
@@ -880,7 +881,7 @@ function buildCotizacionPdf(cotizacion) {
 
       doc.moveDown(0.6);
 
-      const totalsBoxW = 260;
+      const totalsBoxW = 240;
       const totalsX = right - totalsBoxW;
       const totalsY = doc.y;
 
@@ -921,34 +922,48 @@ function buildCotizacionPdf(cotizacion) {
 
       doc.font('Helvetica').fontSize(9).fillColor('#374151');
 
+      const paymentColumnGap = 14.17; // 0.5 cm in PDF points
+      const paymentColumnW = (paymentBoxW - paymentColumnGap) / 2;
+
       doc.text(
         'Banco de Credito.\nJorge Davalos Crespo.\nNº Cuenta: 3015040742318.',
         left,
         totalsY + 24,
         {
-          width: paymentBoxW,
+          width: paymentColumnW,
           align: 'left',
         }
       );
 
-      const firmasSellosPath = resolveFirmasSellosPath();
-      let firmasImageBuffer = null;
+      doc.text(
+        'BANCO UNION S.A.\nDelia Abigail Crespo David.\nNº Cuenta: 10000064914580.',
+        left + paymentColumnW + paymentColumnGap,
+        totalsY + 24,
+        {
+          width: paymentColumnW,
+          align: 'left',
+        }
+      );
 
-      if (firmasSellosPath) {
-        firmasImageBuffer = await removeWhiteBackground(firmasSellosPath);
-      }
+      const sellosImageBuffers = await Promise.all(
+        resolveSellosPaths().map((imagePath) => removeWhiteBackground(imagePath))
+      );
 
       const paymentTextEndY = totalsY + 56;
       const firmasY = paymentTextEndY;
       const firmasHeight = 56;
+      const sellosGap = 14.17; // 0.5 cm in PDF points
+      const selloWidth = (paymentBoxW - sellosGap) / 2;
 
-      if (firmasImageBuffer) {
-        doc.image(firmasImageBuffer, left, firmasY, {
-          fit: [paymentBoxW, firmasHeight],
+      sellosImageBuffers.forEach((imageBuffer, index) => {
+        if (!imageBuffer) return;
+
+        doc.image(imageBuffer, left + index * (selloWidth + sellosGap), firmasY, {
+          fit: [selloWidth, firmasHeight],
           align: 'left',
           valign: 'top',
         });
-      }
+      });
 
       const avisoY = firmasY + firmasHeight;
 
