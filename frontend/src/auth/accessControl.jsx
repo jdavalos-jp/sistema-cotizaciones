@@ -8,6 +8,7 @@ import {
   InboxOutlined,
   SettingOutlined,
   ShoppingOutlined,
+  TagsOutlined,
   TeamOutlined,
   ToolOutlined,
   UserAddOutlined,
@@ -40,6 +41,7 @@ export const menuByRole = {
       children: [
         { key: 'cotizaciones-nueva', label: 'Nueva Cotización', path: '/cotizaciones/nueva', icon: <FileTextOutlined /> },
         { key: 'cotizaciones-historial', label: 'Historial de Cotizaciones', path: '/cotizaciones/historial', icon: <FileTextOutlined /> },
+        { key: 'rotulos', label: 'Rótulos', path: '/rotulos', icon: <TagsOutlined /> },
       ],
     },
     {
@@ -83,6 +85,7 @@ export const menuByRole = {
       children: [
         { key: 'cotizaciones-nueva', label: 'Nueva Cotización', path: '/cotizaciones/nueva', icon: <FileTextOutlined /> },
         { key: 'cotizaciones-historial', label: 'Historial de Cotizaciones', path: '/cotizaciones/historial', icon: <FileTextOutlined /> },
+        { key: 'rotulos', label: 'Rótulos', path: '/rotulos', icon: <TagsOutlined /> },
       ],
     },
   ],
@@ -95,6 +98,7 @@ export const routeRoles = {
   '/clientes/crear': [ROLES.ADMIN, ROLES.SELLER],
   '/cotizaciones/nueva': [ROLES.ADMIN, ROLES.SELLER],
   '/cotizaciones/historial': [ROLES.ADMIN, ROLES.SELLER],
+  '/rotulos': [ROLES.ADMIN, ROLES.SELLER],
   '/productos/crear': [ROLES.ADMIN],
   '/productos/editar/:id': [ROLES.ADMIN],
   '/componentes': [ROLES.ADMIN, ROLES.SELLER],

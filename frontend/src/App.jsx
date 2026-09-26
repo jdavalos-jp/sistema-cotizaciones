@@ -22,6 +22,7 @@ import NotFoundPage from './pages/NotFoundPage.jsx'
 import AccessDeniedPage from './pages/AccessDeniedPage.jsx'
 import AdminPlaceholderPage from './pages/AdminPlaceholderPage.jsx'
 import UsuariosPage from './pages/Usuarios/UsuariosPage.jsx'
+import { RotulosPage } from './modules/Rotulos/index.js'
 
 function PublicHomeRoute() {
   const user = useAuthUser()
@@ -59,6 +60,9 @@ export default function App() {
               </Route>
               <Route element={<ProtectedRoute allowedRoles={routeRoles['/cotizaciones/historial']} />}>
                 <Route path="/cotizaciones/historial" element={<HistorialCotizacionesPage />} />
+              </Route>
+              <Route element={<ProtectedRoute allowedRoles={routeRoles['/rotulos']} />}>
+                <Route path="/rotulos" element={<RotulosPage />} />
               </Route>
 
               <Route element={<ProtectedRoute allowedRoles={[ROLES.ADMIN]} />}>
