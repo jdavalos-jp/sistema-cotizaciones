@@ -1,18 +1,18 @@
 import { useDeferredValue, useState } from 'react'
 import {
   Button,
+  Dropdown,
   Empty,
   Input,
   Popconfirm,
-  Space,
   Table,
-  Tooltip,
   Typography,
 } from 'antd'
 import {
   DeleteOutlined,
   DownloadOutlined,
   EditOutlined,
+  MoreOutlined,
   SearchOutlined,
 } from '@ant-design/icons'
 
@@ -69,29 +69,49 @@ export default function RotulosHistory({ rotulos, onDelete, onDownload, onEdit }
     {
       title: 'Acciones',
       key: 'actions',
-      width: 150,
-      align: 'right',
+      width: 100,
+      align: 'center',
       render: (_, rotulo) => (
-        <Space>
-          <Tooltip title="Descargar PDF">
-            <Button type="text" aria-label="Descargar PDF" icon={<DownloadOutlined />} onClick={() => onDownload(rotulo)} />
-          </Tooltip>
-          <Tooltip title="Editar">
-            <Button type="text" aria-label="Editar rótulo" icon={<EditOutlined />} onClick={() => onEdit(rotulo)} />
-          </Tooltip>
-          <Popconfirm
-            title="Eliminar rótulo"
-            description="Esta acción no se puede deshacer."
-            okText="Eliminar"
-            cancelText="Cancelar"
-            okButtonProps={{ danger: true }}
-            onConfirm={() => onDelete(rotulo.id)}
-          >
-            <Tooltip title="Eliminar">
-              <Button type="text" danger aria-label="Eliminar rótulo" icon={<DeleteOutlined />} />
-            </Tooltip>
-          </Popconfirm>
-        </Space>
+        <Dropdown
+          menu={{
+            items: [
+              {
+                key: 'download',
+                label: 'Descargar PDF',
+                icon: <DownloadOutlined />,
+                onClick: () => onDownload(rotulo),
+              },
+              {
+                key: 'edit',
+                label: 'Editar',
+                icon: <EditOutlined />,
+                onClick: () => onEdit(rotulo),
+              },
+              { type: 'divider' },
+              {
+                key: 'delete',
+                label: (
+                  <Popconfirm
+                    title="Eliminar rótulo"
+                    description="Esta acción no se puede deshacer."
+                    okText="Eliminar"
+                    cancelText="Cancelar"
+                    okButtonProps={{ danger: true }}
+                    onConfirm={() => onDelete(rotulo.id)}
+                  >
+                    <span style={{ color: '#ff4d4f' }}>Eliminar</span>
+                  </Popconfirm>
+                ),
+                icon: <DeleteOutlined style={{ color: '#ff4d4f' }} />,
+                danger: true,
+              },
+            ],
+          }}
+          trigger={['click']}
+          placement="bottomRight"
+        >
+          <Button type="text" aria-label="Acciones del rótulo" icon={<MoreOutlined style={{ fontSize: 18 }} />} />
+        </Dropdown>
       ),
     },
   ]

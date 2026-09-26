@@ -17,6 +17,7 @@ export default function RotulosPage() {
   const [activeView, setActiveView] = useState('crear')
   const [editingRotulo, setEditingRotulo] = useState(null)
   const [draft, setDraft] = useState(EMPTY_ROTULO)
+  const [paperSize, setPaperSize] = useState('letter')
 
   const handleDraftChange = useCallback((values) => setDraft({ ...EMPTY_ROTULO, ...values }), [])
 
@@ -45,7 +46,7 @@ export default function RotulosPage() {
 
   const handleDownload = async (rotulo) => {
     try {
-      await downloadRotuloPdf(rotulo, rotuloImage)
+      await downloadRotuloPdf(rotulo, rotuloImage, paperSize)
     } catch (error) {
       message.error(error.message || 'No se pudo generar el PDF')
     }
@@ -94,7 +95,18 @@ export default function RotulosPage() {
               <br />
               <Text type="secondary">Los datos se imprimirán en mayúsculas.</Text>
             </div>
-            <RotuloPreview rotulo={draft} logoSource={rotuloImage} />
+            <Space align="center" wrap>
+              <Text strong>Tamaño de papel:</Text>
+              <Segmented
+                value={paperSize}
+                onChange={setPaperSize}
+                options={[
+                  { value: 'letter', label: 'Carta' },
+                  { value: 'legal', label: 'Oficio' },
+                ]}
+              />
+            </Space>
+            <RotuloPreview rotulo={draft} logoSource={rotuloImage} paperSize={paperSize} />
             <Button
               block
               disabled={!draft.nombre?.trim()}
@@ -105,7 +117,23 @@ export default function RotulosPage() {
           </Space>
         </div>
       ) : (
-        <Card title="Historial de rótulos" variant="borderless">
+        <Card
+          title="Historial de rótulos"
+          extra={(
+            <Space align="center" wrap>
+              <Text strong>Tamaño:</Text>
+              <Segmented
+                value={paperSize}
+                onChange={setPaperSize}
+                options={[
+                  { value: 'letter', label: 'Carta' },
+                  { value: 'legal', label: 'Oficio' },
+                ]}
+              />
+            </Space>
+          )}
+          variant="borderless"
+        >
           <RotulosHistory
             rotulos={rotulos}
             onDelete={handleDelete}

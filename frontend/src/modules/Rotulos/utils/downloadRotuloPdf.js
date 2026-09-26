@@ -6,7 +6,11 @@ function loadImageAsDataUrl(source) {
       canvas.width = image.naturalWidth
       canvas.height = image.naturalHeight
       canvas.getContext('2d').drawImage(image, 0, 0)
-      resolve(canvas.toDataURL('image/jpeg', 0.92))
+      resolve({
+        dataUrl: canvas.toDataURL('image/jpeg', 0.92),
+        width: image.naturalWidth,
+        height: image.naturalHeight,
+      })
     }
     image.onerror = () => reject(new Error('No se pudo cargar la imagen del remitente'))
     image.src = source
@@ -22,27 +26,28 @@ function safeFileName(value) {
     .toLowerCase()
 }
 
-export async function downloadRotuloPdf(rotulo, logoSource) {
+export async function downloadRotuloPdf(rotulo, logoSource, paperSize = 'letter') {
   const { jsPDF } = await import('jspdf')
-  const document = new jsPDF({ orientation: 'landscape', unit: 'mm', format: 'a6' })
+  const format = paperSize === 'legal' ? 'legal' : 'letter'
+  const document = new jsPDF({ orientation: 'landscape', unit: 'mm', format })
   const width = document.internal.pageSize.getWidth()
   const height = document.internal.pageSize.getHeight()
-  const margin = 10
+  const margin = 18
 
   document.setTextColor(22, 119, 255)
   document.setFont('helvetica', 'bold')
-  document.setFontSize(10)
-  document.text('DESTINATARIO', margin, 14)
+  document.setFontSize(18)
+  document.text('DESTINATARIO', margin, 28)
 
   document.setTextColor(17, 24, 39)
   document.setFont('helvetica', 'bold')
-  document.setFontSize(20)
+  document.setFontSize(38)
   const nameLines = document.splitTextToSize(`SEÑOR: ${rotulo.nombre}`.toUpperCase(), width - 2 * margin)
-  document.text(nameLines, margin, 24)
+  document.text(nameLines, margin, 54)
 
-  let cursorY = 24 + nameLines.length * 9
+  let cursorY = 54 + nameLines.length * 15
   document.setFont('helvetica', 'bold')
-  document.setFontSize(12)
+  document.setFontSize(24)
 
   const details = [
     rotulo.cargo,
@@ -54,10 +59,12 @@ export async function downloadRotuloPdf(rotulo, logoSource) {
   details.forEach((detail) => {
     const lines = document.splitTextToSize(String(detail).toUpperCase(), width - 2 * margin)
     document.text(lines, margin, cursorY)
-    cursorY += lines.length * 6.5
+    cursorY += lines.length * 12
   })
 
   const logo = await loadImageAsDataUrl(logoSource)
-  document.addImage(logo, 'JPEG', width - 66, height - 36, 58, 27.5)
+  const logoWidth = 105
+  const logoHeight = logoWidth * (logo.height / logo.width)
+  document.addImage(logo.dataUrl, 'JPEG', width - margin - logoWidth, height - margin - logoHeight, logoWidth, logoHeight)
   document.save(`${safeFileName(rotulo.nombre)}.pdf`)
 }

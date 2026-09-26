@@ -1,10 +1,10 @@
 import { EnvironmentOutlined, MailOutlined, PhoneOutlined } from '@ant-design/icons'
 
-export default function RotuloPreview({ rotulo, logoSource }) {
+export default function RotuloPreview({ rotulo, logoSource, paperSize = 'letter' }) {
   const uppercase = (value, fallback) => String(value || fallback).toUpperCase()
 
   return (
-    <div className="rotulo-preview" aria-label="Vista previa del rótulo">
+    <div className={`rotulo-preview rotulo-preview--${paperSize}`} aria-label="Vista previa del rótulo">
       <div className="rotulo-preview__recipient">
         <span className="rotulo-preview__eyebrow">DESTINATARIO</span>
         <h2><span>SEÑOR:</span> {uppercase(rotulo.nombre, 'NOMBRE DEL DESTINATARIO')}</h2>

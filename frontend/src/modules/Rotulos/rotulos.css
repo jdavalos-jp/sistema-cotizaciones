@@ -61,12 +61,16 @@
 
 .rotulo-preview {
   position: relative;
-  aspect-ratio: 148 / 105;
+  aspect-ratio: 279 / 216;
   min-height: 390px;
   overflow: hidden;
   color: #111827;
   background: #fff;
   box-shadow: 0 8px 24px rgba(15, 23, 42, 0.12);
+}
+
+.rotulo-preview--legal {
+  aspect-ratio: 356 / 216;
 }
 
 .rotulo-preview__recipient {
