@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react'
-import { getClientes } from '../../Clientes/api/clientesApi.js'
+import { getClientes } from '../api/clientesApi.js'
 
 export function useClienteOptions() {
   const [search, setSearch] = useState('')
@@ -38,3 +38,4 @@ export function useClienteOptions() {
 
   return { clientes, loading, error, search, setSearch, addCliente }
 }
+

@@ -95,7 +95,7 @@ export default function RotulosPage() {
               <br />
               <Text type="secondary">Los datos se imprimirán en mayúsculas.</Text>
             </div>
-            <Space align="center" wrap>
+            <Space align="center" wrap className="rotulos-paper-size">
               <Text strong>Tamaño de papel:</Text>
               <Segmented
                 value={paperSize}
@@ -108,6 +108,7 @@ export default function RotulosPage() {
             </Space>
             <RotuloPreview rotulo={draft} logoSource={rotuloImage} paperSize={paperSize} />
             <Button
+              className="rotulos-download-button"
               block
               disabled={!draft.nombre?.trim()}
               onClick={() => handleDownload(draft)}
@@ -118,9 +119,10 @@ export default function RotulosPage() {
         </div>
       ) : (
         <Card
+          className="rotulos-history-card"
           title="Historial de rótulos"
           extra={(
-            <Space align="center" wrap>
+            <Space align="center" wrap className="rotulos-paper-size">
               <Text strong>Tamaño:</Text>
               <Segmented
                 value={paperSize}

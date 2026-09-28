@@ -31,13 +31,32 @@ function ensureResponsiveStyles() {
   document.head.appendChild(style)
 }
 
-export default function RichTextEditor({ value, onChange, placeholder, maxLength }) {
+const defaultButtonList = [
+  ['undo', 'redo'],
+  ['formatBlock', 'font', 'fontSize'],
+  ['bold', 'underline', 'italic', 'strike', 'subscript', 'superscript'],
+  ['fontColor', 'hiliteColor'],
+  ['align', 'list', 'lineHeight'],
+  ['link', 'image', 'video'],
+  ['fullScreen', 'showBlocks', 'codeView'],
+  ['preview', 'print'],
+  ['removeFormat'],
+]
+
+export default function RichTextEditor({
+  value,
+  onChange,
+  placeholder,
+  maxLength,
+  buttonList = defaultButtonList,
+  minHeight = '200px',
+}) {
   ensureResponsiveStyles()
 
   const handleChange = (content) => {
-    if (onChange) {
-      onChange(content);
-    }
+    const textLength = content.replace(/<[^>]*>/g, '').trim().length
+    if (maxLength && textLength > maxLength) return
+    onChange?.(content)
   };
 
   return (
@@ -47,19 +66,9 @@ export default function RichTextEditor({ value, onChange, placeholder, maxLength
         onChange={handleChange}
         placeholder={placeholder}
         setOptions={{
-          buttonList: [
-            ['undo', 'redo'],
-            ['formatBlock', 'font', 'fontSize'],
-            ['bold', 'underline', 'italic', 'strike', 'subscript', 'superscript'],
-            ['fontColor', 'hiliteColor'],
-            ['align', 'list', 'lineHeight'],
-            ['link', 'image', 'video'],
-            ['fullScreen', 'showBlocks', 'codeView'],
-            ['preview', 'print'],
-            ['removeFormat']
-          ],
+          buttonList,
           defaultTag: 'p',
-          minHeight: '200px',
+          minHeight,
           showPathLabel: false,
           resizingBar: false,
         }}

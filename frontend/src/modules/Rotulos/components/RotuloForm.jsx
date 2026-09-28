@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react'
 import { Alert, Button, Col, Form, Input, Row, Select, Space } from 'antd'
 import { CloseOutlined, SaveOutlined, UserAddOutlined } from '@ant-design/icons'
-import { useClienteOptions } from '../hooks/useClienteOptions.js'
+import { useClienteOptions } from '../../Clientes/hooks/useClienteOptions.js'
 import NuevoClienteModal from './NuevoClienteModal.jsx'
 
 const EMPTY_VALUES = {

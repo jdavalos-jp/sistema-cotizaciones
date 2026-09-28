@@ -34,7 +34,14 @@ export default function NuevoClienteModal({ open, onClose, onCreated }) {
   }
 
   return (
-    <Modal title="Registrar nuevo cliente" open={open} onCancel={handleClose} footer={null} destroyOnHidden>
+    <Modal
+      title="Registrar nuevo cliente"
+      open={open}
+      onCancel={handleClose}
+      footer={null}
+      width={560}
+      destroyOnHidden
+    >
       <Form form={form} layout="vertical" requiredMark={false} onFinish={handleSubmit}>
         <Form.Item
           label="Nombre completo"

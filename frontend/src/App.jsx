@@ -23,6 +23,9 @@ import AccessDeniedPage from './pages/AccessDeniedPage.jsx'
 import AdminPlaceholderPage from './pages/AdminPlaceholderPage.jsx'
 import UsuariosPage from './pages/Usuarios/UsuariosPage.jsx'
 import { RotulosPage } from './modules/Rotulos/index.js'
+import { CartasPage } from './modules/Cartas/index.js'
+import { CertificadosPage } from './modules/Certificados/index.js'
+import { NotasPage } from './modules/Notas/index.js'
 
 function PublicHomeRoute() {
   const user = useAuthUser()
@@ -63,6 +66,15 @@ export default function App() {
               </Route>
               <Route element={<ProtectedRoute allowedRoles={routeRoles['/rotulos']} />}>
                 <Route path="/rotulos" element={<RotulosPage />} />
+              </Route>
+              <Route element={<ProtectedRoute allowedRoles={routeRoles['/cartas']} />}>
+                <Route path="/cartas" element={<CartasPage />} />
+              </Route>
+              <Route element={<ProtectedRoute allowedRoles={routeRoles['/certificados']} />}>
+                <Route path="/certificados" element={<CertificadosPage />} />
+              </Route>
+              <Route element={<ProtectedRoute allowedRoles={routeRoles['/notas']} />}>
+                <Route path="/notas" element={<NotasPage />} />
               </Route>
 
               <Route element={<ProtectedRoute allowedRoles={[ROLES.ADMIN]} />}>

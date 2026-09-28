@@ -52,6 +52,7 @@ export default function RotulosHistory({ rotulos, onDelete, onDownload, onEdit }
     {
       title: 'Contacto',
       key: 'contacto',
+      responsive: ['sm'],
       render: (_, rotulo) => (
         <div className="rotulos-history__person">
           <Text>{rotulo.correo || 'Sin correo'}</Text>
@@ -59,17 +60,24 @@ export default function RotulosHistory({ rotulos, onDelete, onDownload, onEdit }
         </div>
       ),
     },
-    { title: 'Ciudad', dataIndex: 'ciudad', key: 'ciudad', render: (value) => value || '-' },
+    {
+      title: 'Ciudad',
+      dataIndex: 'ciudad',
+      key: 'ciudad',
+      responsive: ['md'],
+      render: (value) => value || '-',
+    },
     {
       title: 'Actualizado',
       dataIndex: 'updatedAt',
       key: 'updatedAt',
+      responsive: ['lg'],
       render: formatDate,
     },
     {
       title: 'Acciones',
       key: 'actions',
-      width: 100,
+      width: 88,
       align: 'center',
       render: (_, rotulo) => (
         <Dropdown
@@ -130,12 +138,13 @@ export default function RotulosHistory({ rotulos, onDelete, onDownload, onEdit }
       </div>
 
       <Table
+        className="rotulos-history__table"
         rowKey="id"
         columns={columns}
         dataSource={filteredRotulos}
-        pagination={{ pageSize: 8, hideOnSinglePage: true }}
+        pagination={{ pageSize: 8, hideOnSinglePage: true, showSizeChanger: false, showLessItems: true }}
         locale={{ emptyText: <Empty description="Todavía no hay rótulos guardados" /> }}
-        scroll={{ x: 760 }}
+        scroll={{ x: 'max-content' }}
       />
     </>
   )
