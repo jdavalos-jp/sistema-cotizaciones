@@ -7,8 +7,14 @@ function unwrapData(response) {
   return response
 }
 
-export async function getComponentes(fetchOptions = {}) {
-  return unwrapData(await apiGet('/componentes', fetchOptions))
+export async function getComponentes(options = {}, fetchOptions = {}) {
+  const { search, take = 50, signal } = options
+  const params = new URLSearchParams()
+
+  params.set('take', String(take))
+  if (search?.trim()) params.set('search', search.trim())
+
+  return unwrapData(await apiGet(`/componentes?${params.toString()}`, { signal, ...fetchOptions }))
 }
 
 export async function getComponenteById(idComponente, fetchOptions = {}) {

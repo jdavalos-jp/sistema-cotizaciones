@@ -26,13 +26,17 @@ export default function ProductoComponentes({
   const [cantidad, setCantidad] = useState(1)
   const [componentes, setComponentes] = useState([])
   const [loadingComponentes, setLoadingComponentes] = useState(false)
+  const [busquedaComponente, setBusquedaComponente] = useState('')
 
-  // Cargar lista de componentes disponibles
   useEffect(() => {
+    const controller = new AbortController()
     const cargarComponentes = async () => {
       setLoadingComponentes(true)
       try {
-        const res = await componentesApi.getComponentes()
+        const res = await componentesApi.getComponentes({
+          search: busquedaComponente,
+          signal: controller.signal,
+        })
         const list = Array.isArray(res) ? res : res?.data
         const options = Array.isArray(list)
           ? list.map((c) => ({
@@ -43,14 +47,20 @@ export default function ProductoComponentes({
           : []
         setComponentes(options)
       } catch (err) {
+        if (err.name === 'AbortError') return
         message.error('Error cargando componentes')
         console.error(err)
       } finally {
-        setLoadingComponentes(false)
+        if (!controller.signal.aborted) setLoadingComponentes(false)
       }
     }
-    cargarComponentes()
-  }, [])
+
+    const timeoutId = setTimeout(cargarComponentes, 300)
+    return () => {
+      clearTimeout(timeoutId)
+      controller.abort()
+    }
+  }, [busquedaComponente])
 
   const handleAgregarComponente = () => {
     if (!idComponente) {
@@ -164,14 +174,8 @@ export default function ProductoComponentes({
               placeholder="Buscar componente..."
               loading={loadingComponentes}
               showSearch
-              optionFilterProp="label"
-              filterOption={(input, option) => {
-                const q = String(input || '').toLowerCase().trim()
-                const label = String(option?.label || '').toLowerCase()
-                const nombre = String(option?.nombre || '').toLowerCase()
-                const sku = String(option?.sku || '').toLowerCase()
-                return label.includes(q) || nombre.includes(q) || sku.includes(q)
-              }}
+              filterOption={false}
+              onSearch={setBusquedaComponente}
               options={componentes}
               value={idComponente}
               onChange={setIdComponente}
