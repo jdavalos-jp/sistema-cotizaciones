@@ -28,6 +28,7 @@ export const EMPTY_CARTA = Object.freeze({
   presente: 'Presente.-',
   cuerpoHtml: '',
   despedida: 'Atentamente:',
+  empresaFirmante: undefined,
   firmanteNombre: '',
   firmanteCargo: '',
   firmanteDocumento: '',

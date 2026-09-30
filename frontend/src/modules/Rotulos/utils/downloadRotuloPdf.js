@@ -65,6 +65,13 @@ export async function downloadRotuloPdf(rotulo, logoSource, paperSize = 'letter'
   const logo = await loadImageAsDataUrl(logoSource)
   const logoWidth = 105
   const logoHeight = logoWidth * (logo.height / logo.width)
-  document.addImage(logo.dataUrl, 'JPEG', width - margin - logoWidth, height - margin - logoHeight, logoWidth, logoHeight)
+  const logoX = width - margin - logoWidth
+  const logoY = height - margin - logoHeight
+
+  document.setTextColor(22, 119, 255)
+  document.setFont('helvetica', 'bold')
+  document.setFontSize(18)
+  document.text('REMITENTE', logoX + logoWidth / 2, logoY - 5, { align: 'center' })
+  document.addImage(logo.dataUrl, 'JPEG', logoX, logoY, logoWidth, logoHeight)
   document.save(`${safeFileName(rotulo.nombre)}.pdf`)
 }

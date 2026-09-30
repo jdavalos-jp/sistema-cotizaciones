@@ -6,8 +6,31 @@ import { plainTextFromHtml } from '../utils/cartaFormatters.js'
 import CartaEditor from './CartaEditor.jsx'
 import ImageDataUrlField from '../../../shared/components/ImageDataUrlField.jsx'
 import { useClienteOptions } from '../../Clientes/hooks/useClienteOptions.js'
+import firmaTecnoEquip from '../../../../images/TECNOEQUIP/FIRMATECNO.webp'
+import selloTecnoEquip from '../../../../images/TECNOEQUIP/SELLOTECNO.webp'
+import firmaJdbLab from '../../../../images/JDBLAB/firmaJDBLAB.webp'
+import selloJdbLab from '../../../../images/JDBLAB/CELLOJDBLAB.webp'
 
 const { Text } = Typography
+
+const FIRMANTE_PRESETS = Object.freeze({
+  tecnoequip: {
+    firmanteNombre: 'ING. JORGE DAVALOS CRESPO',
+    firmanteCargo: 'TecnoEquip',
+    firmanteDocumento: 'CI 4513773',
+    firmanteTelefono: 'Cel: 70769521',
+    firmaImagen: firmaTecnoEquip,
+    selloImagen: selloTecnoEquip,
+  },
+  jdblab: {
+    firmanteNombre: 'Lic. Delia A. Crespo David',
+    firmanteCargo: 'JDBlab equipamiento Didáctico y Técnico',
+    firmanteDocumento: 'C.I. 800082',
+    firmanteTelefono: 'CEL. 70769521',
+    firmaImagen: firmaJdbLab,
+    selloImagen: selloJdbLab,
+  },
+})
 
 export default function CartaForm({ carta, onCancel, onChange, onSave }) {
   const [form] = Form.useForm()
@@ -31,6 +54,14 @@ export default function CartaForm({ carta, onCancel, onChange, onSave }) {
       cargoDestinatario: cliente.cargo || '',
       institucion: cliente.institucion || '',
     })
+    onChange(form.getFieldsValue(true))
+  }
+
+  const handleFirmantePresetChange = (empresaFirmante) => {
+    const preset = FIRMANTE_PRESETS[empresaFirmante]
+    if (!preset) return
+
+    form.setFieldsValue({ empresaFirmante, ...preset })
     onChange(form.getFieldsValue(true))
   }
 
@@ -169,6 +200,16 @@ export default function CartaForm({ carta, onCancel, onChange, onSave }) {
       </Form.Item>
 
       <Divider orientation="left" plain>Firma y sello</Divider>
+      <Form.Item label="Empresa firmante" name="empresaFirmante">
+        <Segmented
+          block
+          options={[
+            { label: 'TecnoEquip', value: 'tecnoequip' },
+            { label: 'JDBlab', value: 'jdblab' },
+          ]}
+          onChange={handleFirmantePresetChange}
+        />
+      </Form.Item>
       <Row gutter={[16, 0]}>
         <Col xs={24} sm={12}>
           <Form.Item label="Nombre del firmante" name="firmanteNombre">
@@ -176,7 +217,7 @@ export default function CartaForm({ carta, onCancel, onChange, onSave }) {
           </Form.Item>
         </Col>
         <Col xs={24} sm={12}>
-          <Form.Item label="Cargo del firmante" name="firmanteCargo">
+          <Form.Item label="Cargo o descripción" name="firmanteCargo">
             <Input placeholder="Cargo" />
           </Form.Item>
         </Col>

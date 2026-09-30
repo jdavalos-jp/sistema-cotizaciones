@@ -1,5 +1,88 @@
+import headerLogo from '../../../../images/cabezeralogo.webp'
+import { DOCUMENT_FOOTER_TEXT } from '../../../shared/utils/documentFooter.js'
 import { PAPER_SIZES } from '../domain/carta.js'
 import { safeFileName } from './cartaFormatters.js'
+
+/**
+ * Converts an image source (URL or data-URI) to a data-URL string suitable
+ * for jsPDF.addImage.  Uses a canvas to transcode to PNG.
+ */
+function imageToDataUrl(source) {
+  return new Promise((resolve, reject) => {
+    const image = new Image()
+    image.crossOrigin = 'anonymous'
+    image.onload = () => {
+      const canvas = document.createElement('canvas')
+      canvas.width = image.naturalWidth
+      canvas.height = image.naturalHeight
+      canvas.getContext('2d').drawImage(image, 0, 0)
+      resolve(canvas.toDataURL('image/png'))
+    }
+    image.onerror = () => reject(new Error('No se pudo cargar la imagen del encabezado'))
+    image.src = source
+  })
+}
+
+/**
+ * Measures the natural aspect ratio of an image and calculates the
+ * placement dimensions to fit inside a bounding box.
+ */
+function fitImage(source) {
+  return new Promise((resolve, reject) => {
+    const image = new Image()
+    image.onload = () => resolve({
+      naturalWidth: image.naturalWidth,
+      naturalHeight: image.naturalHeight,
+      aspect: image.naturalWidth / image.naturalHeight,
+    })
+    image.onerror = () => reject(new Error('No se pudo medir la imagen del encabezado'))
+    image.src = source
+  })
+}
+
+/** Header and footer layout constants (in mm). */
+const HEADER_MARGIN_TOP = 4
+const HEADER_LOGO_MAX_WIDTH_MM = 43
+const HEADER_LOGO_MAX_HEIGHT_MM = 20
+const FOOTER_MARGIN_BOTTOM = 8
+const FOOTER_LINE_Y_OFFSET = 3
+const SIDE_MARGIN = 25
+
+/**
+ * Draws the logo-only header on the current page of the PDF.
+ */
+function drawPageHeader(pdf, logoDataUrl, logoInfo) {
+  if (!logoDataUrl || !logoInfo) return
+
+  const scale = Math.min(
+    HEADER_LOGO_MAX_WIDTH_MM / logoInfo.naturalWidth,
+    HEADER_LOGO_MAX_HEIGHT_MM / logoInfo.naturalHeight,
+  )
+  const logoWidth = logoInfo.naturalWidth * scale
+  const logoHeight = logoInfo.naturalHeight * scale
+
+  pdf.addImage(logoDataUrl, 'PNG', SIDE_MARGIN, HEADER_MARGIN_TOP, logoWidth, logoHeight)
+}
+
+/**
+ * Draws the footer text with a top border line on the current page.
+ */
+function drawPageFooter(pdf, pageWidth, pageHeight) {
+  const footerY = pageHeight - FOOTER_MARGIN_BOTTOM
+  const lineY = footerY - FOOTER_LINE_Y_OFFSET
+
+  // Blue top border line
+  pdf.setDrawColor(79, 155, 211)
+  pdf.setLineWidth(0.5)
+  pdf.line(SIDE_MARGIN, lineY, pageWidth - SIDE_MARGIN, lineY)
+
+  // Footer text
+  pdf.setFont('Helvetica', 'bold')
+  pdf.setFontSize(6.5)
+  pdf.setTextColor(0, 0, 0)
+  const centerX = pageWidth / 2
+  pdf.text(DOCUMENT_FOOTER_TEXT, centerX, footerY, { align: 'center', maxWidth: pageWidth - SIDE_MARGIN * 2 })
+}
 
 function createPageCanvas(sourceCanvas, sourceY, sourceHeight, fullPageHeight) {
   const pageCanvas = document.createElement('canvas')
@@ -25,9 +108,11 @@ function createPageCanvas(sourceCanvas, sourceY, sourceHeight, fullPageHeight) {
 export async function downloadCartaPdf(carta, previewElement) {
   if (!previewElement) throw new Error('No se encontró la vista previa de la carta')
 
-  const [{ jsPDF }, html2canvasModule] = await Promise.all([
+  const [{ jsPDF }, html2canvasModule, logoDataUrl, logoInfo] = await Promise.all([
     import('jspdf'),
     import('html2canvas'),
+    imageToDataUrl(headerLogo),
+    fitImage(headerLogo),
   ])
   const html2canvas = html2canvasModule.default || html2canvasModule
   const paper = PAPER_SIZES[carta.papel] || PAPER_SIZES.letter
@@ -58,7 +143,20 @@ export async function downloadCartaPdf(carta, previewElement) {
       const pageCanvas = createPageCanvas(canvas, sourceY, sourceHeight, pageHeightInPixels)
 
       if (pageIndex > 0) pdf.addPage(paper.format, 'portrait')
+
+      // Add the rendered content as background
       pdf.addImage(pageCanvas.toDataURL('image/jpeg', 0.95), 'JPEG', 0, 0, pageWidth, pageHeight)
+
+      // Draw native header on every page (the HTML header is hidden during export)
+      const headerBottom = HEADER_MARGIN_TOP + HEADER_LOGO_MAX_HEIGHT_MM
+      pdf.setFillColor(255, 255, 255)
+      pdf.rect(0, 0, pageWidth, headerBottom, 'F')
+      drawPageHeader(pdf, logoDataUrl, logoInfo)
+
+      // Draw native footer on every page
+      pdf.setFillColor(255, 255, 255)
+      pdf.rect(0, pageHeight - FOOTER_MARGIN_BOTTOM - FOOTER_LINE_Y_OFFSET - 2, pageWidth, FOOTER_MARGIN_BOTTOM + FOOTER_LINE_Y_OFFSET + 2, 'F')
+      drawPageFooter(pdf, pageWidth, pageHeight)
     }
 
     pdf.save(`${safeFileName(carta.numero || carta.referencia)}.pdf`)
@@ -66,4 +164,3 @@ export async function downloadCartaPdf(carta, previewElement) {
     previewElement.classList.remove('carta-preview--export')
   }
 }
-

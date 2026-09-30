@@ -18,6 +18,7 @@ export default function RotuloPreview({ rotulo, logoSource, paperSize = 'letter'
       </div>
 
       <div className="rotulo-preview__sender">
+        <span>REMITENTE</span>
         <img src={logoSource} alt="Remitente JDBlab" />
       </div>
     </div>

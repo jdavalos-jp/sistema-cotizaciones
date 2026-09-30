@@ -1,4 +1,5 @@
 import { formatCertificateDate, safeCertificateFileName } from './certificadoFormatters.js'
+import { createDocumentWordFooter } from '../../../shared/utils/documentFooter.js'
 
 const BLUE = '82DDF5'
 const borders = { top: { style: 'single', size: 8 }, bottom: { style: 'single', size: 8 }, left: { style: 'single', size: 8 }, right: { style: 'single', size: 8 }, insideHorizontal: { style: 'single', size: 8 }, insideVertical: { style: 'single', size: 8 } }
@@ -50,7 +51,21 @@ export async function downloadCertificadoWord(certificado, logoSource) {
   const children = [header, paragraph(docx, '', { spacing: { after: 120 } }), info, paragraph(docx, '1.  DESCRIPCIÓN DE LA ENTREGA.', { spacing: { before: 240, after: 160 }, run: { bold: true } }), items, paragraph(docx, 'CERTIFICADO DE GARANTÍA', { alignment: docx.AlignmentType.CENTER, spacing: { before: 240, after: 120 }, run: { bold: true } }), ...conditions]
   if (signature) children.push(new docx.Paragraph({ children: [signature], alignment: docx.AlignmentType.CENTER, spacing: { before: 180 } }))
   children.push(paragraph(docx, certificado.firmanteNombre?.toUpperCase(), { alignment: docx.AlignmentType.CENTER, run: { bold: true } }), paragraph(docx, certificado.firmanteCargo, { alignment: docx.AlignmentType.CENTER, run: { bold: true, italics: true } }))
-  const file = new docx.Document({ sections: [{ properties: { page: { size: { width: docx.convertMillimetersToTwip(certificado.papel === 'letter' ? 215.9 : 210), height: docx.convertMillimetersToTwip(certificado.papel === 'letter' ? 279.4 : 297) }, margin: { top: 900, right: 900, bottom: 900, left: 900 } } }, children }] })
+  const file = new docx.Document({
+    sections: [{
+      properties: {
+        page: {
+          size: {
+            width: docx.convertMillimetersToTwip(certificado.papel === 'letter' ? 215.9 : 210),
+            height: docx.convertMillimetersToTwip(certificado.papel === 'letter' ? 279.4 : 297),
+          },
+          margin: { top: 900, right: 900, bottom: 1360, left: 900, footer: 454 },
+        },
+      },
+      footers: { default: createDocumentWordFooter(docx) },
+      children,
+    }],
+  })
   download(await docx.Packer.toBlob(file), `${safeCertificateFileName(certificado.codigo)}.docx`)
 }
 

@@ -111,10 +111,13 @@
 
 .carta-preview {
   container-type: inline-size;
+  box-sizing: border-box;
+  display: flex;
+  flex-direction: column;
   width: 100%;
   aspect-ratio: 8.5 / 11;
   margin: 0 auto;
-  padding: clamp(28px, 9cqw, 70px) clamp(24px, 9.5cqw, 76px);
+  padding: 11.5794%;
   overflow-wrap: anywhere;
   color: #111;
   background: #fff;
@@ -130,6 +133,24 @@
 
 .carta-preview--a4 {
   aspect-ratio: 210 / 297;
+  padding: 11.9048%;
+}
+
+.carta-preview__header {
+  margin-bottom: clamp(10px, 2.5cqw, 20px);
+}
+
+.carta-preview__header img {
+  display: block;
+  width: 25.9192cqw;
+  height: 12.0555cqw;
+  margin: 0;
+  object-fit: fill;
+}
+
+.carta-preview--a4 .carta-preview__header img {
+  width: 26.875cqw;
+  height: 12.5cqw;
 }
 
 .carta-preview__date {
@@ -185,7 +206,7 @@
 
 .carta-preview__signature {
   width: min(55%, 340px);
-  margin: clamp(16px, 4cqw, 32px) auto 0;
+  margin: clamp(6px, 1.5cqw, 12px) auto 0;
   text-align: center;
 }
 
@@ -205,14 +226,48 @@
   margin-top: 6px;
 }
 
+.carta-preview__stamp-image--jdblab {
+  width: 27.1248cqw;
+  max-width: none;
+  height: 10.8499cqw;
+  max-height: none;
+}
+
+.carta-preview--a4 .carta-preview__stamp-image--jdblab {
+  width: 28.125cqw;
+  height: 11.25cqw;
+}
+
+.carta-preview__signature-image--preset {
+  max-width: 65%;
+  max-height: clamp(40px, 10.5cqw, 84px);
+}
+
 .carta-preview__signer-name {
   font-weight: 700;
   text-transform: uppercase;
 }
 
+.carta-preview > .document-footer {
+  margin-top: auto;
+}
+
 .carta-preview--export {
+  aspect-ratio: unset;
+  padding-top: 11.5794%;
   border: 0;
   box-shadow: none;
+}
+
+.carta-preview--export.carta-preview--a4 {
+  padding-top: 11.9048%;
+}
+
+/* During PDF export, hide the HTML header and footer — jsPDF draws
+   them natively on every page for consistent placement. */
+.carta-preview--export > .carta-preview__header,
+.carta-preview--export > .document-footer {
+  display: none;
 }
 
 .cartas-history__toolbar {
@@ -367,7 +422,6 @@
   }
 
   .carta-preview {
-    padding: 7.5cqw 7cqw;
     font-size: clamp(7px, 2.2cqw, 12px);
   }
 

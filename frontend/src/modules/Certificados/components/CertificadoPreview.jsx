@@ -1,5 +1,6 @@
 import { forwardRef } from 'react'
 import logoJdblab from '../../../../images/logojdblab.jpeg.png'
+import DocumentFooter from '../../../shared/components/DocumentFooter.jsx'
 import { formatCertificateDate, sanitizeCertificateHtml } from '../utils/certificadoFormatters.js'
 
 const CertificadoPreview = forwardRef(function CertificadoPreview({ certificado }, ref) {
@@ -58,6 +59,8 @@ const CertificadoPreview = forwardRef(function CertificadoPreview({ certificado 
         <strong>{certificado.firmanteNombre}</strong>
         <em>{certificado.firmanteCargo}</em>
       </section>
+
+      <DocumentFooter />
     </article>
   )
 })

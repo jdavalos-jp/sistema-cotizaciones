@@ -1,5 +1,6 @@
 import { forwardRef } from 'react'
 import logoJdblab from '../../../../images/logojdblab.jpeg.png'
+import DocumentFooter from '../../../shared/components/DocumentFooter.jsx'
 import { getNotaTotal } from '../domain/nota.js'
 import { formatMoney, formatNotaDate } from '../utils/notaFormatters.js'
 
@@ -68,6 +69,8 @@ const NotaPreview = forwardRef(function NotaPreview({ nota }, ref) {
           <span className="nota-preview__signer-role">{nota.recibidoCargo || '[Cargo]'}</span>
         </div>
       </section>
+
+      <DocumentFooter />
     </article>
   )
 })

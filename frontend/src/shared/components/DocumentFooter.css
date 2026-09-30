@@ -1,0 +1,22 @@
+.document-footer {
+  flex: none;
+  padding-top: clamp(6px, 1.5cqw, 12px);
+  border-top: clamp(1px, 0.35cqw, 3px) solid #4f9bd3;
+  font-size: 0.72em;
+  font-weight: 700;
+  line-height: 1.35;
+  text-align: center;
+}
+
+.certificado-preview {
+  display: flex;
+  flex-direction: column;
+}
+
+.certificado-preview > .document-footer {
+  margin-top: auto;
+}
+
+.nota-preview > .document-footer {
+  margin-top: 1.2cqw;
+}

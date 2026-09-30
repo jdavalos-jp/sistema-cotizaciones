@@ -145,7 +145,17 @@
   right: clamp(12px, 4cqw, 26px);
   bottom: clamp(10px, 3.7cqw, 24px);
   display: flex;
+  align-items: center;
+  flex-direction: column;
+  gap: clamp(4px, 1cqw, 8px);
   width: 42%;
+}
+
+.rotulo-preview__sender span {
+  color: #1677ff;
+  font-size: clamp(10px, 2.3cqw, 18px);
+  font-weight: 800;
+  letter-spacing: 0;
 }
 
 .rotulo-preview__sender img {

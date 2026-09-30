@@ -1,3 +1,5 @@
+import headerLogo from '../../../../images/cabezeralogo.webp'
+import { createDocumentWordFooter } from '../../../shared/utils/documentFooter.js'
 import { formatLetterDate, safeFileName, sanitizeCartaHtml } from './cartaFormatters.js'
 
 const PAPER_DIMENSIONS_MM = Object.freeze({
@@ -8,6 +10,14 @@ const PAPER_DIMENSIONS_MM = Object.freeze({
 
 const BASE_RUN_OPTIONS = Object.freeze({ font: 'Arial', size: 22, color: '000000' })
 const BODY_SPACING = Object.freeze({ after: 160, line: 276 })
+const HEADER_LOGO_SIZE = Object.freeze({
+  width: Math.round(4.3 * 96 / 2.54),
+  height: Math.round(2 * 96 / 2.54),
+})
+const JDBLAB_STAMP_SIZE = Object.freeze({
+  width: Math.round(4.5 * 96 / 2.54),
+  height: Math.round(1.8 * 96 / 2.54),
+})
 
 function runOptionsFromElement(element, inherited = {}) {
   if (!element || element.nodeType !== Node.ELEMENT_NODE) return inherited
@@ -139,13 +149,13 @@ function loadImage(source) {
   })
 }
 
-async function createImageRun(source, docx, maxWidth, maxHeight) {
-  if (!/^data:image\/(png|jpeg|webp);base64,/i.test(source || '')) return null
+async function createImageRun(source, docx, maxWidth, maxHeight, exactSize) {
+  if (!source) return null
 
   const image = await loadImage(source)
   const scale = Math.min(maxWidth / image.naturalWidth, maxHeight / image.naturalHeight, 1)
-  const width = Math.max(1, Math.round(image.naturalWidth * scale))
-  const height = Math.max(1, Math.round(image.naturalHeight * scale))
+  const width = exactSize?.width || Math.max(1, Math.round(image.naturalWidth * scale))
+  const height = exactSize?.height || Math.max(1, Math.round(image.naturalHeight * scale))
   const canvas = document.createElement('canvas')
   canvas.width = image.naturalWidth
   canvas.height = image.naturalHeight
@@ -163,8 +173,17 @@ async function createImageRun(source, docx, maxWidth, maxHeight) {
 
 async function signatureParagraphs(carta, docx) {
   const paragraphs = []
-  const signature = await createImageRun(carta.firmaImagen, docx, 150, 70)
-  const stamp = await createImageRun(carta.selloImagen, docx, 150, 80)
+  const signatureMaxSize = carta.empresaFirmante
+    ? { width: 170, height: 80 }
+    : { width: 150, height: 70 }
+  const signature = await createImageRun(
+    carta.firmaImagen,
+    docx,
+    signatureMaxSize.width,
+    signatureMaxSize.height,
+  )
+  const stampSize = carta.empresaFirmante === 'jdblab' ? JDBLAB_STAMP_SIZE : undefined
+  const stamp = await createImageRun(carta.selloImagen, docx, 150, 80, stampSize)
 
   if (signature) {
     paragraphs.push(new docx.Paragraph({ children: [signature], alignment: docx.AlignmentType.CENTER }))
@@ -206,11 +225,53 @@ function triggerDownload(blob, fileName) {
   setTimeout(() => URL.revokeObjectURL(url), 0)
 }
 
+/**
+ * Creates a proper Word document Header containing only the logo image.
+ * This header repeats on every page.
+ */
+function createDocumentWordHeader(docx, headerImage) {
+  const noBorder = { style: docx.BorderStyle.NONE, size: 0, color: 'FFFFFF' }
+  const borders = {
+    top: noBorder,
+    bottom: noBorder,
+    left: noBorder,
+    right: noBorder,
+    insideHorizontal: noBorder,
+    insideVertical: noBorder,
+  }
+
+  const headerTable = new docx.Table({
+    width: { size: 100, type: docx.WidthType.PERCENTAGE },
+    borders,
+    rows: [new docx.TableRow({
+      children: [
+        new docx.TableCell({
+          borders,
+          width: { size: 100, type: docx.WidthType.PERCENTAGE },
+          verticalAlign: docx.VerticalAlign.BOTTOM,
+          children: [new docx.Paragraph({ children: [headerImage], spacing: { after: 0 } })],
+        }),
+      ],
+    })],
+  })
+
+  return new docx.Header({
+    children: [headerTable],
+  })
+}
+
 export async function downloadCartaWord(carta) {
   const docx = await import('docx')
   const dimensions = PAPER_DIMENSIONS_MM[carta.papel] || PAPER_DIMENSIONS_MM.letter
+  const headerImage = await createImageRun(headerLogo, docx, 260, 120, HEADER_LOGO_SIZE)
   const body = buildBodyParagraphs(carta.cuerpoHtml, docx)
   const signature = await signatureParagraphs(carta, docx)
+
+  // Build the Word header (repeats on every page)
+  const wordHeader = headerImage
+    ? createDocumentWordHeader(docx, headerImage)
+    : undefined
+
   const children = [
     textParagraph(formatLetterDate(carta.fecha, carta.ciudadFecha), docx, {
       alignment: docx.AlignmentType.RIGHT,
@@ -226,7 +287,7 @@ export async function downloadCartaWord(carta) {
       ? [textParagraph(`N.º ${carta.numero}`, docx, { run: { bold: true }, spacing: { after: 180 } })]
       : []),
     ...body,
-    textParagraph(carta.despedida, docx, { spacing: { before: 220, after: 180 } }),
+    textParagraph(carta.despedida, docx, { spacing: { before: 180, after: 40 } }),
     ...signature,
   ]
 
@@ -262,12 +323,18 @@ export async function downloadCartaWord(carta) {
             orientation: docx.PageOrientation.PORTRAIT,
           },
           margin: {
-            top: docx.convertMillimetersToTwip(20),
-            right: docx.convertMillimetersToTwip(22),
-            bottom: docx.convertMillimetersToTwip(20),
-            left: docx.convertMillimetersToTwip(22),
+            top: docx.convertMillimetersToTwip(25),
+            right: docx.convertMillimetersToTwip(25),
+            bottom: docx.convertMillimetersToTwip(25),
+            left: docx.convertMillimetersToTwip(25),
+            header: docx.convertMillimetersToTwip(4),
+            footer: docx.convertMillimetersToTwip(8),
           },
         },
+      },
+      headers: wordHeader ? { default: wordHeader } : undefined,
+      footers: {
+        default: createDocumentWordFooter(docx),
       },
       children,
     }],
@@ -276,4 +343,3 @@ export async function downloadCartaWord(carta) {
   const blob = await docx.Packer.toBlob(document)
   triggerDownload(blob, `${safeFileName(carta.numero || carta.referencia)}.docx`)
 }
-
