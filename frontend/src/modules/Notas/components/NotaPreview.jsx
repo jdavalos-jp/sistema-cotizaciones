@@ -2,7 +2,17 @@ import { forwardRef } from 'react'
 import logoJdblab from '../../../../images/logojdblab.jpeg.png'
 import DocumentFooter from '../../../shared/components/DocumentFooter.jsx'
 import { getNotaTotal } from '../domain/nota.js'
-import { formatMoney, formatNotaDate } from '../utils/notaFormatters.js'
+import { formatMoney, formatMoneyInWords, formatNotaDate } from '../utils/notaFormatters.js'
+import './NotaPreview.css'
+
+function descriptionAsText(value) {
+  return String(value || '')
+    .replace(/<br\s*\/?\s*>/gi, '\n')
+    .replace(/<[^>]*>/g, '')
+    .replace(/\u00a0/g, ' ')
+    .replace(/\s*\n\s*/g, '\n')
+    .trim()
+}
 
 const NotaPreview = forwardRef(function NotaPreview({ nota }, ref) {
   const items = nota.items || []
@@ -34,20 +44,20 @@ const NotaPreview = forwardRef(function NotaPreview({ nota }, ref) {
       <p className="nota-preview__intro">{nota.introduccion}</p>
 
       <table className="nota-preview__items-table">
-        <thead><tr><th>Ítem</th><th>Equipo y descripción</th><th>Código / SKU</th><th>N.º de serie</th><th>Cant.</th><th>P. unitario<br />Bs</th><th>Total Bs</th></tr></thead>
+        <thead><tr><th>Ítem</th><th>Equipo y descripción</th><th>Código</th><th>N.º de serie</th><th>Cant.</th><th>P. unitario<br />Bs</th><th>Total Bs</th></tr></thead>
         <tbody>
           {items.length ? items.map((item, index) => (
             <tr key={`${item.catalogoTipo || 'manual'}-${item.catalogoId || index}`}>
               <td>{index + 1}</td>
               <td className="nota-preview__product-cell">
-                {item.imagen && <img src={item.imagen} alt="" crossOrigin="anonymous" />}
-                <div><strong>{item.nombre}</strong>{item.descripcion && <span>{item.descripcion}</span>}</div>
+                <div><strong>{item.nombre}</strong>{item.descripcion && <span>{descriptionAsText(item.descripcion)}</span>}</div>
               </td>
-              <td>{item.codigo || '-'}</td><td>{item.numeroSerie || '[Serie manual]'}</td><td>{item.cantidad}</td>
+              <td>{item.codigo || '-'}</td><td>{item.numeroSerie || ''}</td><td>{item.cantidad}</td>
               <td>{formatMoney(item.precioUnitario)}</td><td>{formatMoney(Number(item.cantidad) * Number(item.precioUnitario))}</td>
             </tr>
           )) : <tr><td>1</td><td className="nota-preview__empty-item">AGREGUE UN PRODUCTO O COMPONENTE</td><td>-</td><td>-</td><td>1</td><td>0,00</td><td>0,00</td></tr>}
           <tr className="nota-preview__total"><th colSpan="6">TOTAL Bs:</th><th>{formatMoney(getNotaTotal(nota))}</th></tr>
+          <tr className="nota-preview__total-in-words"><th colSpan="7">SON: {formatMoneyInWords(getNotaTotal(nota))}</th></tr>
         </tbody>
       </table>
 

@@ -2,6 +2,7 @@ import { forwardRef } from 'react'
 import logoJdblab from '../../../../images/logojdblab.jpeg.png'
 import DocumentFooter from '../../../shared/components/DocumentFooter.jsx'
 import { formatCertificateDate, sanitizeCertificateHtml } from '../utils/certificadoFormatters.js'
+import './CertificadoPreview.css'
 
 const CertificadoPreview = forwardRef(function CertificadoPreview({ certificado }, ref) {
   return (
@@ -20,6 +21,10 @@ const CertificadoPreview = forwardRef(function CertificadoPreview({ certificado 
       </table>
 
       <table className="certificado-preview__client-table">
+        <colgroup>
+          <col className="certificado-preview__client-label-column" />
+          <col />
+        </colgroup>
         <tbody>
           <tr><td className="certificado-preview__label">CLIENTE O ENTIDAD CONTRATANTE:</td><td>{certificado.clienteEntidad || 'CLIENTE O ENTIDAD'}</td></tr>
           <tr><th className="certificado-preview__label">OBJETO DE LA CONTRATACIÓN:</th><td>{certificado.objetoContratacion || 'OBJETO DE LA CONTRATACIÓN'}</td></tr>
@@ -33,13 +38,19 @@ const CertificadoPreview = forwardRef(function CertificadoPreview({ certificado 
 
       <h3 className="certificado-preview__section-title">1. &nbsp; DESCRIPCIÓN DE LA ENTREGA.</h3>
       <table className="certificado-preview__items-table">
+        <colgroup>
+          <col className="certificado-preview__item-number-column" />
+          <col />
+          <col className="certificado-preview__item-quantity-column" />
+          <col className="certificado-preview__item-notes-column" />
+        </colgroup>
         <thead><tr><th>ÍTEM</th><th>DESCRIPCIÓN</th><th>CANTIDAD</th><th>ACLARACIONES</th></tr></thead>
         <tbody>
           {(certificado.items || []).map((item, index) => (
             <tr key={`${item.descripcion}-${index}`}>
               <td>{index + 1}</td>
               <td>
-                <div>{item.descripcion || 'DESCRIPCIÓN DEL EQUIPO'}</div>
+                <strong>{item.descripcion || 'DESCRIPCIÓN DEL EQUIPO'}</strong>
                 {(item.marca || item.modelo) && <em>MARCA: <strong>{item.marca || '-'}</strong> &nbsp; MODELO: {item.modelo || '-'}</em>}
               </td>
               <td>{item.cantidad}</td>
@@ -55,9 +66,24 @@ const CertificadoPreview = forwardRef(function CertificadoPreview({ certificado 
       </section>
 
       <section className="certificado-preview__signature">
-        {certificado.firmaImagen && <img src={certificado.firmaImagen} alt="Firma" />}
-        <strong>{certificado.firmanteNombre}</strong>
-        <em>{certificado.firmanteCargo}</em>
+        {certificado.firmaImagen && (
+          <img
+            src={certificado.firmaImagen}
+            alt="Firma"
+            className={`certificado-preview__signature-image${certificado.empresaFirmante ? ' certificado-preview__signature-image--preset' : ''}`}
+          />
+        )}
+        {certificado.firmanteNombre && <strong>{certificado.firmanteNombre}</strong>}
+        {certificado.firmanteCargo && <em>{certificado.firmanteCargo}</em>}
+        {certificado.firmanteDocumento && <span>{certificado.firmanteDocumento}</span>}
+        {certificado.firmanteTelefono && <span>{certificado.firmanteTelefono}</span>}
+        {certificado.selloImagen && (
+          <img
+            src={certificado.selloImagen}
+            alt="Sello"
+            className={`certificado-preview__stamp-image${certificado.empresaFirmante === 'jdblab' ? ' certificado-preview__stamp-image--jdblab' : ''}`}
+          />
+        )}
       </section>
 
       <DocumentFooter />

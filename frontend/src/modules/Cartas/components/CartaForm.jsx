@@ -6,31 +6,9 @@ import { plainTextFromHtml } from '../utils/cartaFormatters.js'
 import CartaEditor from './CartaEditor.jsx'
 import ImageDataUrlField from '../../../shared/components/ImageDataUrlField.jsx'
 import { useClienteOptions } from '../../Clientes/hooks/useClienteOptions.js'
-import firmaTecnoEquip from '../../../../images/TECNOEQUIP/FIRMATECNO.webp'
-import selloTecnoEquip from '../../../../images/TECNOEQUIP/SELLOTECNO.webp'
-import firmaJdbLab from '../../../../images/JDBLAB/firmaJDBLAB.webp'
-import selloJdbLab from '../../../../images/JDBLAB/CELLOJDBLAB.webp'
+import { FIRMANTE_PRESETS } from '../../../shared/utils/firmantePresets.js'
 
 const { Text } = Typography
-
-const FIRMANTE_PRESETS = Object.freeze({
-  tecnoequip: {
-    firmanteNombre: 'ING. JORGE DAVALOS CRESPO',
-    firmanteCargo: 'TecnoEquip',
-    firmanteDocumento: 'CI 4513773',
-    firmanteTelefono: 'Cel: 70769521',
-    firmaImagen: firmaTecnoEquip,
-    selloImagen: selloTecnoEquip,
-  },
-  jdblab: {
-    firmanteNombre: 'Lic. Delia A. Crespo David',
-    firmanteCargo: 'JDBlab equipamiento Didáctico y Técnico',
-    firmanteDocumento: 'C.I. 800082',
-    firmanteTelefono: 'CEL. 70769521',
-    firmaImagen: firmaJdbLab,
-    selloImagen: selloJdbLab,
-  },
-})
 
 export default function CartaForm({ carta, onCancel, onChange, onSave }) {
   const [form] = Form.useForm()

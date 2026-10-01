@@ -5,14 +5,16 @@ import { useClienteOptions } from '../../Clientes/hooks/useClienteOptions.js'
 import { useCatalogSearch } from '../../cotizacion/hooks/useCatalogSearch.js'
 import { fetchComponentes, fetchProductos } from '../../cotizacion/services/api/catalogoApi.js'
 import ImageDataUrlField from '../../../shared/components/ImageDataUrlField.jsx'
+import { FIRMANTE_PRESETS } from '../../../shared/utils/firmantePresets.js'
 import { createEmptyNota, NOTA_STATUS } from '../domain/nota.js'
 
 const { Text } = Typography
 
-function catalogImage(item) {
-  const images = item?.imagenes
-  if (!Array.isArray(images) || !images.length) return ''
-  return (images.find((image) => image.principal) || images[0])?.urlImagen || ''
+function catalogDescription(item) {
+  const value = String(item?.descripcion || item?.description || '')
+  const container = document.createElement('div')
+  container.innerHTML = value.replace(/<br\s*\/?\s*>/gi, '\n')
+  return (container.textContent || '').replace(/\u00a0/g, ' ').replace(/\s*\n\s*/g, '\n').trim()
 }
 
 export default function NotaForm({ nota, onCancel, onChange, onSave }) {
@@ -49,6 +51,19 @@ export default function NotaForm({ nota, onCancel, onChange, onSave }) {
     onChange(form.getFieldsValue(true))
   }
 
+  const selectEntregadoPor = (empresaEntregadoPor) => {
+    const preset = FIRMANTE_PRESETS[empresaEntregadoPor]
+    if (!preset) return
+
+    form.setFieldsValue({
+      empresaEntregadoPor,
+      entregadoNombre: preset.firmanteNombre,
+      entregadoCargo: preset.firmanteCargo,
+      entregadoFirma: preset.firmaImagen,
+    })
+    onChange(form.getFieldsValue(true))
+  }
+
   const addCatalogItem = () => {
     if (!selectedId) {
       message.warning('Selecciona un producto o componente')
@@ -66,12 +81,11 @@ export default function NotaForm({ nota, onCancel, onChange, onSave }) {
       catalogoTipo: selectedType,
       catalogoId: String(selectedId),
       nombre: catalogItem.nombre || '',
-      descripcion: catalogItem.descripcion || catalogItem.description || '',
+      descripcion: catalogDescription(catalogItem),
       codigo: catalogItem.sku || catalogItem.codigo || '',
       numeroSerie: '',
       cantidad: Math.max(1, Number(selectedQuantity) || 1),
       precioUnitario: Math.max(0, Number(catalogItem.precioBase) || 0),
-      imagen: catalogImage(catalogItem),
     }])
     onChange(form.getFieldsValue(true))
     setSelectedId(undefined)
@@ -142,16 +156,15 @@ export default function NotaForm({ nota, onCancel, onChange, onSave }) {
               <Card key={field.key} size="small" title={`Ítem ${index + 1}`} extra={<Button type="text" danger icon={<DeleteOutlined />} onClick={() => remove(field.name)} />}>
                 <Row gutter={[12, 0]}>
                   <Col xs={24} md={12}><Form.Item label="Equipo o nombre" name={[field.name, 'nombre']} rules={[{ required: true, whitespace: true }]}><Input /></Form.Item></Col>
-                  <Col xs={12} md={6}><Form.Item label="Código / SKU" name={[field.name, 'codigo']}><Input /></Form.Item></Col>
+                  <Col xs={12} md={6}><Form.Item label="Código" name={[field.name, 'codigo']}><Input /></Form.Item></Col>
                   <Col xs={12} md={6}><Form.Item label="N.º de serie" name={[field.name, 'numeroSerie']}><Input placeholder="Serie manual" /></Form.Item></Col>
                   <Col xs={24}><Form.Item label="Descripción" name={[field.name, 'descripcion']}><Input.TextArea autoSize={{ minRows: 2, maxRows: 4 }} /></Form.Item></Col>
                   <Col xs={12} md={6}><Form.Item label="Cantidad" name={[field.name, 'cantidad']}><InputNumber min={1} style={{ width: '100%' }} /></Form.Item></Col>
                   <Col xs={12} md={8}><Form.Item label="Precio unitario (Bs)" name={[field.name, 'precioUnitario']}><InputNumber min={0} precision={2} style={{ width: '100%' }} /></Form.Item></Col>
-                  <Col xs={24} md={10}><Form.Item label="URL de imagen" name={[field.name, 'imagen']}><Input placeholder="Opcional" /></Form.Item></Col>
                 </Row>
               </Card>
             ))}
-            <Button block type="dashed" icon={<PlusOutlined />} onClick={() => add({ nombre: '', descripcion: '', codigo: '', numeroSerie: '', cantidad: 1, precioUnitario: 0, imagen: '' })}>Agregar ítem manual</Button>
+            <Button block type="dashed" icon={<PlusOutlined />} onClick={() => add({ nombre: '', descripcion: '', codigo: '', numeroSerie: '', cantidad: 1, precioUnitario: 0 })}>Agregar ítem manual</Button>
             <Form.ErrorList errors={errors} />
           </Space>
         )}
@@ -161,6 +174,16 @@ export default function NotaForm({ nota, onCancel, onChange, onSave }) {
       <Row gutter={[16, 0]}>
         <Col xs={24} md={12}>
           <Card size="small" title="Entregado por" className="nota-signature-card">
+            <Form.Item label="Empresa firmante" name="empresaEntregadoPor">
+              <Segmented
+                block
+                options={[
+                  { label: 'TecnoEquip', value: 'tecnoequip' },
+                  { label: 'JDBlab', value: 'jdblab' },
+                ]}
+                onChange={selectEntregadoPor}
+              />
+            </Form.Item>
             <Form.Item label="Nombre" name="entregadoNombre" rules={[{ required: true, whitespace: true, message: 'Ingresa el nombre de quien entrega' }]}><Input placeholder="Nombre completo" /></Form.Item>
             <Form.Item label="Cargo" name="entregadoCargo"><Input placeholder="Cargo de quien entrega" /></Form.Item>
             <Form.Item label="Imagen de firma" name="entregadoFirma"><ImageDataUrlField label="Firma de quien entrega" /></Form.Item>

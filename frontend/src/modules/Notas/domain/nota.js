@@ -19,6 +19,7 @@ export function createEmptyNota() {
     fechaEntrega: todayLocalIso(),
     introduccion: 'En cumplimiento al Contrato Administrativo con TECNOEquip, se hace la entrega del siguiente equipo:',
     items: [],
+    empresaEntregadoPor: undefined,
     entregadoNombre: '',
     entregadoCargo: '',
     entregadoFirma: '',

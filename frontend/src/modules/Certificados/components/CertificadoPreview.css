@@ -1,0 +1,86 @@
+.certificado-preview__client-table {
+  table-layout: fixed;
+}
+
+.certificado-preview__client-label-column {
+  width: 39%;
+}
+
+.certificado-preview__client-table td:last-child {
+  min-width: 0;
+  overflow-wrap: anywhere;
+  word-break: break-word;
+  white-space: normal;
+}
+
+.certificado-preview__client-table td,
+.certificado-preview__client-table th {
+  vertical-align: top;
+}
+
+.certificado-preview__items-table {
+  table-layout: fixed;
+}
+
+.certificado-preview__item-number-column {
+  width: 9%;
+}
+
+.certificado-preview__item-quantity-column {
+  width: 14%;
+}
+
+.certificado-preview__item-notes-column {
+  width: 24%;
+}
+
+.certificado-preview__items-table td {
+  min-width: 0;
+  overflow-wrap: anywhere;
+  word-break: break-word;
+  white-space: normal;
+}
+
+.certificado-preview__signature {
+  width: min(55%, 340px);
+  margin: clamp(6px, 1.5cqw, 12px) auto 0;
+  text-align: center;
+}
+
+.certificado-preview__signature .certificado-preview__signature-image,
+.certificado-preview__signature .certificado-preview__stamp-image {
+  display: block;
+  width: auto;
+  max-width: 55%;
+  height: auto;
+  max-height: clamp(34px, 9cqw, 72px);
+  margin: 0 auto 4px;
+  object-fit: contain;
+}
+
+.certificado-preview__signature .certificado-preview__stamp-image {
+  max-width: 62%;
+  margin-top: 6px;
+}
+
+.certificado-preview__signature .certificado-preview__signature-image--preset {
+  max-width: 65%;
+  max-height: clamp(40px, 10.5cqw, 84px);
+}
+
+.certificado-preview__signature .certificado-preview__stamp-image--jdblab {
+  width: 4.5cm;
+  max-width: none;
+  height: 1.8cm;
+  max-height: none;
+}
+
+.certificado-preview__signature strong,
+.certificado-preview__signature em,
+.certificado-preview__signature span {
+  display: block;
+}
+
+.certificado-preview--export > .document-footer {
+  display: none;
+}

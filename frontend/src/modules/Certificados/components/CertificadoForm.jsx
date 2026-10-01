@@ -7,6 +7,7 @@ import { useClienteOptions } from '../../Clientes/hooks/useClienteOptions.js'
 import { useCatalogSearch } from '../../cotizacion/hooks/useCatalogSearch.js'
 import { fetchComponentes, fetchProductos } from '../../cotizacion/services/api/catalogoApi.js'
 import { addWarrantyYears, CERTIFICADO_STATUS, createEmptyCertificado } from '../domain/certificado.js'
+import { FIRMANTE_PRESETS } from '../../../shared/utils/firmantePresets.js'
 
 const { Text } = Typography
 
@@ -46,6 +47,14 @@ export default function CertificadoForm({ certificado, onCancel, onChange, onSav
     const cliente = clientes.find((item) => String(item.idCliente) === String(id))
     if (!cliente) return
     form.setFieldsValue({ clienteId: String(cliente.idCliente), clienteEntidad: cliente.institucion || cliente.nombreCompleto || '' })
+    onChange(form.getFieldsValue(true))
+  }
+
+  const selectFirmante = (empresaFirmante) => {
+    const preset = FIRMANTE_PRESETS[empresaFirmante]
+    if (!preset) return
+
+    form.setFieldsValue({ empresaFirmante, ...preset })
     onChange(form.getFieldsValue(true))
   }
 
@@ -159,7 +168,7 @@ export default function CertificadoForm({ certificado, onCancel, onChange, onSav
                 extra={fields.length > 1 ? <Button type="text" danger icon={<DeleteOutlined />} onClick={() => remove(field.name)} /> : null}
               >
                 <Row gutter={[12, 0]}>
-                  <Col xs={24} md={12}><Form.Item label="Descripción" name={[field.name, 'descripcion']} rules={[{ required: true, whitespace: true }]}><Input /></Form.Item></Col>
+                  <Col xs={24} md={12}><Form.Item label="Descripción" name={[field.name, 'descripcion']} rules={[{ required: true, whitespace: true }]}><Input.TextArea autoSize={{ minRows: 1, maxRows: 6 }} /></Form.Item></Col>
                   <Col xs={12} md={6}><Form.Item label="Marca" name={[field.name, 'marca']}><Input /></Form.Item></Col>
                   <Col xs={12} md={6}><Form.Item label="Modelo" name={[field.name, 'modelo']}><Input /></Form.Item></Col>
                   <Col xs={12} md={6}><Form.Item label="Cantidad" name={[field.name, 'cantidad']}><InputNumber min={1} style={{ width: '100%' }} /></Form.Item></Col>
@@ -179,10 +188,23 @@ export default function CertificadoForm({ certificado, onCancel, onChange, onSav
       </Form.Item>
 
       <Divider orientation="left" plain>Firma</Divider>
+      <Form.Item label="Empresa firmante" name="empresaFirmante">
+        <Segmented
+          block
+          options={[
+            { label: 'TecnoEquip', value: 'tecnoequip' },
+            { label: 'JDBlab', value: 'jdblab' },
+          ]}
+          onChange={selectFirmante}
+        />
+      </Form.Item>
       <Row gutter={[16, 0]}>
-        <Col xs={24} sm={12}><Form.Item label="Nombre del firmante" name="firmanteNombre"><Input /></Form.Item></Col>
-        <Col xs={24} sm={12}><Form.Item label="Cargo o descripción" name="firmanteCargo"><Input /></Form.Item></Col>
-        <Col xs={24}><Form.Item label="Imagen de firma" name="firmaImagen"><ImageDataUrlField label="Firma" /></Form.Item></Col>
+        <Col xs={24} sm={12}><Form.Item label="Nombre del firmante" name="firmanteNombre"><Input placeholder="Nombre completo" /></Form.Item></Col>
+        <Col xs={24} sm={12}><Form.Item label="Cargo o descripción" name="firmanteCargo"><Input placeholder="Cargo" /></Form.Item></Col>
+        <Col xs={24} sm={12}><Form.Item label="Documento de identidad" name="firmanteDocumento"><Input placeholder="CI 4513773" /></Form.Item></Col>
+        <Col xs={24} sm={12}><Form.Item label="Teléfono" name="firmanteTelefono"><Input placeholder="Cel. 70769521" /></Form.Item></Col>
+        <Col xs={24} sm={12}><Form.Item label="Firma" name="firmaImagen"><ImageDataUrlField label="Firma" /></Form.Item></Col>
+        <Col xs={24} sm={12}><Form.Item label="Sello o logotipo" name="selloImagen"><ImageDataUrlField label="Sello" /></Form.Item></Col>
       </Row>
 
       <div className="certificado-form__footer">

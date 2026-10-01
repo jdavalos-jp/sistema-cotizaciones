@@ -31,9 +31,13 @@ export function createEmptyCertificado() {
     fechaHasta: addWarrantyYears(fechaDesde, 1),
     items: [],
     condicionesHtml: DEFAULT_GUARANTEE_HTML,
+    empresaFirmante: undefined,
     firmanteNombre: '',
     firmanteCargo: 'JDBlab Equipamiento Didáctico y Técnico.',
+    firmanteDocumento: '',
+    firmanteTelefono: '',
     firmaImagen: '',
+    selloImagen: '',
     papel: 'a4',
     estado: CERTIFICADO_STATUS.DRAFT,
   }

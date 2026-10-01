@@ -1,0 +1,45 @@
+.nota-preview__product-cell img {
+  display: none;
+}
+
+.nota-preview__product-cell span {
+  white-space: pre-line;
+}
+
+.nota-preview__info-table {
+  table-layout: fixed;
+}
+
+.nota-preview__info-table th {
+  width: 34%;
+}
+
+.nota-preview__info-table td {
+  min-width: 0;
+  overflow-wrap: anywhere;
+  word-break: break-word;
+  white-space: normal;
+}
+
+.nota-preview__items-table th:nth-child(6) {
+  width: 13%;
+}
+
+.nota-preview__total-in-words th {
+  background: #80ddf4;
+  text-align: left;
+}
+
+/* The PDF canvas should capture only document content, not preview filler space. */
+.nota-preview--export {
+  min-height: 0;
+  font-size: 12px;
+}
+
+.nota-preview--export .nota-preview__signatures {
+  margin-top: 3cqw;
+}
+
+.nota-preview--export > .document-footer {
+  display: none;
+}
