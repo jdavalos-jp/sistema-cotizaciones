@@ -10,6 +10,10 @@ const { router: subcategoriasRouter } = require('../modules/subcategorias/subcat
 const { router: imagenesRouter } = require('../modules/imagenes/imagenes.routes');
 const { router: dashboardRouter } = require('../modules/dashboard/dashboard.routes');
 const { router: usuariosRouter } = require('../modules/usuarios/usuarios.routes');
+const { router: rotulosRouter } = require('../modules/rotulos/rotulos.routes');
+const { router: cartasRouter } = require('../modules/cartas/cartas.routes');
+const { router: certificadosRouter } = require('../modules/certificados/certificados.routes');
+const { router: notasRouter } = require('../modules/notas/notas.routes');
 const { verifyJwtToken } = require('../middlewares/auth.middleware');
 
 const router = express.Router();
@@ -28,6 +32,10 @@ router.use('/cotizaciones', cotizacionesRouter);
 router.use('/categorias', categoriasRouter);
 router.use('/subcategorias', subcategoriasRouter);
 router.use('/usuarios', usuariosRouter);
+router.use('/rotulos', rotulosRouter);
+router.use('/cartas', cartasRouter);
+router.use('/certificados', certificadosRouter);
+router.use('/notas', notasRouter);
 router.use(imagenesRouter);
 
 module.exports = { router };

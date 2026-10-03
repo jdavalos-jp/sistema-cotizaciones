@@ -145,6 +145,18 @@ async function uploadComponenteImage(file, idComponente) {
   };
 }
 
+async function uploadNotaSignature(file, idUsuario) {
+  validateImageFile(file);
+  await getImageMetadata(file);
+
+  const nombreArchivo = `${idUsuario}-${Date.now()}.webp`;
+  const rutaBucket = `notas/firmas/${nombreArchivo}`;
+  const imageOptimizada = await optimizeImage(file);
+  await uploadToBucket(rutaBucket, imageOptimizada);
+
+  return { urlImagen: getPublicUrl(rutaBucket) };
+}
+
 async function deleteImage(rutaBucket) {
   if (!rutaBucket) return;
 
@@ -194,6 +206,7 @@ module.exports = {
   uploadProductoImage,
   uploadCotizacionImage,
   uploadComponenteImage,
+  uploadNotaSignature,
   deleteImage,
   deleteImageByPublicUrl,
   deleteProductoImage,

@@ -17,18 +17,22 @@ model Usuario {
   estado              String?      @default("activo") @db.VarChar(20)
   fechaCreacion       DateTime?    @default(now()) @map("fecha_creacion") @db.Timestamp(6)
   cotizacionesCreadas Cotizacion[]
+  rotulosCreados      Rotulo[]
+  cartasCreadas       Carta[]
+  certificadosCreados Certificado[]
+  notasCreadas        Nota[]
 
   @@map("usuarios")
 }
 
 model Institucion {
-  idInstitucion   BigInt    @id @default(autoincrement()) @map("id_institucion")
-  nombre          String    @db.VarChar(200)
-  tipoInstitucion String?   @map("tipo_institucion") @db.VarChar(100)
+  idInstitucion   BigInt  @id @default(autoincrement()) @map("id_institucion")
+  nombre          String  @db.VarChar(200)
+  tipoInstitucion String? @map("tipo_institucion") @db.VarChar(100)
   direccion       String?
-  telefono        String?   @db.VarChar(30)
-  email           String?   @db.VarChar(150)
-  estado          String?   @default("activo") @db.VarChar(20)
+  telefono        String? @db.VarChar(30)
+  email           String? @db.VarChar(150)
+  estado          String? @default("activo") @db.VarChar(20)
 
   @@index([nombre], map: "idx_instituciones_nombre")
   @@index([estado], map: "idx_instituciones_estado")
@@ -47,11 +51,191 @@ model Cliente {
   observaciones  String?
   fechaCreacion  DateTime?    @default(now()) @map("fecha_creacion") @db.Timestamp(6)
   cotizaciones   Cotizacion[]
+  rotulos        Rotulo[]
+  cartas         Carta[]
+  certificados   Certificado[]
+  notas          Nota[]
 
   @@index([nombreCompleto], map: "idx_clientes_nombre")
   @@index([email], map: "idx_clientes_email")
   @@index([ciudad], map: "idx_clientes_ciudad")
   @@map("clientes")
+}
+
+model Carta {
+  idCarta            BigInt   @id @default(autoincrement()) @map("id_carta")
+  idCliente          BigInt?  @map("id_cliente")
+  ciudadFecha        String   @map("ciudad_fecha") @db.VarChar(100)
+  fecha              DateTime @db.Date
+  numero             String?  @db.VarChar(50)
+  tratamiento        String?  @db.VarChar(50)
+  destinatario       String   @db.VarChar(200)
+  cargoDestinatario  String?  @map("cargo_destinatario") @db.VarChar(150)
+  institucion        String?  @db.VarChar(150)
+  presente           String?  @db.VarChar(100)
+  referencia         String   @db.VarChar(300)
+  cuerpoHtml         String   @map("cuerpo_html") @db.Text
+  despedida          String?  @db.VarChar(100)
+  empresaFirmante    String?  @map("empresa_firmante") @db.VarChar(20)
+  firmanteNombre     String?  @map("firmante_nombre") @db.VarChar(200)
+  firmanteCargo      String?  @map("firmante_cargo") @db.VarChar(200)
+  firmanteDocumento  String?  @map("firmante_documento") @db.VarChar(50)
+  firmanteTelefono   String?  @map("firmante_telefono") @db.VarChar(30)
+  papel              String   @default("letter") @db.VarChar(10)
+  estado             String   @default("borrador") @db.VarChar(20)
+  idUsuarioCreador   BigInt?  @map("id_usuario_creador")
+  fechaCreacion      DateTime @default(now()) @map("fecha_creacion") @db.Timestamp(6)
+  fechaActualizacion DateTime @default(now()) @updatedAt @map("fecha_actualizacion") @db.Timestamp(6)
+
+  cliente        Cliente? @relation(fields: [idCliente], references: [idCliente], onDelete: SetNull, map: "fk_cartas_cliente")
+  usuarioCreador Usuario? @relation(fields: [idUsuarioCreador], references: [idUsuario], onDelete: SetNull, map: "fk_cartas_usuario")
+
+  @@index([idCliente], map: "idx_cartas_cliente")
+  @@index([idUsuarioCreador], map: "idx_cartas_usuario")
+  @@index([fechaActualizacion], map: "idx_cartas_fecha_actualizacion")
+  @@index([estado], map: "idx_cartas_estado")
+  @@map("cartas")
+}
+
+model Certificado {
+  idCertificado       BigInt            @id @default(autoincrement()) @map("id_certificado")
+  idCliente           BigInt?           @map("id_cliente")
+  idNotaOrigen        BigInt?           @map("id_nota_origen")
+  clienteEntidad      String             @map("cliente_entidad") @db.VarChar(250)
+  objetoContratacion  String             @map("objeto_contratacion") @db.Text
+  codigo              String             @db.VarChar(50)
+  revision            String?            @db.VarChar(20)
+  garantiaAnos        Int?               @map("garantia_anos") @db.SmallInt
+  fechaDesde          DateTime?          @map("fecha_desde") @db.Date
+  fechaHasta          DateTime?          @map("fecha_hasta") @db.Date
+  condicionesHtml     String?            @map("condiciones_html") @db.Text
+  empresaFirmante     String?            @map("empresa_firmante") @db.VarChar(20)
+  firmanteNombre      String?            @map("firmante_nombre") @db.VarChar(200)
+  firmanteCargo       String?            @map("firmante_cargo") @db.VarChar(200)
+  firmanteDocumento   String?            @map("firmante_documento") @db.VarChar(50)
+  firmanteTelefono    String?            @map("firmante_telefono") @db.VarChar(30)
+  papel               String             @default("a4") @db.VarChar(10)
+  estado              String             @default("borrador") @db.VarChar(20)
+  idUsuarioCreador    BigInt?           @map("id_usuario_creador")
+  fechaCreacion       DateTime           @default(now()) @map("fecha_creacion") @db.Timestamp(6)
+  fechaActualizacion  DateTime           @default(now()) @updatedAt @map("fecha_actualizacion") @db.Timestamp(6)
+
+  cliente        Cliente?           @relation(fields: [idCliente], references: [idCliente], onDelete: SetNull, map: "fk_certificados_cliente")
+  notaOrigen     Nota?              @relation(fields: [idNotaOrigen], references: [idNota], onDelete: SetNull, map: "fk_certificados_nota_origen")
+  usuarioCreador Usuario?           @relation(fields: [idUsuarioCreador], references: [idUsuario], onDelete: SetNull, map: "fk_certificados_usuario")
+  items          CertificadoItem[]
+
+  @@index([idCliente], map: "idx_certificados_cliente")
+  @@index([idNotaOrigen], map: "idx_certificados_nota_origen")
+  @@index([idUsuarioCreador], map: "idx_certificados_usuario")
+  @@index([fechaActualizacion], map: "idx_certificados_fecha_actualizacion")
+  @@index([estado], map: "idx_certificados_estado")
+  @@map("certificados")
+}
+
+model CertificadoItem {
+  idItem         BigInt       @id @default(autoincrement()) @map("id_item")
+  idCertificado  BigInt       @map("id_certificado")
+  tipoCatalogo   String       @map("tipo_catalogo") @db.VarChar(20)
+  idProducto     BigInt?      @map("id_producto")
+  idComponente   BigInt?      @map("id_componente")
+  descripcion    String       @db.VarChar(300)
+  marca          String?      @db.VarChar(150)
+  modelo         String?      @db.VarChar(150)
+  cantidad       Int
+  aclaraciones   String?      @db.VarChar(250)
+  ordenVisual    Int          @map("orden")
+
+  certificado Certificado @relation(fields: [idCertificado], references: [idCertificado], onDelete: Cascade, map: "fk_certificado_items_certificado")
+  producto    Producto?    @relation(fields: [idProducto], references: [idProducto], onDelete: SetNull, map: "fk_certificado_items_producto")
+  componente  Componente?  @relation(fields: [idComponente], references: [idComponente], onDelete: SetNull, map: "fk_certificado_items_componente")
+
+  @@index([idCertificado], map: "idx_certificado_items_certificado")
+  @@index([idProducto], map: "idx_certificado_items_producto")
+  @@index([idComponente], map: "idx_certificado_items_componente")
+  @@map("certificado_items")
+}
+
+model Nota {
+  idNota                BigInt     @id @default(autoincrement()) @map("id_nota")
+  idCliente             BigInt?    @map("id_cliente")
+  codigo                String?    @db.VarChar(50)
+  revision              String?    @db.VarChar(20)
+  numero                String?    @db.VarChar(50)
+  clienteEntidad        String     @map("cliente_entidad") @db.VarChar(250)
+  institucion           String?    @db.VarChar(200)
+  objetoContratacion    String?    @map("objeto_contratacion") @db.Text
+  lugarEntrega          String?    @map("lugar_entrega") @db.VarChar(250)
+  fechaEntrega          DateTime?  @map("fecha_entrega") @db.Date
+  introduccion          String?    @db.Text
+  empresaEntregadoPor   String?    @map("empresa_entregado_por") @db.VarChar(20)
+  entregadoNombre       String?    @map("entregado_nombre") @db.VarChar(200)
+  entregadoCargo        String?    @map("entregado_cargo") @db.VarChar(200)
+  entregadoFirmaUrl     String?    @map("entregado_firma_url") @db.Text
+  recibidoNombre        String?    @map("recibido_nombre") @db.VarChar(200)
+  recibidoCargo         String?    @map("recibido_cargo") @db.VarChar(200)
+  recibidoFirmaUrl      String?    @map("recibido_firma_url") @db.Text
+  papel                 String     @default("letter") @db.VarChar(10)
+  estado                String     @default("borrador") @db.VarChar(20)
+  idUsuarioCreador      BigInt?    @map("id_usuario_creador")
+  fechaCreacion         DateTime   @default(now()) @map("fecha_creacion") @db.Timestamp(6)
+  fechaActualizacion    DateTime   @default(now()) @updatedAt @map("fecha_actualizacion") @db.Timestamp(6)
+
+  cliente        Cliente? @relation(fields: [idCliente], references: [idCliente], onDelete: SetNull, map: "fk_notas_cliente")
+  usuarioCreador Usuario? @relation(fields: [idUsuarioCreador], references: [idUsuario], onDelete: SetNull, map: "fk_notas_usuario")
+  items          NotaItem[]
+  certificadosOrigen Certificado[]
+
+  @@index([idCliente], map: "idx_notas_cliente")
+  @@index([idUsuarioCreador], map: "idx_notas_usuario")
+  @@index([fechaActualizacion], map: "idx_notas_fecha_actualizacion")
+  @@index([estado], map: "idx_notas_estado")
+  @@map("notas")
+}
+
+model NotaItem {
+  idItem         BigInt   @id @default(autoincrement()) @map("id_item")
+  idNota         BigInt   @map("id_nota")
+  tipoCatalogo   String   @map("tipo_catalogo") @db.VarChar(20)
+  idProducto     BigInt?  @map("id_producto")
+  idComponente   BigInt?  @map("id_componente")
+  nombre         String   @db.VarChar(250)
+  descripcion    String?  @db.Text
+  codigo         String?  @db.VarChar(100)
+  numeroSerie    String?  @map("numero_serie") @db.VarChar(150)
+  cantidad       Int
+  precioUnitario Decimal  @map("precio_unitario") @db.Decimal(12, 2)
+  ordenVisual    Int      @map("orden")
+
+  nota       Nota       @relation(fields: [idNota], references: [idNota], onDelete: Cascade, map: "fk_nota_items_nota")
+  producto   Producto?  @relation(fields: [idProducto], references: [idProducto], onDelete: SetNull, map: "fk_nota_items_producto")
+  componente Componente? @relation(fields: [idComponente], references: [idComponente], onDelete: SetNull, map: "fk_nota_items_componente")
+
+  @@index([idNota], map: "idx_nota_items_nota")
+  @@index([idProducto], map: "idx_nota_items_producto")
+  @@index([idComponente], map: "idx_nota_items_componente")
+  @@map("nota_items")
+}
+
+model Rotulo {
+  idRotulo           BigInt   @id @default(autoincrement()) @map("id_rotulo")
+  idCliente          BigInt   @map("id_cliente")
+  nombre             String   @db.VarChar(200)
+  cargo              String?  @db.VarChar(150)
+  correo             String?  @db.VarChar(150)
+  telefono           String?  @db.VarChar(30)
+  ciudad             String?  @db.VarChar(100)
+  tamanoPapel        String   @default("letter") @map("tamano_papel") @db.VarChar(10)
+  idUsuarioCreador   BigInt?  @map("id_usuario_creador")
+  fechaCreacion      DateTime @default(now()) @map("fecha_creacion") @db.Timestamp(6)
+  fechaActualizacion DateTime @default(now()) @updatedAt @map("fecha_actualizacion") @db.Timestamp(6)
+
+  cliente        Cliente  @relation(fields: [idCliente], references: [idCliente], onDelete: Restrict, map: "fk_rotulos_cliente")
+  usuarioCreador Usuario? @relation(fields: [idUsuarioCreador], references: [idUsuario], onDelete: SetNull, map: "fk_rotulos_usuario")
+
+  @@index([idCliente], map: "idx_rotulos_cliente")
+  @@index([fechaCreacion], map: "idx_rotulos_fecha_creacion")
+  @@map("rotulos")
 }
 
 model Categoria {
@@ -91,6 +275,8 @@ model Producto {
   estado         String?              @default("activo") @db.VarChar(20)
   cotizaciones   CotizacionProducto[]
   componentes    ProductoComponente[]
+  certificadoItems CertificadoItem[]
+  notaItems       NotaItem[]
   imagenes       ProductoImagen[]
   categoria      Categoria?           @relation(fields: [idCategoria], references: [idCategoria], onUpdate: NoAction, map: "fk_productos_categoria")
   subcategoria   Subcategoria?        @relation(fields: [idSubcategoria], references: [idSubcategoria], onUpdate: NoAction, map: "fk_productos_subcategoria")
@@ -102,22 +288,22 @@ model Producto {
 }
 
 model ProductoImagen {
-  idImagen      BigInt    @id @default(autoincrement()) @map("id_imagen")
-  idProducto    BigInt    @map("id_producto")
-  
+  idImagen   BigInt @id @default(autoincrement()) @map("id_imagen")
+  idProducto BigInt @map("id_producto")
+
   // File info
-  urlImagen     String    @map("url_imagen")
-  rutaBucket    String?   @map("ruta_bucket")
-  
+  urlImagen  String  @map("url_imagen")
+  rutaBucket String? @map("ruta_bucket")
+
   // Metadata
-  orden         Int?      @default(1)
-  principal     Boolean?  @default(false)
-  
+  orden     Int?     @default(1)
+  principal Boolean? @default(false)
+
   // Control
   estado        String?   @default("activo") @db.VarChar(20)
   fechaCreacion DateTime? @default(now()) @map("fecha_creacion") @db.Timestamp(6)
-  
-  producto      Producto  @relation(fields: [idProducto], references: [idProducto], onDelete: Cascade, onUpdate: NoAction, map: "fk_producto_imagenes_producto")
+
+  producto Producto @relation(fields: [idProducto], references: [idProducto], onDelete: Cascade, onUpdate: NoAction, map: "fk_producto_imagenes_producto")
 
   @@index([idProducto], map: "idx_producto_imagenes_producto")
   @@index([principal], map: "idx_producto_imagenes_principal")
@@ -125,21 +311,21 @@ model ProductoImagen {
 }
 
 model ComponenteImagen {
-  idImagen      BigInt    @id @default(autoincrement()) @map("id_imagen")
-  idComponente  BigInt    @map("id_componente")
-  
+  idImagen     BigInt @id @default(autoincrement()) @map("id_imagen")
+  idComponente BigInt @map("id_componente")
+
   // File info
-  urlImagen     String    @map("url_imagen")
-  
+  urlImagen String @map("url_imagen")
+
   // Metadata
-  orden         Int?      @default(1)
-  principal     Boolean?  @default(false)
-  
+  orden     Int?     @default(1)
+  principal Boolean? @default(false)
+
   // Control
   estado        String?   @default("activo") @db.VarChar(20)
   fechaCreacion DateTime? @default(now()) @map("fecha_creacion") @db.Timestamp(6)
-  
-  componente    Componente @relation(fields: [idComponente], references: [idComponente], onDelete: Cascade, onUpdate: NoAction, map: "fk_componente_imagenes_componente")
+
+  componente Componente @relation(fields: [idComponente], references: [idComponente], onDelete: Cascade, onUpdate: NoAction, map: "fk_componente_imagenes_componente")
 
   @@index([idComponente], map: "idx_componente_imagenes_componente")
   @@index([principal], map: "idx_componente_imagenes_principal")
@@ -156,6 +342,8 @@ model Componente {
   cotizaciones CotizacionComponente[]
   productos    ProductoComponente[]
   imagenes     ComponenteImagen[]
+  certificadoItems CertificadoItem[]
+  notaItems       NotaItem[]
 
   @@index([sku], map: "idx_componentes_sku")
   @@index([estado], map: "idx_componentes_estado")
@@ -215,7 +403,7 @@ model Cotizacion {
   numeroCotizacion    String                 @unique @map("numero_cotizacion") @db.VarChar(50)
   idCliente           BigInt                 @map("id_cliente")
   fechaEmision        DateTime               @default(dbgenerated("CURRENT_DATE")) @map("fecha_emision") @db.Date
-  fechaValidez        DateTime?              @map("fecha_validez") @db.Date @default(dbgenerated("CURRENT_DATE + INTERVAL '10 days'"))
+  fechaValidez        DateTime?              @default(dbgenerated("CURRENT_DATE + INTERVAL '10 days'")) @map("fecha_validez") @db.Date
   diasEntrega         Int?                   @default(5) @map("dias_entrega")
   estado              String?                @default("borrador") @db.VarChar(50)
   subtotal            Int?                   @default(0)
@@ -302,22 +490,22 @@ model CotizacionComponente {
 }
 
 model CotizacionImagen {
-  idImagen        BigInt    @id @default(autoincrement()) @map("id_imagen")
-  idCotizacion    BigInt    @map("id_cotizacion")
-  
-  nombreArchivo   String    @db.VarChar(255) @map("nombre_archivo")
-  rutaBucket      String    @db.VarChar(255) @map("ruta_bucket")
-  urlImagen       String    @db.Text @map("url_imagen")
-  
-  tipo            String    @db.VarChar(50)
-  descripcion     String?   @db.VarChar(500)
-  tamanio         Int?      @map("tamanio")
-  
-  orden           Int?      @default(1)
-  estado          String?   @default("activo") @db.VarChar(20)
-  fechaCreacion   DateTime? @default(now())    @map("fecha_creacion")
-  
-  cotizacion      Cotizacion @relation(fields: [idCotizacion], references: [idCotizacion], onDelete: Cascade, onUpdate: NoAction, map: "fk_cotizacion_imagenes_cotizacion")
+  idImagen     BigInt @id @default(autoincrement()) @map("id_imagen")
+  idCotizacion BigInt @map("id_cotizacion")
+
+  nombreArchivo String @map("nombre_archivo") @db.VarChar(255)
+  rutaBucket    String @map("ruta_bucket") @db.VarChar(255)
+  urlImagen     String @map("url_imagen") @db.Text
+
+  tipo        String  @db.VarChar(50)
+  descripcion String? @db.VarChar(500)
+  tamanio     Int?    @map("tamanio")
+
+  orden         Int?      @default(1)
+  estado        String?   @default("activo") @db.VarChar(20)
+  fechaCreacion DateTime? @default(now()) @map("fecha_creacion")
+
+  cotizacion Cotizacion @relation(fields: [idCotizacion], references: [idCotizacion], onDelete: Cascade, onUpdate: NoAction, map: "fk_cotizacion_imagenes_cotizacion")
 
   @@index([idCotizacion], map: "idx_cotizacion_imagenes_cotizacion")
   @@map("cotizacion_imagenes")
@@ -336,15 +524,14 @@ model SolicitudCotizacionWeb {
 }
 
 model Settings {
-  idSetting  BigInt   @id @default(1) @map("id_setting")
-  brandName  String   @default("EQUIPAMIENTO EDUCATIVO Y DE INGENIERÍA") @db.VarChar(200) @map("brand_name")
-  brandEmail String   @default("servicios@tecnoequip.com.bo") @db.VarChar(150) @map("brand_email")
-  brandPhone String   @default("(4)4292937") @db.VarChar(30) @map("brand_phone")
-  brandPhone2 String  @default("70769521") @db.VarChar(30) @map("brand_phone2")
+  idSetting    BigInt @id @default(1) @map("id_setting")
+  brandName    String @default("EQUIPAMIENTO EDUCATIVO Y DE INGENIERÍA") @map("brand_name") @db.VarChar(200)
+  brandEmail   String @default("servicios@tecnoequip.com.bo") @map("brand_email") @db.VarChar(150)
+  brandPhone   String @default("(4)4292937") @map("brand_phone") @db.VarChar(30)
+  brandPhone2  String @default("70769521") @map("brand_phone2") @db.VarChar(30)
   brandAddress String @default("Av. Circumvalación entre Vaticano y C.F. Pérez Saavedra") @map("brand_address")
-  brandWebsite String @default("www.jdblab.com.bo") @db.VarChar(100) @map("brand_website")
-  brandTagline String @default("") @db.VarChar(200) @map("brand_tagline")
+  brandWebsite String @default("www.jdblab.com.bo") @map("brand_website") @db.VarChar(100)
+  brandTagline String @default("") @map("brand_tagline") @db.VarChar(200)
 
   @@map("settings")
 }
-

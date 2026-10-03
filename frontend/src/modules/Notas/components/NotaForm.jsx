@@ -96,7 +96,7 @@ export default function NotaForm({ nota, onCancel, onChange, onSave }) {
   const submit = async (estado) => {
     try {
       const values = await form.validateFields()
-      onSave({ ...values, estado })
+      await onSave({ ...values, estado })
     } catch {
       // Ant Design muestra los errores en cada campo.
     }
@@ -164,7 +164,7 @@ export default function NotaForm({ nota, onCancel, onChange, onSave }) {
                 </Row>
               </Card>
             ))}
-            <Button block type="dashed" icon={<PlusOutlined />} onClick={() => add({ nombre: '', descripcion: '', codigo: '', numeroSerie: '', cantidad: 1, precioUnitario: 0 })}>Agregar ítem manual</Button>
+            <Button block type="dashed" icon={<PlusOutlined />} onClick={() => add({ catalogoTipo: 'producto', nombre: '', descripcion: '', codigo: '', numeroSerie: '', cantidad: 1, precioUnitario: 0 })}>Agregar ítem manual</Button>
             <Form.ErrorList errors={errors} />
           </Space>
         )}
@@ -199,7 +199,7 @@ export default function NotaForm({ nota, onCancel, onChange, onSave }) {
       </Row>
 
       <div className="nota-form__footer">
-        <Text type="secondary">Las notas se guardan localmente en este navegador.</Text>
+        <Text type="secondary">Las notas se guardan de forma segura en el sistema.</Text>
         <Space wrap className="nota-form__actions">
           {nota?.id && <Button icon={<CloseOutlined />} onClick={onCancel}>Cancelar edición</Button>}
           <Button icon={<SaveOutlined />} onClick={() => submit(NOTA_STATUS.DRAFT)}>Guardar borrador</Button>

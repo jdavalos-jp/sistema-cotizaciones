@@ -117,4 +117,3 @@ export async function downloadCertificadoWord(certificado, logoSource) {
   })
   download(await docx.Packer.toBlob(file), `${safeCertificateFileName(certificado.codigo)}.docx`)
 }
-

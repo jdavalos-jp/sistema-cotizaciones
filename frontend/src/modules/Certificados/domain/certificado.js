@@ -67,6 +67,7 @@ export function duplicateCertificado(certificado) {
   return {
     ...normalizeCertificado(certificado),
     id: undefined,
+    idNotaOrigen: undefined,
     estado: CERTIFICADO_STATUS.DRAFT,
     createdAt: undefined,
     updatedAt: undefined,

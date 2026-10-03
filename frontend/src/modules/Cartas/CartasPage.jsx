@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
-import { Button, Card, message, Modal, Segmented, Space, Typography } from 'antd'
+import { Alert, Button, Card, message, Modal, Segmented, Space, Spin, Typography } from 'antd'
 import {
   DownloadOutlined,
   FilePdfOutlined,
@@ -19,7 +19,7 @@ import './cartas.css'
 const { Title, Text } = Typography
 
 export default function CartasPage() {
-  const { cartas, saveCarta, deleteCarta } = useCartas()
+  const { cartas, loading, error, saveCarta, deleteCarta } = useCartas()
   const [activeView, setActiveView] = useState('crear')
   const [editingCarta, setEditingCarta] = useState(null)
   const [formCarta, setFormCarta] = useState(createEmptyCarta)
@@ -40,8 +40,8 @@ export default function CartasPage() {
     const exportPdf = async () => {
       try {
         await downloadCartaPdf(pdfQueue, pdfPreviewRef.current)
-      } catch (error) {
-        message.error(error.message || 'No se pudo generar el PDF')
+      } catch (exportError) {
+        message.error(exportError.message || 'No se pudo generar el PDF')
       } finally {
         if (active) setPdfQueue(null)
       }
@@ -58,14 +58,14 @@ export default function CartasPage() {
     setDraft(empty)
   }, [])
 
-  const handleSave = (values) => {
+  const handleSave = async (values) => {
     try {
-      const saved = saveCarta(values, editingCarta?.id)
+      const saved = await saveCarta(values, editingCarta?.id)
       message.success(saved.estado === 'finalizada' ? 'Carta finalizada' : 'Borrador guardado')
       resetEditor()
       setActiveView('historial')
-    } catch (error) {
-      message.error(error.message || 'No se pudo guardar la carta')
+    } catch (saveError) {
+      message.error(saveError.message || 'No se pudo guardar la carta')
     }
   }
 
@@ -85,18 +85,22 @@ export default function CartasPage() {
     message.info('Se creó una copia editable de la carta')
   }
 
-  const handleDelete = (id) => {
-    deleteCarta(id)
-    if (editingCarta?.id === id) resetEditor()
-    message.success('Carta eliminada')
+  const handleDelete = async (id) => {
+    try {
+      await deleteCarta(id)
+      if (editingCarta?.id === id) resetEditor()
+      message.success('Carta eliminada')
+    } catch (deleteError) {
+      message.error(deleteError.message || 'No se pudo eliminar la carta')
+    }
   }
 
   const handleWord = async (carta) => {
     setWordExporting(true)
     try {
       await downloadCartaWord(carta)
-    } catch (error) {
-      message.error(error.message || 'No se pudo generar el documento Word')
+    } catch (exportError) {
+      message.error(exportError.message || 'No se pudo generar el documento Word')
     } finally {
       setWordExporting(false)
     }
@@ -123,6 +127,16 @@ export default function CartasPage() {
           ]}
         />
       </header>
+
+      {error && (
+        <Alert
+          className="cartas-page__alert"
+          type="error"
+          showIcon
+          message="No se pudieron sincronizar las cartas"
+          description={error.message}
+        />
+      )}
 
       {activeView === 'crear' ? (
         <div className="cartas-create-grid">
@@ -168,15 +182,17 @@ export default function CartasPage() {
         </div>
       ) : (
         <Card className="cartas-history-card" title="Historial de cartas" variant="borderless">
-          <CartasHistory
-            cartas={cartas}
-            onDelete={handleDelete}
-            onDuplicate={handleDuplicate}
-            onEdit={handleEdit}
-            onPdf={setPdfQueue}
-            onView={setViewingCarta}
-            onWord={handleWord}
-          />
+          <Spin spinning={loading}>
+            <CartasHistory
+              cartas={cartas}
+              onDelete={handleDelete}
+              onDuplicate={handleDuplicate}
+              onEdit={handleEdit}
+              onPdf={setPdfQueue}
+              onView={setViewingCarta}
+              onWord={handleWord}
+            />
+          </Spin>
         </Card>
       )}
 

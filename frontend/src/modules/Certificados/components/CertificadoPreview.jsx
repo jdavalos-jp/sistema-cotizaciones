@@ -51,7 +51,7 @@ const CertificadoPreview = forwardRef(function CertificadoPreview({ certificado 
               <td>{index + 1}</td>
               <td>
                 <strong>{item.descripcion || 'DESCRIPCIÓN DEL EQUIPO'}</strong>
-                {(item.marca || item.modelo) && <em>MARCA: <strong>{item.marca || '-'}</strong> &nbsp; MODELO: {item.modelo || '-'}</em>}
+                {(item.marca || item.modelo) && <><br /><em>MARCA: <strong>{item.marca || '-'}</strong> &nbsp; MODELO: {item.modelo || '-'}</em></>}
               </td>
               <td>{item.cantidad}</td>
               <td><strong>{item.aclaraciones}</strong></td>

@@ -1,5 +1,5 @@
 import { useCallback, useState } from 'react'
-import { Button, Card, message, Segmented, Space, Typography } from 'antd'
+import { Alert, Button, Card, message, Segmented, Space, Spin, Typography } from 'antd'
 import { HistoryOutlined, PlusOutlined } from '@ant-design/icons'
 import rotuloImage from '../../../images/imgenRotulo.webp'
 import RotuloForm from './components/RotuloForm.jsx'
@@ -13,7 +13,7 @@ const { Title, Text } = Typography
 const EMPTY_ROTULO = { clienteId: undefined, nombre: '', cargo: '', correo: '', telefono: '', ciudad: '' }
 
 export default function RotulosPage() {
-  const { rotulos, saveRotulo, deleteRotulo } = useRotulos()
+  const { rotulos, loading, error, saveRotulo, deleteRotulo } = useRotulos()
   const [activeView, setActiveView] = useState('crear')
   const [editingRotulo, setEditingRotulo] = useState(null)
   const [draft, setDraft] = useState(EMPTY_ROTULO)
@@ -21,34 +21,44 @@ export default function RotulosPage() {
 
   const handleDraftChange = useCallback((values) => setDraft({ ...EMPTY_ROTULO, ...values }), [])
 
-  const handleSave = (values) => {
-    saveRotulo(values, editingRotulo?.id)
-    message.success(editingRotulo ? 'Rótulo actualizado' : 'Rótulo creado')
-    setEditingRotulo(null)
-    setActiveView('historial')
+  const handleSave = async (values) => {
+    try {
+      await saveRotulo({ ...values, paperSize }, editingRotulo?.id)
+      message.success(editingRotulo ? 'Rótulo actualizado' : 'Rótulo creado')
+      setEditingRotulo(null)
+      setActiveView('historial')
+    } catch (requestError) {
+      message.error(requestError.message || 'No se pudo guardar el rótulo')
+    }
   }
 
   const handleEdit = (rotulo) => {
     setEditingRotulo(rotulo)
+    setPaperSize(rotulo.paperSize || 'letter')
     setActiveView('crear')
   }
 
   const handleCancelEdit = () => {
     setEditingRotulo(null)
     setDraft(EMPTY_ROTULO)
+    setPaperSize('letter')
   }
 
-  const handleDelete = (id) => {
-    deleteRotulo(id)
-    if (editingRotulo?.id === id) handleCancelEdit()
-    message.success('Rótulo eliminado')
+  const handleDelete = async (id) => {
+    try {
+      await deleteRotulo(id)
+      if (editingRotulo?.id === id) handleCancelEdit()
+      message.success('Rótulo eliminado')
+    } catch (requestError) {
+      message.error(requestError.message || 'No se pudo eliminar el rótulo')
+    }
   }
 
   const handleDownload = async (rotulo) => {
     try {
-      await downloadRotuloPdf(rotulo, rotuloImage, paperSize)
-    } catch (error) {
-      message.error(error.message || 'No se pudo generar el PDF')
+      await downloadRotuloPdf(rotulo, rotuloImage, rotulo.paperSize || paperSize)
+    } catch (requestError) {
+      message.error(requestError.message || 'No se pudo generar el PDF')
     }
   }
 
@@ -73,6 +83,16 @@ export default function RotulosPage() {
           ]}
         />
       </div>
+
+      {error && (
+        <Alert
+          className="rotulos-page__alert"
+          type="error"
+          showIcon
+          message="No se pudieron sincronizar los rótulos"
+          description={error.message}
+        />
+      )}
 
       {activeView === 'crear' ? (
         <div className="rotulos-create-grid">
@@ -111,7 +131,7 @@ export default function RotulosPage() {
               className="rotulos-download-button"
               block
               disabled={!draft.nombre?.trim()}
-              onClick={() => handleDownload(draft)}
+              onClick={() => handleDownload({ ...draft, paperSize })}
             >
               Descargar vista previa en PDF
             </Button>
@@ -136,12 +156,14 @@ export default function RotulosPage() {
           )}
           variant="borderless"
         >
-          <RotulosHistory
-            rotulos={rotulos}
-            onDelete={handleDelete}
-            onDownload={handleDownload}
-            onEdit={handleEdit}
-          />
+          <Spin spinning={loading}>
+            <RotulosHistory
+              rotulos={rotulos}
+              onDelete={handleDelete}
+              onDownload={handleDownload}
+              onEdit={handleEdit}
+            />
+          </Spin>
         </Card>
       )}
     </div>

@@ -84,7 +84,7 @@ export default function CertificadoForm({ certificado, onCancel, onChange, onSav
   const submit = async (estado) => {
     try {
       const values = await form.validateFields()
-      onSave({ ...values, estado })
+      await onSave({ ...values, estado })
     } catch {
       // Los errores se muestran junto a los campos.
     }
@@ -176,7 +176,7 @@ export default function CertificadoForm({ certificado, onCancel, onChange, onSav
                 </Row>
               </Card>
             ))}
-            <Button block type="dashed" icon={<PlusOutlined />} onClick={() => add({ descripcion: '', marca: 'JDBlab', modelo: '', cantidad: 1, aclaraciones: 'NUEVO' })}>Agregar ítem</Button>
+            <Button block type="dashed" icon={<PlusOutlined />} onClick={() => add({ catalogoTipo: 'producto', descripcion: '', marca: 'JDBlab', modelo: '', cantidad: 1, aclaraciones: 'NUEVO' })}>Agregar ítem</Button>
             <Form.ErrorList errors={errors} />
           </Space>
         )}
@@ -208,7 +208,7 @@ export default function CertificadoForm({ certificado, onCancel, onChange, onSav
       </Row>
 
       <div className="certificado-form__footer">
-        <Text type="secondary">Los certificados se guardan localmente en este navegador.</Text>
+        <Text type="secondary">Los certificados se guardan de forma segura en el sistema.</Text>
         <Space wrap className="certificado-form__actions">
           {certificado?.id && <Button icon={<CloseOutlined />} onClick={onCancel}>Cancelar edición</Button>}
           <Button icon={<SaveOutlined />} onClick={() => submit(CERTIFICADO_STATUS.DRAFT)}>Guardar borrador</Button>
